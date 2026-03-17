@@ -1,0 +1,248 @@
+// prisma/schema.prisma
+// LBC — Lekki Business Connect Database Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── ENUMS ──────────────────────────────────────────────────
+
+enum Role {
+  BUYER
+  VENDOR
+  ADMIN
+}
+
+enum ListingType {
+  physical
+  digital
+  service
+}
+
+enum ListingStatus {
+  draft
+  live
+  unpublished
+  pending_review
+}
+
+enum BoostTarget {
+  listing
+  store
+}
+
+enum BoostPlan {
+  weekly
+  monthly
+  premium
+}
+
+enum BoostStatus {
+  pending
+  active
+  expired
+  cancelled
+}
+
+enum PaymentStatus {
+  pending
+  successful
+  failed
+}
+
+// ── USER ──────────────────────────────────────────────────
+
+model User {
+  id              String    @id @default(uuid())
+  name            String
+  email           String    @unique
+  password        String
+  phone           String?
+  role            Role      @default(BUYER)
+  emailVerified   Boolean   @default(false)
+  phoneVerified   Boolean   @default(false)
+  emailOtp        String?
+  emailOtpExpiry  DateTime?
+  phoneOtp        String?
+  phoneOtpExpiry  DateTime?
+  refreshToken    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  store           Store?
+  wishlist        Wishlist[]
+  notifications   NotificationPref?
+
+  @@map("users")
+}
+
+// ── STORE ─────────────────────────────────────────────────
+
+model Store {
+  id          String    @id @default(uuid())
+  userId      String    @unique
+  bizName     String
+  slug        String    @unique
+  category    String
+  location    String
+  bizPhone    String?
+  bizEmail    String?
+  whatsapp    String?
+  bizDesc     String?   @db.Text
+  logo        String?   // Cloudinary URL
+  banner      String?   // Cloudinary URL
+  accentColor String?
+  verified    Boolean   @default(false)
+  sponsored   Boolean   @default(false)
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listings    Listing[]
+  boosts      Boost[]
+  analytics   StoreAnalytic[]
+
+  @@map("stores")
+}
+
+// ── LISTING ───────────────────────────────────────────────
+
+model Listing {
+  id          String        @id @default(uuid())
+  storeId     String
+  title       String
+  price       Float
+  type        ListingType
+  category    String
+  location    String?
+  description String?       @db.Text
+  mainImage   String?       // Cloudinary URL
+  images      String[]      // array of Cloudinary URLs
+  status      ListingStatus @default(draft)
+  sponsored   Boolean       @default(false)
+  views       Int           @default(0)
+  waClicks    Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  store       Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  boosts      Boost[]
+  analytics   ListingAnalytic[]
+
+  @@map("listings")
+}
+
+// ── BOOST ─────────────────────────────────────────────────
+
+model Boost {
+  id              String      @id @default(uuid())
+  storeId         String
+  listingId       String?
+  target          BoostTarget
+  plan            BoostPlan
+  amount          Float
+  paystackRef     String?     @unique
+  paymentStatus   PaymentStatus @default(pending)
+  status          BoostStatus   @default(pending)
+  startDate       DateTime?
+  endDate         DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  store           Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  listing         Listing?    @relation(fields: [listingId], references: [id])
+
+  @@map("boosts")
+}
+
+// ── ANALYTICS ─────────────────────────────────────────────
+
+model StoreAnalytic {
+  id        String   @id @default(uuid())
+  storeId   String
+  event     String   // "view" | "wa_click" | "phone_reveal"
+  source    String?  // "home" | "search" | "direct"
+  createdAt DateTime @default(now())
+
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@map("store_analytics")
+}
+
+model ListingAnalytic {
+  id        String   @id @default(uuid())
+  listingId String
+  event     String   // "view" | "wa_click" | "phone_reveal"
+  source    String?
+  createdAt DateTime @default(now())
+
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@map("listing_analytics")
+}
+
+// ── WISHLIST ──────────────────────────────────────────────
+
+model Wishlist {
+  id        String   @id @default(uuid())
+  userId    String
+  listingId String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listingId])
+  @@map("wishlists")
+}
+
+// ── NOTIFICATION PREFERENCES ──────────────────────────────
+
+model NotificationPref {
+  id            String  @id @default(uuid())
+  userId        String  @unique
+  emailNotif    Boolean @default(true)
+  smsAlert      Boolean @default(true)
+  browserNotif  Boolean @default(false)
+  waLeads       Boolean @default(true)
+  boostExpiry   Boolean @default(true)
+  weeklyReport  Boolean @default(true)
+
+  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_prefs")
+}
+
+// ── REPORT ────────────────────────────────────────────────
+
+model Report {
+  id          String   @id @default(uuid())
+  storeId     String?
+  storeName   String
+  reason      String
+  details     String   @db.Text
+  reporterEmail String?
+  resolved    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@map("reports")
+}
+
+// ── CONTACT MESSAGE ───────────────────────────────────────
+
+model ContactMessage {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  subject   String
+  message   String   @db.Text
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("contact_messages")
+}
