@@ -5,6 +5,7 @@ const express    = require('express');
 const helmet     = require('helmet');
 const cors       = require('cors');
 const rateLimit  = require('express-rate-limit');
+const { sanitizeRequest } = require('./middleware/sanitize');
 
 const app = express();
 
@@ -14,10 +15,12 @@ app.use(helmet());
 app.use(cors({
   origin: [
     process.env.FRONTEND_URL,
+    process.env.FRONTEND_URL_PROD,
+    process.env.FRONTEND_URL_STAGING,
     'http://localhost:3000',
     'http://localhost:5500',
     'http://127.0.0.1:5500',
-  ],
+  ].filter(Boolean),
   credentials: true,
 }));
 
@@ -50,6 +53,30 @@ app.use('/api/boosts/webhook', express.raw({ type: 'application/json' }), (req, 
 // ── BODY PARSING ──────────────────────────────────────────
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(sanitizeRequest);
+
+// ── SECRET HEALTH CHECKS ─────────────────────────────────
+const checkSecret = (name, value) => {
+  if (!value) {
+    const message = `${name} is not set`;
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(message);
+    }
+    console.warn(`[SECURITY WARNING] ${message}`);
+    return;
+  }
+
+  if (value.length < 32) {
+    const message = `${name} should be at least 32 characters`;
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(message);
+    }
+    console.warn(`[SECURITY WARNING] ${message}`);
+  }
+};
+
+checkSecret('ACCESS_TOKEN_SECRET', process.env.ACCESS_TOKEN_SECRET || process.env.JWT_SECRET);
+checkSecret('REFRESH_TOKEN_SECRET', process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET);
 
 // ── ROUTES ────────────────────────────────────────────────
 app.use('/api',           require('./routes/misc'));
@@ -84,11 +111,41 @@ app.use((err, req, res, next) => {
 });
 
 // ── START ─────────────────────────────────────────────────
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`\n🚀 LBC API running on port ${PORT}`);
-  console.log(`   ENV:      ${process.env.NODE_ENV || 'development'}`);
-  console.log(`   Frontend: ${process.env.FRONTEND_URL || 'not set'}\n`);
-});
+const BASE_PORT = Number(process.env.PORT || 3000);
+const isProd = process.env.NODE_ENV === 'production';
+const maxDevPortAttempts = 10;
+
+const startServer = (port, attempt = 0) => {
+  const server = app.listen(port, () => {
+    console.log(`\n🚀 LBC API running on port ${port}`);
+    console.log(`   ENV:      ${process.env.NODE_ENV || 'development'}`);
+    console.log(`   Frontend: ${process.env.FRONTEND_URL || 'not set'}\n`);
+  });
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      if (isProd) {
+        console.error(`Port ${port} is already in use. Exiting in production mode.`);
+        process.exit(1);
+      }
+
+      if (attempt >= maxDevPortAttempts) {
+        console.error(
+          `Could not find a free port after ${maxDevPortAttempts + 1} attempts starting from ${BASE_PORT}.`
+        );
+        process.exit(1);
+      }
+
+      const nextPort = port + 1;
+      console.warn(`Port ${port} is busy. Retrying on ${nextPort}...`);
+      return startServer(nextPort, attempt + 1);
+    }
+
+    console.error('Server startup error:', err);
+    process.exit(1);
+  });
+};
+
+startServer(BASE_PORT);
 
 module.exports = app;

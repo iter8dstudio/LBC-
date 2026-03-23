@@ -126,6 +126,19 @@ npm start        # Production
 
 Server runs on `http://localhost:3000`
 
+### 7. Email OTP behavior in development
+
+- Verification emails are sent through the configured SMTP provider.
+- For local testing, if SMTP is unreachable or credentials are invalid, the API still creates the account and logs the OTP in the server console.
+- You can also fetch the current email OTP in non-production environments with:
+
+```bash
+GET /api/auth/dev/email-otp?userId=<user-id>
+GET /api/auth/dev/email-otp?email=user@example.com
+```
+
+- This route is disabled automatically when `NODE_ENV=production`.
+
 ---
 
 ## Deploying to Railway (Production)

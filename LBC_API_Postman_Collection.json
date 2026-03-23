@@ -1,0 +1,1086 @@
+{
+  "info": {
+    "name": "LBC API - Complete Test Suite",
+    "description": "Comprehensive API testing collection for Lekki Business Connect backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "AUTH",
+      "description": "Authentication endpoints",
+      "item": [
+        {
+          "name": "Register User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Save tokens and user ID for later requests",
+                  "pm.environment.set(\"ACCESS_TOKEN\", pm.response.json().accessToken);",
+                  "pm.environment.set(\"REFRESH_TOKEN\", pm.response.json().refreshToken);",
+                  "pm.environment.set(\"USER_ID\", pm.response.json().user.id);",
+                  "",
+                  "// Assertions",
+                  "pm.test(\"Status code is 201\", function() {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has accessToken\", function() {",
+                  "  pm.expect(pm.response.json()).to.have.property('accessToken');",
+                  "});",
+                  "",
+                  "pm.test(\"Response has refreshToken\", function() {",
+                  "  pm.expect(pm.response.json()).to.have.property('refreshToken');",
+                  "});",
+                  "",
+                  "pm.test(\"Response has user object\", function() {",
+                  "  pm.expect(pm.response.json()).to.have.property('user');",
+                  "});",
+                  "",
+                  "pm.test(\"User has email\", function() {",
+                  "  pm.expect(pm.response.json().user.email).to.equal('vendor@test.com');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Vendor\",\n  \"email\": \"vendor@test.com\",\n  \"password\": \"SecurePassword123!\",\n  \"phone\": \"+2349012345678\",\n  \"role\": \"VENDOR\"\n}"
+            },
+            "url": {
+              "raw": "{{API_BASE_URL}}/auth/register",
+              "host": ["{{API_BASE_URL}}"],
+              "path": ["auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Update tokens from login response",
+                  "pm.environment.set(\"ACCESS_TOKEN\", pm.response.json().accessToken);",
+                  "pm.environment.set(\"REFRESH_TOKEN\", pm.response.json().refreshToken);",
+                  "",
+                  "pm.test(\"Status code is 200\", function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains accessToken\", function() {",
+                  "  pm.expect(pm.response.json()).to.have.property('accessToken');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"vendor@test.com\",\n  \"password\": \"SecurePassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{API_BASE_URL}}/auth/login",
+              "host": [
+                "{{API_BASE_URL}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  pm.environment.set(\"ACCESS_TOKEN\", pm.response.json().accessToken);",
+                  "  pm.environment.set(\"REFRESH_TOKEN\", pm.response.json().refreshToken);",
+                  "}",
+                  "",
+                  "pm.test(\"Status code is 200\", function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{REFRESH_TOKEN}}\"\n}"
+            },
+            "url": {
+              "raw": "{{API_BASE_URL}}/auth/refresh-token",
+              "host": [
+                "{{API_BASE_URL}}"
+              ],
+              "path": [
+                "auth",
+                "refresh-token"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Verify Email OTP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"vendor@test.com\",\n  \"otp\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{API_BASE_URL}}/auth/verify-otp",
+              "host": [
+                "{{API_BASE_URL}}"
+              ],
+              "path": [
+                "auth",
+                "verify-otp"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "STORES",
+      "description": "Store management endpoints",
+      "item": [
+        {
+          "name": "Create Store",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Save store ID for later use",
+                  "pm.environment.set(\"STORE_ID\", pm.response.json().id);",
+                  "pm.environment.set(\"STORE_SLUG\", pm.response.json().slug);",
+                  "",
+                  "pm.test(\"Status code is 201\", function() {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has store ID\", function() {",
+                  "  pm.expect(pm.response.json()).to.have.property('id');",
+                  "});",
+                  "",
+                  "pm.test(\"Store name matches\", function() {",
+                  "  pm.expect(pm.response.json().bizName).to.equal('Test Electronics Store');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bizName\": \"Test Electronics Store\",\n  \"category\": \"Electronics\",\n  \"location\": \"Lekki, Lagos\",\n  \"bizPhone\": \"+2349012345678\",\n  \"bizEmail\": \"store@test.com\",\n  \"whatsapp\": \"+2349012345678\",\n  \"bizDesc\": \"Premium electronics and gadgets store in Lekki\",\n  \"accentColor\": \"#0066ff\"\n}"
+            },
+            "url": {
+              "raw": "{{API_BASE_URL}}/stores",
+              "host": [
+                "{{API_BASE_URL}}"
+              ],
+              "path": [
+                "stores"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Store by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has store data\", function() {",
+                  "  pm.expect(pm.response.json()).to.have.property('id');",
+                  "  pm.expect(pm.response.json()).to.have.property('bizName');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{API_BASE_URL}}/stores/{{STORE_ID}}",
+              "host": [
+                "{{API_BASE_URL}}"
+              ],
+              "path": [
+                "stores",
+                "{{STORE_ID}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Store by Slug",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{API_BASE_URL}}/stores/slug/{{STORE_SLUG}}",
+              "host": [
+                "{{API_BASE_URL}}"
+              ],
+              "path": [
+                "stores",
+                "slug",
+                "{{STORE_SLUG}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List All Stores",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response is array\", function() {",
+                  "  pm.expect(pm.response.json()).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{API_BASE_URL}}/stores?page=1&limit=10",
+              "host": [
+                "{{API_BASE_URL}}"
+              ],
+              "path": [
+                "stores"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Store",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bizDesc\": \"Updated description for the electronics store\",\n  \"accentColor\": \"#ff6600\"\n}"
+            },
+            "url": {
+              "raw": "{{API_BASE_URL}}/stores/{{STORE_ID}}",
+              "host": [
+                "{{API_BASE_URL}}"
+              ],
+              "path": [
+                "stores",
+                "{{STORE_ID}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "LISTINGS",
+      "description": "Product listing endpoints",
+      "item": [
+        {
+          "name": "Create Listing",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Save listing ID for subsequent requests",
+                  "pm.environment.set(\"LISTING_ID\", pm.response.json().id);",
+                  "",
+                  "pm.test(\"Status code is 201\", function() {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has listing ID\", function() {",
+                  "  pm.expect(pm.response.json()).to.have.property('id');",
+                  "});",
+                  "",
+                  "pm.test(\"Listing title matches\", function() {",
+                  "  pm.expect(pm.response.json().title).to.equal('iPhone 15 Pro Max');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"storeId\": \"{{STORE_ID}}\",\n  \"title\": \"iPhone 15 Pro Max\",\n  \"price\": 650000,\n  \"type\": \"physical\",\n  \"category\": \"Electronics\",\n  \"location\": \"Lekki, Lagos\",\n  \"description\": \"Brand new sealed iPhone 15 Pro Max, 256GB storage, excellent condition. International warranty included.\",\n  \"status\": \"live\"\n}"
+            },
+            "url": {
+              "raw": "{{API_BASE_URL}}/listings",
+              "host": [
+                "{{API_BASE_URL}}"
+              ],
+              "path": [
+                "listings"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Listing",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has listing details\", function() {",
+                  "  pm.expect(pm.response.json()).to.have.property('id');",
+                  "  pm.expect(pm.response.json()).to.have.property('title');",
+                  "  pm.expect(pm.response.json()).to.have.property('price');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{API_BASE_URL}}/listings/{{LISTING_ID}}",
+              "host": [
+                "{{API_BASE_URL}}"
+              ],
+              "path": [
+                "listings",
+                "{{LISTING_ID}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Listing",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 600000,\n  \"description\": \"Updated: Slight discount for bulk purchase\"\n}"
+            },
+            "url": {
+              "raw": "{{API_BASE_URL}}/listings/{{LISTING_ID}}",
+              "host": [
+                "{{API_BASE_URL}}"
+              ],
+              "path": [
+                "listings",
+                "{{LISTING_ID}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search Listings",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response is array or has data property\", function() {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(Array.isArray(json) || json.data).to.be.ok;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{API_BASE_URL}}/listings/search?q=iphone&category=Electronics&location=Lekki",
+              "host": [
+                "{{API_BASE_URL}}"
+              ],
+              "path": [
+                "listings",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "iphone"
+                },
+                {
+                  "key": "category",
+                  "value": "Electronics"
+                },
+                {
+                  "key": "location",
+                  "value": "Lekki"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Listing",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{API_BASE_URL}}/listings/{{LISTING_ID}}",
+              "host": [
+                "{{API_BASE_URL}}"
+              ],
+              "path": [
+                "listings",
+                "{{LISTING_ID}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "USERS",
+      "description": "User profile and account endpoints",
+      "item": [
+        {
+          "name": "Get Current User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has user data\", function() {",
+                  "  pm.expect(pm.response.json()).to.have.property('id');",
+                  "  pm.expect(pm.response.json()).to.have.property('email');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{API_BASE_URL}}/users/me",
+              "host": [
+                "{{API_BASE_URL}}"
+              ],
+              "path": [
+                "users",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Name\",\n  \"phone\": \"+2349099999999\"\n}"
+            },
+            "url": {
+              "raw": "{{API_BASE_URL}}/users/profile",
+              "host": [
+                "{{API_BASE_URL}}"
+              ],
+              "path": [
+                "users",
+                "profile"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"SecurePassword123!\",\n  \"newPassword\": \"NewSecurePassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{API_BASE_URL}}/users/change-password",
+              "host": [
+                "{{API_BASE_URL}}"
+              ],
+              "path": [
+                "users",
+                "change-password"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add to Wishlist",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{API_BASE_URL}}/users/wishlist/{{LISTING_ID}}",
+              "host": [
+                "{{API_BASE_URL}}"
+              ],
+              "path": [
+                "users",
+                "wishlist",
+                "{{LISTING_ID}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Wishlist",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{API_BASE_URL}}/users/wishlist",
+              "host": [
+                "{{API_BASE_URL}}"
+              ],
+              "path": [
+                "users",
+                "wishlist"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "BOOSTS",
+      "description": "Listing and store boost (promotion) endpoints",
+      "item": [
+        {
+          "name": "Create Boost",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.environment.set(\"BOOST_ID\", pm.response.json().id);",
+                  "",
+                  "pm.test(\"Status code is 201\", function() {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has boost ID and payment URL\", function() {",
+                  "  pm.expect(pm.response.json()).to.have.property('id');",
+                  "  pm.expect(pm.response.json()).to.have.property('paymentUrl');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"storeId\": \"{{STORE_ID}}\",\n  \"listingId\": \"{{LISTING_ID}}\",\n  \"target\": \"listing\",\n  \"plan\": \"weekly\",\n  \"amount\": 5000\n}"
+            },
+            "url": {
+              "raw": "{{API_BASE_URL}}/boosts",
+              "host": [
+                "{{API_BASE_URL}}"
+              ],
+              "path": [
+                "boosts"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Boost",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{API_BASE_URL}}/boosts/{{BOOST_ID}}",
+              "host": [
+                "{{API_BASE_URL}}"
+              ],
+              "path": [
+                "boosts",
+                "{{BOOST_ID}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Verify Boost Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paystackRef\": \"test_reference_12345\"\n}"
+            },
+            "url": {
+              "raw": "{{API_BASE_URL}}/boosts/{{BOOST_ID}}/verify",
+              "host": [
+                "{{API_BASE_URL}}"
+              ],
+              "path": [
+                "boosts",
+                "{{BOOST_ID}}",
+                "verify"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ANALYTICS",
+      "description": "Analytics and tracking endpoints",
+      "item": [
+        {
+          "name": "Track Listing Click Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"listingId\": \"{{LISTING_ID}}\",\n  \"event\": \"waClick\"\n}"
+            },
+            "url": {
+              "raw": "{{API_BASE_URL}}/analytics/events",
+              "host": [
+                "{{API_BASE_URL}}"
+              ],
+              "path": [
+                "analytics",
+                "events"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Track Listing View",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"listingId\": \"{{LISTING_ID}}\",\n  \"event\": \"view\"\n}"
+            },
+            "url": {
+              "raw": "{{API_BASE_URL}}/analytics/events",
+              "host": [
+                "{{API_BASE_URL}}"
+              ],
+              "path": [
+                "analytics",
+                "events"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Store Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{API_BASE_URL}}/analytics/store/{{STORE_ID}}",
+              "host": [
+                "{{API_BASE_URL}}"
+              ],
+              "path": [
+                "analytics",
+                "store",
+                "{{STORE_ID}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{API_BASE_URL}}/analytics/dashboard",
+              "host": [
+                "{{API_BASE_URL}}"
+              ],
+              "path": [
+                "analytics",
+                "dashboard"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "MISC",
+      "description": "Miscellaneous endpoints",
+      "item": [
+        {
+          "name": "Health Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Server is healthy\", function() {",
+                  "  pm.expect(pm.response.json().status).to.equal('ok');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{API_BASE_URL}}/misc/health",
+              "host": [
+                "{{API_BASE_URL}}"
+              ],
+              "path": [
+                "misc",
+                "health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{API_BASE_URL}}/misc/categories",
+              "host": [
+                "{{API_BASE_URL}}"
+              ],
+              "path": [
+                "misc",
+                "categories"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Send Contact Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"test@example.com\",\n  \"message\": \"This is a test message. Great platform!\"\n}"
+            },
+            "url": {
+              "raw": "{{API_BASE_URL}}/misc/contact",
+              "host": [
+                "{{API_BASE_URL}}"
+              ],
+              "path": [
+                "misc",
+                "contact"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "API_BASE_URL",
+      "value": "http://localhost:5000/api",
+      "type": "string"
+    },
+    {
+      "key": "ACCESS_TOKEN",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "REFRESH_TOKEN",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "USER_ID",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "STORE_ID",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "STORE_SLUG",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "LISTING_ID",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "BOOST_ID",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

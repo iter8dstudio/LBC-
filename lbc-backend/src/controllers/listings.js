@@ -70,7 +70,7 @@ exports.getListing = async (req, res) => {
           select: {
             id: true, bizName: true, slug: true, verified: true,
             sponsored: true, location: true, whatsapp: true,
-            logo: true, banner: true, bizPhone: true, bizDesc: true, tags: true,
+            logo: true, banner: true, bizPhone: true, bizDesc: true,
           },
         },
       },
@@ -80,14 +80,19 @@ exports.getListing = async (req, res) => {
       return res.status(404).json({ error: 'Listing not found' });
     }
 
-    // Record view
-    await prisma.listingAnalytic.create({
-      data: { listingId: listing.id, event: 'view', source: req.query.source || 'direct' },
-    });
-    await prisma.listing.update({ where: { id: listing.id }, data: { views: { increment: 1 } } });
+    // Record view (do not fail listing fetch if analytics write fails)
+    try {
+      await prisma.listingAnalytic.create({
+        data: { listingId: listing.id, event: 'view', source: req.query.source || 'direct' },
+      });
+      await prisma.listing.update({ where: { id: listing.id }, data: { views: { increment: 1 } } });
+    } catch (analyticsErr) {
+      console.warn('getListing analytics write failed:', analyticsErr.message);
+    }
 
     res.json(listing);
   } catch (err) {
+    console.error('getListing error:', err);
     res.status(500).json({ error: 'Failed to fetch listing' });
   }
 };

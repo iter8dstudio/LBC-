@@ -1,21 +1,42 @@
 // src/lib/email.js
 const nodemailer = require('nodemailer');
 
-const transporter = nodemailer.createTransport({
-  host:   process.env.SMTP_HOST,
-  port:   parseInt(process.env.SMTP_PORT || '587'),
-  secure: process.env.SMTP_PORT === '465',
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+const mailHost = process.env.SMTP_HOST || process.env.EMAIL_HOST;
+const mailPort = parseInt(process.env.SMTP_PORT || process.env.EMAIL_PORT || '587', 10);
+const mailUser = process.env.SMTP_USER || process.env.EMAIL_USER;
+const mailPass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
+const mailFrom = process.env.EMAIL_FROM || mailUser;
+
+const hasMailConfig = Boolean(mailHost && mailPort && mailUser && mailPass && mailFrom);
+
+const transporter = hasMailConfig
+  ? nodemailer.createTransport({
+      host: mailHost,
+      port: mailPort,
+      secure: String(mailPort) === '465',
+      connectionTimeout: 15000,
+      greetingTimeout: 10000,
+      socketTimeout: 20000,
+      auth: {
+        user: mailUser,
+        pass: mailPass,
+      },
+    })
+  : null;
 
 const sendEmail = async ({ to, subject, html }) => {
+  if (!transporter) {
+    const error = 'SMTP is not configured. Set EMAIL_HOST/EMAIL_USER/EMAIL_PASS or SMTP_* values.';
+    console.error('Email send failed:', error);
+    return { delivered: false, error };
+  }
+
   try {
-    await transporter.sendMail({ from: process.env.EMAIL_FROM, to, subject, html });
+    const info = await transporter.sendMail({ from: mailFrom, to, subject, html });
+    return { delivered: true, messageId: info.messageId };
   } catch (err) {
     console.error('Email send failed:', err.message);
+    return { delivered: false, error: err.message };
   }
 };
 

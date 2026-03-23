@@ -3,11 +3,24 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' http://localhost:5000 https://api.yourdomain.com; frame-ancestors 'none'; base-uri 'self';" />
 <title>LBC — Lekki Business Connect</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<script> const API_CONFIG = {
+  dev: {
+    API_BASE_URL: 'http://localhost:5000/api',
+  },
+  prod: {
+    API_BASE_URL: 'https://api.yourdomain.com/api',
+  }
+};
+
+const ENV = window.location.hostname === 'localhost' ? 'dev' : 'prod';
+const API = API_CONFIG[ENV];
+</script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -131,6 +144,204 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
 <script type="text/babel">
 const { useState, useEffect, useRef, useMemo, useCallback } = React;
 
+class ApiService {
+  constructor() {
+    this.baseURL = API.API_BASE_URL;
+    this.accessToken = localStorage.getItem('accessToken') || null;
+    this.refreshToken = localStorage.getItem('refreshToken') || null;
+  }
+
+  setTokens(accessToken, refreshToken) {
+    this.accessToken = accessToken || null;
+    this.refreshToken = refreshToken || null;
+
+    if (accessToken) localStorage.setItem('accessToken', accessToken);
+    else localStorage.removeItem('accessToken');
+
+    if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+    else localStorage.removeItem('refreshToken');
+  }
+
+  clearTokens() {
+    this.accessToken = null;
+    this.refreshToken = null;
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+  }
+
+  async request(endpoint, options = {}, retry = true) {
+    const url = `${this.baseURL}${endpoint}`;
+    const headers = { ...(options.headers || {}) };
+    const isFormData = options.body instanceof FormData;
+
+    if (!isFormData && !headers['Content-Type']) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    if (this.accessToken && !headers.Authorization) {
+      headers.Authorization = `Bearer ${this.accessToken}`;
+    }
+
+    const response = await fetch(url, { ...options, headers });
+    const text = await response.text();
+    const data = text ? (() => {
+      try { return JSON.parse(text); } catch { return { message: text }; }
+    })() : {};
+
+    if (response.status === 401 && retry && this.refreshToken) {
+      const refreshed = await this.refresh();
+      if (refreshed?.accessToken) {
+        return this.request(endpoint, options, false);
+      }
+    }
+
+    if (!response.ok) {
+      throw new Error(data.error || data.message || `Request failed (${response.status})`);
+    }
+
+    return data;
+  }
+
+  async register(payload) {
+    return this.request('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async login(email, password) {
+    const data = await this.request('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+    this.setTokens(data.accessToken, data.refreshToken);
+    return data;
+  }
+
+  async verifyEmail(userId, otp) {
+    const data = await this.request('/auth/verify-email', {
+      method: 'POST',
+      body: JSON.stringify({ userId, otp }),
+    });
+    this.setTokens(data.accessToken, data.refreshToken);
+    return data;
+  }
+
+  async resendOtp(userId) {
+    return this.request('/auth/resend-otp', {
+      method: 'POST',
+      body: JSON.stringify({ userId }),
+    });
+  }
+
+  async refresh() {
+    if (!this.refreshToken) return null;
+
+    try {
+      const data = await this.request('/auth/refresh', {
+        method: 'POST',
+        headers: { Authorization: undefined },
+        body: JSON.stringify({ refreshToken: this.refreshToken }),
+      }, false);
+      this.setTokens(data.accessToken, data.refreshToken);
+      return data;
+    } catch {
+      this.clearTokens();
+      return null;
+    }
+  }
+
+  async sendPhoneOtp() {
+    return this.request('/auth/send-phone-otp', { method: 'POST' });
+  }
+
+  async verifyPhone(otp) {
+    return this.request('/auth/verify-phone', {
+      method: 'POST',
+      body: JSON.stringify({ otp }),
+    });
+  }
+
+  async getMyStore() {
+    return this.request('/stores/me');
+  }
+
+  async createStore(storeData) {
+    return this.request('/stores', {
+      method: 'POST',
+      body: JSON.stringify(storeData),
+    });
+  }
+
+  async updateStore(data) {
+    return this.request('/stores/me', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getMyListings() {
+    return this.request('/listings/me');
+  }
+
+  async createListing(listingData) {
+    return this.request('/listings', {
+      method: 'POST',
+      body: JSON.stringify(listingData),
+    });
+  }
+
+  async updateListing(listingId, data) {
+    return this.request(`/listings/${listingId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateListingStatus(listingId, status) {
+    return this.request(`/listings/${listingId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  async deleteListing(listingId) {
+    return this.request(`/listings/${listingId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async submitContact(payload) {
+    return this.request('/contact', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async submitReport(payload) {
+    return this.request('/report', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getListings(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request(`/listings${query ? `?${query}` : ''}`);
+  }
+
+  async getStores(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request(`/stores${query ? `?${query}` : ''}`);
+  }
+
+  async getStoreBySlug(slug) {
+    return this.request(`/stores/${slug}`);
+  }
+}
+
+const api = new ApiService();
+
 // ── MOBILE HOOK ──
 function useIsMobile(breakpoint=768) {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= breakpoint);
@@ -216,6 +427,69 @@ const BUSINESSES = [
 
 const fmt = (n) => "₦" + n.toLocaleString();
 const stars = (r) => "★".repeat(Math.floor(r)) + "☆".repeat(5 - Math.floor(r));
+
+const normalizeStore = (store) => {
+  if (!store) return null;
+  if (store.name && store.id && store.location) return store;
+
+  const categoryLabel = CATEGORIES.find((c) => c.id === store.category)?.label || "General";
+  return {
+    id: store.id,
+    slug: store.slug,
+    name: store.bizName || "Store",
+    category: store.category || "all",
+    location: store.location || "Lagos",
+    sponsored: !!store.sponsored,
+    verified: !!store.verified,
+    rating: Number(store.rating || 4.5),
+    reviews: Number(store.reviews || 0),
+    whatsapp: store.whatsapp || "",
+    img: store.banner || store.logo || "https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=700&h=400&fit=crop",
+    tags: Array.isArray(store.tags) && store.tags.length ? store.tags : [categoryLabel],
+    desc: store.bizDesc || "",
+    bizPhone: store.bizPhone || "",
+    bizEmail: store.bizEmail || "",
+  };
+};
+
+const normalizeListing = (listing, storesById = new Map()) => {
+  if (!listing) return null;
+  if (listing.name && listing.id && listing.storeId) return listing;
+
+  const storeFromMap = storesById.get(listing.storeId);
+  const storeFromPayload = listing.store
+    ? {
+        id: listing.storeId,
+        name: listing.store.bizName,
+        category: listing.category,
+        location: listing.store.location,
+        verified: listing.store.verified,
+        sponsored: false,
+        whatsapp: listing.store.whatsapp || "",
+      }
+    : null;
+
+  const resolvedStore = storeFromMap || storeFromPayload;
+  const image = listing.mainImage || (Array.isArray(listing.images) ? listing.images[0] : "") || "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop";
+
+  return {
+    id: listing.id,
+    name: listing.title || "Untitled listing",
+    price: Number(listing.price || 0),
+    store: resolvedStore?.name || "Store",
+    storeId: listing.storeId,
+    location: listing.location || resolvedStore?.location || "Lagos",
+    category: listing.category || "all",
+    sponsored: !!listing.sponsored,
+    verified: !!resolvedStore?.verified,
+    rating: Number(listing.rating || 4.5),
+    reviews: Number(listing.reviews || 0),
+    img: image,
+    type: listing.type || "physical",
+    desc: listing.description || "",
+    status: listing.status,
+  };
+};
 
 // ── NAVBAR ──
 // ── USER DROPDOWN (proper component so hooks work) ──
@@ -485,14 +759,14 @@ function PromoBanner({ setPage }) {
 }
 
 // ── HOME PAGE ──
-function HomePage({ setPage, searchQ, setSearchQ, activeCategory, setActiveCategory, wishlist, toggleWish, setSelectedProduct, setSelectedBusiness }) {
+function HomePage({ setPage, searchQ, setSearchQ, activeCategory, setActiveCategory, wishlist, toggleWish, setSelectedProduct, setSelectedBusiness, products = PRODUCTS, businesses = BUSINESSES }) {
   const [heroLocation,setHeroLocation] = useState("Lekki Phase 1"); // default
   const [heroCat,setHeroCat] = useState("all");
   const [heroQ,setHeroQ] = useState("");
   const doSearch = (e) => { e.preventDefault(); setSearchQ(heroQ); setActiveCategory(heroCat); setPage("search"); };
-  const sponsored = PRODUCTS.filter(p=>p.sponsored);
-  const recent = PRODUCTS.filter(p=>!p.sponsored).slice(0,8);
-  const sponsoredBiz = BUSINESSES.filter(b=>b.sponsored);
+  const sponsored = products.filter(p=>p.sponsored);
+  const recent = products.filter(p=>!p.sponsored).slice(0,8);
+  const sponsoredBiz = businesses.filter(b=>b.sponsored);
   return (
     <div>
       <section style={{background:"var(--navy)",position:"relative",overflow:"hidden",padding:"6rem 2rem 4rem",textAlign:"center"}}>
@@ -560,7 +834,7 @@ function HomePage({ setPage, searchQ, setSearchQ, activeCategory, setActiveCateg
 }
 
 // ── SEARCH PAGE ──
-function SearchPage({ searchQ, activeCategory, setSelectedProduct, setSelectedBusiness, wishlist, toggleWish }) {
+function SearchPage({ searchQ, activeCategory, setSelectedProduct, setSelectedBusiness, wishlist, toggleWish, products = PRODUCTS, businesses = BUSINESSES }) {
   const [priceMin,setPriceMin] = useState("");
   const [priceMax,setPriceMax] = useState("");
   const [location,setLocation] = useState("all");
@@ -573,7 +847,7 @@ function SearchPage({ searchQ, activeCategory, setSelectedProduct, setSelectedBu
   const [mobileFiltersOpen,setMobileFiltersOpen] = useState(false);
   const toggle = (k) => setOpenFilters(f=>({...f,[k]:!f[k]}));
 
-  const filteredProducts = PRODUCTS.filter(p=>{
+  const filteredProducts = products.filter(p=>{
     const q=searchQ.toLowerCase();
     const matchQ=!q||p.name.toLowerCase().includes(q)||p.store.toLowerCase().includes(q)||p.category.includes(q);
     const matchCat=activeCategory==="all"||p.category===activeCategory;
@@ -591,7 +865,7 @@ function SearchPage({ searchQ, activeCategory, setSelectedProduct, setSelectedBu
     return (b.sponsored?1:0)-(a.sponsored?1:0);
   });
 
-  const filteredBiz = BUSINESSES.filter(b=>{
+  const filteredBiz = businesses.filter(b=>{
     const q=searchQ.toLowerCase();
     const matchQ=!q||b.name.toLowerCase().includes(q)||b.category.includes(q);
     const matchCat=activeCategory==="all"||b.category===activeCategory;
@@ -746,14 +1020,14 @@ const VENDOR_PHONES = {
   13:"07012345678", 14:"08167890123", 15:"09056789012", 16:"08089012345",
 };
 
-function ProductDetailPage({ product, setPage, setSelectedBusiness, setSelectedProduct, vendorSettings }) {
+function ProductDetailPage({ product, setPage, setSelectedBusiness, setSelectedProduct, vendorSettings, products = PRODUCTS, businesses = BUSINESSES }) {
   const galleryImgs = GALLERY_IMGS[product.id] || [product.img, product.img, product.img, product.img];
   const [activeImg, setActiveImg] = useState(0);
   const [showPhone, setShowPhone] = useState(false);
   const vendorPhone = VENDOR_PHONES[product.storeId] || "08100000000";
-  const vendorBiz = BUSINESSES.find(b => b.id === product.storeId);
-  const related = PRODUCTS.filter(p => p.category === product.category && p.id !== product.id).slice(0, 4);
-  const similarVendors = BUSINESSES.filter(b => b.category === product.category).slice(0, 3);
+  const vendorBiz = businesses.find(b => b.id === product.storeId);
+  const related = products.filter(p => p.category === product.category && p.id !== product.id).slice(0, 4);
+  const similarVendors = businesses.filter(b => b.category === product.category).slice(0, 3);
 
   const handleVendorClick = () => {
     if (vendorBiz) { setSelectedBusiness(vendorBiz); }
@@ -998,6 +1272,7 @@ function AuthPage({ setPage, setUser }) {
   const [form, setForm] = useState({name:"",email:"",password:"",confirm:""});
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [verifyUserId, setVerifyUserId] = useState("");
   // email verify step
   const [verifyStep, setVerifyStep] = useState(false); // show OTP screen after signup
   const [otp, setOtp] = useState(["","","","","",""]);
@@ -1005,7 +1280,6 @@ function AuthPage({ setPage, setUser }) {
   const [otpLoading, setOtpLoading] = useState(false);
   const [resendCount, setResendCount] = useState(0);
   const [resendCooldown, setResendCooldown] = useState(0);
-  const MOCK_OTP = "123456"; // in production this comes from backend email
   const otpRef0=useRef(),otpRef1=useRef(),otpRef2=useRef(),otpRef3=useRef(),otpRef4=useRef(),otpRef5=useRef();
   const otpRefs = [otpRef0,otpRef1,otpRef2,otpRef3,otpRef4,otpRef5];
 
@@ -1032,45 +1306,92 @@ function AuthPage({ setPage, setUser }) {
     }, 1000);
   };
 
-  const submit = (e) => {
-    e.preventDefault(); setError("");
+  const submit = async (e) => {
+    e.preventDefault();
+    setError("");
     if (!form.email || !form.password) return setError("Please fill in all fields.");
     if (mode === "signup") {
       if (!form.name) return setError("Name is required.");
       if (form.password !== form.confirm) return setError("Passwords don't match.");
       if (form.password.length < 6) return setError("Password must be at least 6 characters.");
     }
+
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+
+    try {
       if (mode === "signup") {
-        // go to email verification step
+        const registered = await api.register({
+          name: form.name,
+          email: form.email,
+          password: form.password,
+        });
+
+        setVerifyUserId(registered.userId || "");
         setVerifyStep(true);
+        setOtp(["","","","","",""]);
+        setOtpError("");
         startResendCooldown();
       } else {
-        // sign in — go straight in
-        setUser({ name: form.name || form.email.split("@")[0], email: form.email, emailVerified: true, phoneVerified: false });
+        const session = await api.login(form.email, form.password);
+        setUser({
+          ...(session.user || {}),
+          accessToken: session.accessToken,
+          refreshToken: session.refreshToken,
+        });
         setPage("home");
       }
-    }, 1000);
+    } catch (err) {
+      setError(err.message || "Authentication failed.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const submitOtp = () => {
+  const submitOtp = async () => {
     setOtpError("");
     const entered = otp.join("");
     if (entered.length < 6) return setOtpError("Please enter all 6 digits.");
+    if (!verifyUserId) return setOtpError("Missing verification session. Please sign up again.");
+
     setOtpLoading(true);
-    setTimeout(() => {
+
+    try {
+      const verified = await api.verifyEmail(verifyUserId, entered);
+      setUser({
+        ...(verified.user || {}),
+        accessToken: verified.accessToken,
+        refreshToken: verified.refreshToken,
+      });
+      setPage("home");
+    } catch (err) {
+      setOtpError(err.message || "Verification failed.");
+      setOtp(["","","","","",""]);
+      otpRefs[0].current?.focus();
+    } finally {
       setOtpLoading(false);
-      if (entered === MOCK_OTP) {
-        setUser({ name: form.name || form.email.split("@")[0], email: form.email, emailVerified: true, phoneVerified: false });
-        setPage("home");
-      } else {
-        setOtpError("Incorrect code. Try 123456 for this demo.");
-        setOtp(["","","","","",""]);
-        otpRefs[0].current?.focus();
-      }
-    }, 900);
+    }
+  };
+
+  const resendOtp = async () => {
+    if (resendCooldown > 0) return;
+    if (!verifyUserId) {
+      setOtpError("Missing verification session. Please sign up again.");
+      return;
+    }
+
+    setOtpError("");
+    setOtpLoading(true);
+    try {
+      await api.resendOtp(verifyUserId);
+      setResendCount(c => c + 1);
+      setOtp(["","","","","",""]);
+      startResendCooldown();
+      setTimeout(() => otpRefs[0].current?.focus(), 100);
+    } catch (err) {
+      setOtpError(err.message || "Failed to resend code.");
+    } finally {
+      setOtpLoading(false);
+    }
   };
 
   const inp = (label, key, type="text", placeholder="") => (
@@ -1133,7 +1454,7 @@ function AuthPage({ setPage, setUser }) {
           Didn't get it?{" "}
           {resendCooldown > 0
             ? <span style={{color:"var(--muted)"}}>Resend in {resendCooldown}s</span>
-            : <button onClick={()=>{setResendCount(c=>c+1);startResendCooldown();setOtp(["","","","","",""]);}}
+            : <button onClick={resendOtp}
                 style={{background:"none",border:"none",color:"var(--blue)",fontWeight:700,cursor:"pointer",fontSize:".82rem"}}>
                 Resend code{resendCount>0?` (${resendCount+1})` :""}
               </button>
@@ -1141,15 +1462,15 @@ function AuthPage({ setPage, setUser }) {
         </div>
 
         <div style={{marginTop:"1rem"}}>
-          <button onClick={()=>{setVerifyStep(false);setOtp(["","","","","",""]);}}
+          <button onClick={()=>{setVerifyStep(false);setVerifyUserId("");setOtp(["","","","","",""]);}}
             style={{background:"none",border:"none",color:"var(--muted)",fontSize:".78rem",cursor:"pointer"}}>
             ← Use a different email
           </button>
         </div>
 
-        {/* Demo hint */}
+        {/* Dev hint */}
         <div style={{marginTop:"1.25rem",background:"rgba(245,158,11,.08)",border:"1px solid rgba(245,158,11,.2)",borderRadius:8,padding:".65rem .9rem",fontSize:".75rem",color:"#92600a",fontWeight:600}}>
-          💡 Demo: use code <strong>123456</strong> to verify
+          💡 If email delivery fails in local dev, fetch the OTP from <strong>/api/auth/dev/email-otp?userId={verifyUserId || '...'}</strong>
         </div>
       </div>
     </div>
@@ -1219,6 +1540,8 @@ function OnboardingPage({ setPage, user, setUser }) {
   const [biz,setBiz] = useState({name:"",type:"physical",category:"fashion",location:"Lekki Phase 1",phone:"",email:"",whatsapp:"",desc:"",plan:"monthly"});
   const [listing,setListing] = useState({title:"",price:"",listingType:"physical",listingDesc:""});
   const [done,setDone] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const upd = (k,v) => setBiz(b=>({...b,[k]:v}));
   const updL = (k,v) => setListing(l=>({...l,[k]:v}));
   const steps = ["Business Type","Business Info","Listing Details","Choose Plan","Review & Launch"];
@@ -1230,6 +1553,60 @@ function OnboardingPage({ setPage, user, setUser }) {
         onFocus={e=>e.target.style.borderColor="var(--blue)"} onBlur={e=>e.target.style.borderColor="var(--g200)"} />
     </div>
   );
+
+  const launchBusiness = async () => {
+    setSubmitError("");
+
+    if (!user?.accessToken) {
+      setSubmitError("Please sign in first to complete onboarding.");
+      return;
+    }
+
+    if (!biz.name || !biz.category || !biz.location) {
+      setSubmitError("Business name, category, and location are required.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      api.setTokens(user.accessToken, user.refreshToken);
+
+      try {
+        await api.createStore({
+          bizName: biz.name,
+          category: biz.category,
+          location: biz.location,
+          bizPhone: biz.phone || null,
+          bizEmail: biz.email || null,
+          whatsapp: biz.whatsapp || null,
+          bizDesc: biz.desc || null,
+        });
+      } catch (err) {
+        if (!String(err.message || '').toLowerCase().includes('already have a store')) {
+          throw err;
+        }
+      }
+
+      if (listing.title && listing.price) {
+        await api.createListing({
+          title: listing.title,
+          price: Number(listing.price),
+          type: listing.listingType,
+          category: biz.category,
+          location: biz.location,
+          description: listing.listingDesc || null,
+          status: biz.plan === 'free' ? 'draft' : 'live',
+        });
+      }
+
+      setDone(true);
+      setUser(u => ({ ...(u || {}), role: 'VENDOR' }));
+    } catch (err) {
+      setSubmitError(err.message || 'Failed to launch your business.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if(done) return (
     <div style={{minHeight:"calc(100vh - 64px)",display:"flex",alignItems:"center",justifyContent:"center",textAlign:"center",padding:"2rem"}}>
@@ -1437,10 +1814,12 @@ function OnboardingPage({ setPage, user, setUser }) {
             <button onClick={()=>step>1?setStep(s=>s-1):setPage("home")} style={{background:"var(--g100)",border:"1px solid var(--g200)",padding:".75rem 1.5rem",borderRadius:10,fontWeight:600,fontSize:".88rem",cursor:"pointer",color:"var(--g700)"}}>
               {step===1?"← Cancel":"← Back"}
             </button>
-            <button onClick={()=>step<5?setStep(s=>s+1):setDone(true)} style={{background:"var(--blue)",color:"#fff",border:"none",padding:".75rem 2rem",borderRadius:10,fontWeight:700,fontSize:".9rem",cursor:"pointer"}}>
-              {step===5?"🚀 Launch My Business":"Continue →"}
+            <button onClick={()=>step<5?setStep(s=>s+1):launchBusiness()} disabled={submitting}
+              style={{background:submitting?"var(--g300)":"var(--blue)",color:submitting?"var(--muted)":"#fff",border:"none",padding:".75rem 2rem",borderRadius:10,fontWeight:700,fontSize:".9rem",cursor:submitting?"not-allowed":"pointer"}}>
+              {step===5 ? (submitting ? "Launching…" : "🚀 Launch My Business") : "Continue →"}
             </button>
           </div>
+          {submitError && <div style={{marginTop:"1rem",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,padding:".75rem 1rem",color:"var(--red)",fontSize:".83rem",fontWeight:600}}>⚠️ {submitError}</div>}
         </div>
       </div>
     </div>
@@ -1563,6 +1942,8 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
   const [boostProduct, setBoostProduct] = useState(1);
   const [boostDone, setBoostDone] = useState(false);
   const updL = (k,v) => setNewListing(l=>({...l,[k]:v}));
+  const [listingActionError, setListingActionError] = useState("");
+  const [listingActionLoading, setListingActionLoading] = useState(false);
 
   // Mobile sidebar drawer
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -1575,15 +1956,25 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
   const [phoneCooldown, setPhoneCooldown] = useState(0);
   const phRef0=useRef(),phRef1=useRef(),phRef2=useRef(),phRef3=useRef(),phRef4=useRef(),phRef5=useRef();
   const phoneOtpRefs = [phRef0,phRef1,phRef2,phRef3,phRef4,phRef5];
-  const MOCK_PHONE_OTP = "654321";
 
-  const sendPhoneOtp = () => {
-    setPhoneOtpSent(true);
-    setPhoneOtpError("");
-    setPhoneOtp(["","","","","",""]);
-    setPhoneCooldown(30);
-    const t = setInterval(() => setPhoneCooldown(c => { if(c<=1){clearInterval(t);return 0;} return c-1; }), 1000);
-    setTimeout(() => phoneOtpRefs[0].current?.focus(), 100);
+  const sendPhoneOtp = async () => {
+    if (!user?.accessToken) {
+      setPhoneOtpError("Please sign in again to verify your phone.");
+      return;
+    }
+
+    try {
+      api.setTokens(user.accessToken, user.refreshToken);
+      await api.sendPhoneOtp();
+      setPhoneOtpSent(true);
+      setPhoneOtpError("");
+      setPhoneOtp(["","","","","",""]);
+      setPhoneCooldown(30);
+      const t = setInterval(() => setPhoneCooldown(c => { if(c<=1){clearInterval(t);return 0;} return c-1; }), 1000);
+      setTimeout(() => phoneOtpRefs[0].current?.focus(), 100);
+    } catch (err) {
+      setPhoneOtpError(err.message || "Failed to send OTP.");
+    }
   };
 
   const handlePhoneOtpKey = (i, e) => {
@@ -1599,21 +1990,28 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
     if (i < 5) phoneOtpRefs[i+1].current?.focus();
   };
 
-  const verifyPhoneOtp = () => {
+  const verifyPhoneOtp = async () => {
     const entered = phoneOtp.join("");
     if (entered.length < 6) return setPhoneOtpError("Enter all 6 digits.");
+    if (!user?.accessToken) {
+      setPhoneOtpError("Please sign in again to verify your phone.");
+      return;
+    }
+
     setPhoneOtpLoading(true);
-    setTimeout(() => {
+
+    try {
+      api.setTokens(user.accessToken, user.refreshToken);
+      await api.verifyPhone(entered);
+      setUser(u => ({...u, phoneVerified: true}));
+      setPhoneOtpError("");
+    } catch (err) {
+      setPhoneOtpError(err.message || "Phone verification failed.");
+      setPhoneOtp(["","","","","",""]);
+      phoneOtpRefs[0].current?.focus();
+    } finally {
       setPhoneOtpLoading(false);
-      if (entered === MOCK_PHONE_OTP) {
-        setUser(u => ({...u, phoneVerified: true}));
-        setPhoneOtpError("");
-      } else {
-        setPhoneOtpError("Wrong code. Use 654321 for this demo.");
-        setPhoneOtp(["","","","","",""]);
-        phoneOtpRefs[0].current?.focus();
-      }
-    }, 900);
+    }
   };
 
   const [listings, setListings] = useState([
@@ -1624,6 +2022,40 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
     { id:5, name:"Home Cleaning Service (3hrs)", price:12000, type:"service", category:"services", status:"live", sponsored:false, views:57, img:"https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=80&h=80&fit=crop", desc:"Professional deep cleaning for 1-3 bedroom apartment. Eco-friendly products." },
   ]);
 
+  const mapListingToUi = (item) => ({
+    id: item.id,
+    name: item.title,
+    title: item.title,
+    price: item.price,
+    type: item.type,
+    category: item.category,
+    status: item.status,
+    sponsored: item.sponsored,
+    views: item.views || 0,
+    img: item.mainImage || item.images?.[0] || "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=80&h=80&fit=crop",
+    desc: item.description || "",
+    location: item.location || "",
+  });
+
+  useEffect(() => {
+    if (!user?.accessToken) return;
+
+    let active = true;
+    const loadMyListings = async () => {
+      try {
+        api.setTokens(user.accessToken, user.refreshToken);
+        const remoteListings = await api.getMyListings();
+        if (active && Array.isArray(remoteListings) && remoteListings.length > 0) {
+          setListings(remoteListings.map(mapListingToUi));
+        }
+      } catch {
+      }
+    };
+
+    loadMyListings();
+    return () => { active = false; };
+  }, [user?.accessToken, user?.refreshToken]);
+
   // Edit / unpublish / delete state
   const [openMenuId, setOpenMenuId] = useState(null);
   const [editListing, setEditListing] = useState(null);
@@ -1631,18 +2063,52 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
   const [editStep, setEditStep] = useState(1);
   const updEdit = (k,v) => setEditListing(l=>({...l,[k]:v}));
 
-  const doUnpublish = (id) => {
-    setListings(ls => ls.map(l => l.id===id ? {...l, status: l.status==="live"?"unpublished":"live"} : l));
-    setOpenMenuId(null);
+  const doUnpublish = async (id) => {
+    try {
+      setListingActionError("");
+      api.setTokens(user?.accessToken, user?.refreshToken);
+      const current = listings.find(l => l.id === id);
+      const nextStatus = current?.status === "live" ? "unpublished" : "live";
+      const updated = await api.updateListingStatus(id, nextStatus);
+      setListings(ls => ls.map(l => l.id===id ? { ...l, ...mapListingToUi(updated) } : l));
+    } catch (err) {
+      setListingActionError(err.message || "Failed to update listing status.");
+    } finally {
+      setOpenMenuId(null);
+    }
   };
-  const doDelete = (id) => {
-    setListings(ls => ls.filter(l => l.id !== id));
-    setDeleteTarget(null);
+  const doDelete = async (id) => {
+    try {
+      setListingActionError("");
+      api.setTokens(user?.accessToken, user?.refreshToken);
+      await api.deleteListing(id);
+      setListings(ls => ls.filter(l => l.id !== id));
+    } catch (err) {
+      setListingActionError(err.message || "Failed to delete listing.");
+    } finally {
+      setDeleteTarget(null);
+    }
   };
-  const doSaveEdit = () => {
-    setListings(ls => ls.map(l => l.id===editListing.id ? {...editListing} : l));
-    setEditListing(null);
-    setEditStep(1);
+  const doSaveEdit = async () => {
+    if (!editListing) return;
+
+    try {
+      setListingActionError("");
+      api.setTokens(user?.accessToken, user?.refreshToken);
+      const updated = await api.updateListing(editListing.id, {
+        title: editListing.name,
+        price: Number(editListing.price),
+        type: editListing.type,
+        category: editListing.category,
+        description: editListing.desc,
+        location: editListing.location,
+      });
+      setListings(ls => ls.map(l => l.id===editListing.id ? { ...l, ...mapListingToUi(updated) } : l));
+      setEditListing(null);
+      setEditStep(1);
+    } catch (err) {
+      setListingActionError(err.message || "Failed to save changes.");
+    }
   };
 
   const monthlyData = {
@@ -2120,9 +2586,65 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
                       ))}
                     </div>
                     <div style={{display:"flex",gap:".75rem"}}>
-                      <button onClick={()=>{setShowAddListing(false);setListingStep(1);setNewListing({title:"",price:"",type:"physical",category:"fashion",desc:"",showGallery:true});}} style={{flex:1,background:"var(--blue)",color:"#fff",border:"none",padding:".875rem",borderRadius:10,fontWeight:700,fontSize:".9rem",cursor:"pointer"}}>🚀 Publish Listing</button>
-                      <button onClick={()=>{setShowAddListing(false);setListingStep(1);}} style={{flex:1,background:"var(--g100)",border:"1px solid var(--g200)",padding:".875rem",borderRadius:10,fontWeight:700,fontSize:".9rem",cursor:"pointer",color:"var(--g700)"}}>💾 Save as Draft</button>
+                      <button onClick={async ()=>{
+                        try {
+                          setListingActionLoading(true);
+                          setListingActionError("");
+                          api.setTokens(user?.accessToken, user?.refreshToken);
+                          const created = await api.createListing({
+                            title: newListing.title,
+                            price: Number(newListing.price),
+                            type: newListing.type,
+                            category: newListing.category,
+                            description: newListing.desc,
+                            status: 'live',
+                          });
+                          setListings(ls => [{ ...mapListingToUi(created) }, ...ls]);
+                          setShowAddListing(false);
+                          setListingStep(1);
+                          setNewListing({title:"",price:"",type:"physical",category:"fashion",desc:"",showGallery:true});
+                        } catch (err) {
+                          setListingActionError(err.message || "Failed to publish listing.");
+                        } finally {
+                          setListingActionLoading(false);
+                        }
+                      }} disabled={listingActionLoading}
+                        style={{flex:1,background:listingActionLoading?"var(--g300)":"var(--blue)",color:listingActionLoading?"var(--muted)":"#fff",border:"none",padding:".875rem",borderRadius:10,fontWeight:700,fontSize:".9rem",cursor:listingActionLoading?"not-allowed":"pointer"}}>
+                        {listingActionLoading?"Publishing…":"🚀 Publish Listing"}
+                      </button>
+                      <button onClick={async ()=>{
+                        try {
+                          setListingActionLoading(true);
+                          setListingActionError("");
+                          api.setTokens(user?.accessToken, user?.refreshToken);
+                          const created = await api.createListing({
+                            title: newListing.title,
+                            price: Number(newListing.price),
+                            type: newListing.type,
+                            category: newListing.category,
+                            description: newListing.desc,
+                            status: 'draft',
+                          });
+                          setListings(ls => [{ ...mapListingToUi(created) }, ...ls]);
+                          setShowAddListing(false);
+                          setListingStep(1);
+                          setNewListing({title:"",price:"",type:"physical",category:"fashion",desc:"",showGallery:true});
+                        } catch (err) {
+                          setListingActionError(err.message || "Failed to save draft.");
+                        } finally {
+                          setListingActionLoading(false);
+                        }
+                      }} disabled={listingActionLoading}
+                        style={{flex:1,background:"var(--g100)",border:"1px solid var(--g200)",padding:".875rem",borderRadius:10,fontWeight:700,fontSize:".9rem",cursor:listingActionLoading?"not-allowed":"pointer",color:"var(--g700)"}}>
+                        {listingActionLoading?"Saving…":"💾 Save as Draft"}
+                      </button>
                     </div>
+                  </div>
+                )}
+
+                {listingActionError && (
+                  <div style={{marginTop:"1rem",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,padding:".75rem 1rem",color:"var(--red)",fontSize:".83rem",fontWeight:600}}>
+                    ⚠️ {listingActionError}
                   </div>
                 )}
 
@@ -2607,6 +3129,8 @@ function App() {
   const [selectedProduct,setSelectedProductState] = useState(null);
   const [selectedBusiness,setSelectedBusinessState] = useState(null);
   const [storefrontBiz,setStorefrontBiz] = useState(null);
+  const [marketProducts, setMarketProducts] = useState(PRODUCTS);
+  const [marketBusinesses, setMarketBusinesses] = useState(BUSINESSES);
 
   // Global vendor settings — WhatsApp number powers all WA buttons
   const [vendorSettings, setVendorSettings] = useState({
@@ -2629,14 +3153,36 @@ function App() {
   const isDash = ["dashboard","settings"].includes(page);
   useEffect(() => { window.scrollTo(0,0); }, [page]);
 
+  useEffect(() => {
+    const loadMarketplaceData = async () => {
+      try {
+        const [listingsRes, storesRes] = await Promise.all([
+          api.getListings({ limit: 200 }),
+          api.getStores({ limit: 200 }),
+        ]);
+
+        const normalizedStores = (storesRes?.stores || []).map(normalizeStore).filter(Boolean);
+        const storesById = new Map(normalizedStores.map((store) => [store.id, store]));
+        const normalizedListings = (listingsRes?.listings || []).map((listing) => normalizeListing(listing, storesById)).filter(Boolean);
+
+        setMarketBusinesses(normalizedStores);
+        setMarketProducts(normalizedListings);
+      } catch (error) {
+        console.warn('Marketplace data load failed; using local fallback data.', error?.message || error);
+      }
+    };
+
+    loadMarketplaceData();
+  }, []);
+
   return (
     <div>
       <Navbar page={page} setPage={setPage} searchQ={searchQ} setSearchQ={setSearchQ} activeCategory={activeCategory} setActiveCategory={setActiveCategory} cart={cart} user={user} setUser={setUser} vendorSettings={vendorSettings} />
       {showCatBar && <CategoryBar activeCategory={activeCategory} setActiveCategory={setActiveCategory} setPage={setPage} />}
-      {page==="home" && <HomePage setPage={setPage} searchQ={searchQ} setSearchQ={setSearchQ} activeCategory={activeCategory} setActiveCategory={setActiveCategory} wishlist={wishlist} toggleWish={toggleWish} setSelectedProduct={setSelectedProduct} setSelectedBusiness={setSelectedBusiness} />}
-      {page==="search" && <SearchPage searchQ={searchQ} activeCategory={activeCategory} setSelectedProduct={setSelectedProduct} setSelectedBusiness={setSelectedBusiness} wishlist={wishlist} toggleWish={toggleWish} />}
-      {page==="product" && selectedProduct && <ProductDetailPage product={selectedProduct} setPage={setPage} setSelectedBusiness={setSelectedBusiness} setSelectedProduct={setSelectedProduct} vendorSettings={vendorSettings} />}
-      {page==="storefront" && <StorefrontPage biz={storefrontBiz} setPage={setPage} vendorSettings={vendorSettings} onProductClick={setSelectedProduct} />}
+      {page==="home" && <HomePage setPage={setPage} searchQ={searchQ} setSearchQ={setSearchQ} activeCategory={activeCategory} setActiveCategory={setActiveCategory} wishlist={wishlist} toggleWish={toggleWish} setSelectedProduct={setSelectedProduct} setSelectedBusiness={setSelectedBusiness} products={marketProducts} businesses={marketBusinesses} />}
+      {page==="search" && <SearchPage searchQ={searchQ} activeCategory={activeCategory} setSelectedProduct={setSelectedProduct} setSelectedBusiness={setSelectedBusiness} wishlist={wishlist} toggleWish={toggleWish} products={marketProducts} businesses={marketBusinesses} />}
+      {page==="product" && selectedProduct && <ProductDetailPage product={selectedProduct} setPage={setPage} setSelectedBusiness={setSelectedBusiness} setSelectedProduct={setSelectedProduct} vendorSettings={vendorSettings} products={marketProducts} businesses={marketBusinesses} />}
+      {page==="storefront" && <StorefrontPage biz={storefrontBiz} setPage={setPage} vendorSettings={vendorSettings} onProductClick={setSelectedProduct} products={marketProducts} businesses={marketBusinesses} />}
       {page==="signin" && <AuthPage setPage={setPage} setUser={setUser} />}
       {page==="onboarding" && <OnboardingPage setPage={setPage} user={user} setUser={setUser} />}
       {page==="cart" && <CartPage cart={cart} setCart={setCart} setPage={setPage} />}
@@ -3038,17 +3584,17 @@ const STOREFRONT_PRODUCTS = [
   { id:112, name:"Capsule Wardrobe Planner", price:12000, type:"digital", category:"digital", img:"https://images.unsplash.com/photo-1586717791821-3f44a563fa4c?w=600&h=600&fit=crop", desc:"Interactive Notion template for planning a minimalist wardrobe. Lifetime access." },
 ];
 
-function StorefrontPage({ biz, setPage, vendorSettings, onProductClick }) {
+function StorefrontPage({ biz, setPage, vendorSettings, onProductClick, products = PRODUCTS, businesses = BUSINESSES }) {
   const [typeFilter, setTypeFilter] = useState("all");
   const [searchQ, setSearchQ] = useState("");
   const [showPhone, setShowPhone] = useState(false);
   const [sortBy, setSortBy] = useState("default");
 
   // isOwn = vendor viewing their own store (biz is null)
-  // visiting = customer viewing another vendor's store (biz is a BUSINESSES object)
+  // visiting = customer viewing another vendor's store (biz is a business object)
   const isOwn = !biz;
 
-  // Store identity — pull from vendorSettings (own) or BUSINESSES object (visiting)
+  // Store identity — pull from vendorSettings (own) or business object (visiting)
   const name     = isOwn ? (vendorSettings.bizName || "My Store")     : (biz.name || "Store");
   const desc     = isOwn ? (vendorSettings.bizDesc || "")             : (biz.desc || "");
   const location = isOwn ? (vendorSettings.bizLocation || "Lagos")    : (biz.location || "Lagos");
@@ -3067,11 +3613,11 @@ function StorefrontPage({ biz, setPage, vendorSettings, onProductClick }) {
     ? `https://wa.me/${waNum.replace(/[^0-9]/g,"")}?text=Hi, I'd like to know more about your store on LBC!`
     : "#";
 
-  // Products: own store uses STOREFRONT_PRODUCTS; visiting another store uses PRODUCTS filtered by store
+  // Products: own store uses STOREFRONT_PRODUCTS; visiting another store uses live products filtered by store
   const bizProducts = isOwn
     ? STOREFRONT_PRODUCTS
-    : PRODUCTS.filter(p => p.storeId === biz.id).length > 0
-      ? PRODUCTS.filter(p => p.storeId === biz.id)
+    : products.filter(p => p.storeId === biz.id).length > 0
+      ? products.filter(p => p.storeId === biz.id)
           .map(p => ({...p, type: p.type || "physical"}))
       : STOREFRONT_PRODUCTS; // fallback if no products matched
 
@@ -3194,7 +3740,7 @@ function StorefrontPage({ biz, setPage, vendorSettings, onProductClick }) {
           <div style={{background:"var(--navy)",borderRadius:16,padding:"1.4rem",color:"#fff"}}>
             <h3 style={{fontFamily:"Syne",fontWeight:800,fontSize:".9rem",marginBottom:"1rem",color:"rgba(255,255,255,.6)",textTransform:"uppercase",letterSpacing:".06em"}}>Store Stats</h3>
             {[
-              {label:"Total Listings",val:STOREFRONT_PRODUCTS.length},
+              {label:"Total Listings",val:bizProducts.length},
               {label:"Avg. Rating",val:"4.8 ⭐"},
               {label:"Response Time",val:"< 1 hour"},
               {label:"Member Since",val:"Jan 2024"},
@@ -3690,11 +4236,25 @@ function ContactPage({ setPage }) {
   const [form, setForm] = useState({name:"",email:"",subject:"",message:""});
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const upd = (k,v) => setForm(f=>({...f,[k]:v}));
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
+    setError("");
     setLoading(true);
-    setTimeout(()=>{ setLoading(false); setSent(true); }, 1200);
+    try {
+      await api.submitContact({
+        name: form.name,
+        email: form.email,
+        subject: form.subject,
+        message: form.message,
+      });
+      setSent(true);
+    } catch (err) {
+      setError(err.message || "Failed to send message.");
+    } finally {
+      setLoading(false);
+    }
   };
   const channels = [
     {icon:"📧",title:"Email Support",val:"support@lbc.ng",sub:"Response within 24 hours"},
@@ -3735,6 +4295,7 @@ function ContactPage({ setPage }) {
                 style={{background:loading||!form.name||!form.email||!form.message?"var(--g300)":"var(--blue)",color:loading||!form.name||!form.email||!form.message?"var(--muted)":"#fff",border:"none",padding:".875rem",borderRadius:10,fontWeight:700,fontSize:".9rem",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:".5rem"}}>
                 {loading?<><span style={{animation:"spin 1s linear infinite",display:"inline-block"}}>⟳</span> Sending…</>:"Send Message →"}
               </button>
+              {error && <div style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,padding:".7rem 1rem",color:"var(--red)",fontSize:".82rem",fontWeight:600}}>⚠️ {error}</div>}
             </form>
           )}
         </div>
@@ -3766,9 +4327,27 @@ function ReportPage({ setPage }) {
   const [form, setForm] = useState({business:"",reason:"",details:"",email:""});
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const upd = (k,v) => setForm(f=>({...f,[k]:v}));
   const reasons = ["Fraudulent or scam activity","Counterfeit or fake products","Misleading product descriptions","Unresponsive vendor after payment","Inappropriate content","Other"];
-  const submit = (e) => { e.preventDefault(); setLoading(true); setTimeout(()=>{ setLoading(false); setSent(true); },1200); };
+  const submit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      await api.submitReport({
+        storeName: form.business,
+        reason: form.reason,
+        details: form.details,
+        reporterEmail: form.email || null,
+      });
+      setSent(true);
+    } catch (err) {
+      setError(err.message || "Failed to submit report.");
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <PageWrap setPage={setPage}>
       <PageHero badge="🚨 Safety" title="Report a Business" subtitle="Help us keep LBC safe and trustworthy for all Lagos buyers. All reports are reviewed within 24 hours." />
@@ -3809,6 +4388,7 @@ function ReportPage({ setPage }) {
               style={{background:loading||!form.business||!form.reason||!form.details?"var(--g300)":"var(--red)",color:"#fff",border:"none",padding:".875rem",borderRadius:10,fontWeight:700,fontSize:".9rem",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:".5rem"}}>
               {loading?<><span style={{animation:"spin 1s linear infinite",display:"inline-block"}}>⟳</span> Submitting…</>:"Submit Report →"}
             </button>
+            {error && <div style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,padding:".7rem 1rem",color:"var(--red)",fontSize:".82rem",fontWeight:600}}>⚠️ {error}</div>}
           </form>
         )}
       </div>

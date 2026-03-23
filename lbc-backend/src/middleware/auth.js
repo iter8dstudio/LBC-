@@ -2,6 +2,8 @@
 const jwt = require('jsonwebtoken');
 const prisma = require('../lib/prisma');
 
+const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET || process.env.JWT_SECRET;
+
 const authMiddleware = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -10,7 +12,7 @@ const authMiddleware = async (req, res, next) => {
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, accessTokenSecret);
 
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },

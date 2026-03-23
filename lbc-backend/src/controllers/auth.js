@@ -8,12 +8,23 @@ const { sendEmail, templates } = require('../lib/email');
 // ── Helpers ────────────────────────────────────────────────
 
 const generateOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
+const isProduction = process.env.NODE_ENV === 'production';
+const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET || process.env.JWT_SECRET;
+const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET;
+
+const logDevOtp = (label, user, secret, expiresAt) => {
+  if (isProduction) return;
+
+  console.log(
+    `[DEV ${label}] userId=${user.id} email=${user.email} code=${secret} expires=${expiresAt.toISOString()}`
+  );
+};
 
 const generateTokens = (userId) => {
-  const accessToken = jwt.sign({ userId }, process.env.JWT_SECRET, {
+  const accessToken = jwt.sign({ userId }, accessTokenSecret, {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
   });
-  const refreshToken = jwt.sign({ userId }, process.env.JWT_SECRET, {
+  const refreshToken = jwt.sign({ userId }, refreshTokenSecret, {
     expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
   });
   return { accessToken, refreshToken };
@@ -35,6 +46,7 @@ const safeUser = (user) => ({
 exports.register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
+    const normalizedEmail = email?.toLowerCase().trim();
 
     if (!name || !email || !password) {
       return res.status(400).json({ error: 'Name, email and password are required' });
@@ -42,8 +54,8 @@ exports.register = async (req, res) => {
     if (password.length < 6) {
       return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
-
-    const existing = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+   
+    const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (existing) {
       return res.status(409).json({ error: 'An account with this email already exists' });
     }
@@ -55,21 +67,27 @@ exports.register = async (req, res) => {
     const user = await prisma.user.create({
       data: {
         name,
-        email: email.toLowerCase(),
+        email: normalizedEmail,
         password: hashed,
         emailOtp: otp,
         emailOtpExpiry: otpExpiry,
         notifications: {
-          create: {}, // create default notification prefs
+          create: { }, // create default notification prefs
         },
       },
     });
 
     const tpl = templates.verifyEmail(name, otp);
-    await sendEmail({ to: email, ...tpl });
+    const emailResult = await sendEmail({ to: normalizedEmail, ...tpl });
+
+    if (!emailResult.delivered) {
+      logDevOtp('EMAIL OTP', user, otp, otpExpiry);
+    }
 
     res.status(201).json({
-      message: 'Account created. Check your email for a 6-digit verification code.',
+      message: emailResult.delivered
+        ? 'Account created. Check your email for a 6-digit verification code.'
+        : 'Account created. Email delivery failed, use the dev OTP endpoint or server log to verify locally.',
       userId: user.id,
     });
   } catch (err) {
@@ -142,11 +160,57 @@ exports.resendEmailOtp = async (req, res) => {
     });
 
     const tpl = templates.verifyEmail(user.name, otp);
-    await sendEmail({ to: user.email, ...tpl });
+    const emailResult = await sendEmail({ to: user.email, ...tpl });
 
-    res.json({ message: 'New verification code sent' });
+    if (!emailResult.delivered) {
+      logDevOtp('EMAIL OTP', user, otp, otpExpiry);
+    }
+
+    res.json({
+      message: emailResult.delivered
+        ? 'New verification code sent'
+        : 'Email delivery failed, use the dev OTP endpoint or server log to verify locally.',
+    });
   } catch (err) {
     res.status(500).json({ error: 'Failed to resend code' });
+  }
+};
+
+exports.getDevEmailOtp = async (req, res) => {
+  try {
+    if (isProduction) {
+      return res.status(404).json({ error: 'Route not found' });
+    }
+
+    const userId = req.query.userId || req.body?.userId;
+    const email = req.query.email?.toLowerCase().trim() || req.body?.email?.toLowerCase().trim();
+
+    if (!userId && !email) {
+      return res.status(400).json({ error: 'userId or email is required' });
+    }
+
+    const user = await prisma.user.findFirst({
+      where: userId ? { id: userId } : { email },
+      select: {
+        id: true,
+        email: true,
+        emailVerified: true,
+        emailOtp: true,
+        emailOtpExpiry: true,
+      },
+    });
+
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    res.json({
+      userId: user.id,
+      email: user.email,
+      emailVerified: user.emailVerified,
+      otp: user.emailOtp,
+      expiresAt: user.emailOtpExpiry,
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch dev OTP' });
   }
 };
 
@@ -194,7 +258,7 @@ exports.refresh = async (req, res) => {
     const { refreshToken } = req.body;
     if (!refreshToken) return res.status(400).json({ error: 'Refresh token required' });
 
-    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+    const decoded = jwt.verify(refreshToken, refreshTokenSecret);
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
       include: { store: true },
@@ -297,7 +361,11 @@ exports.forgotPassword = async (req, res) => {
 
     const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}&userId=${user.id}`;
     const tpl = templates.resetPassword(user.name, resetUrl);
-    await sendEmail({ to: user.email, ...tpl });
+    const emailResult = await sendEmail({ to: user.email, ...tpl });
+
+    if (!emailResult.delivered) {
+      logDevOtp('RESET TOKEN', user, resetToken, resetExpiry);
+    }
 
     res.json({ message: 'If that email exists, a reset link has been sent.' });
   } catch (err) {
