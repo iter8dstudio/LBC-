@@ -1945,6 +1945,10 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
   const [listingActionError, setListingActionError] = useState("");
   const [listingActionLoading, setListingActionLoading] = useState(false);
 
+  // Analytics data from backend
+  const [analyticsOverview, setAnalyticsOverview] = useState({ totalListings:0, profileViews:0, contactClicks:0, activeBoosts:0 });
+  const [chartData, setChartData] = useState({ traffic:[], visitors:[], spent:[], contacts:[] });
+
   // Mobile sidebar drawer
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -2051,6 +2055,42 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
     return () => { active = false; };
   }, [user?.accessToken, user?.refreshToken]);
 
+  // Load analytics data
+  useEffect(() => {
+    if (!user?.accessToken) return;
+
+    let active = true;
+    const loadAnalytics = async () => {
+      try {
+        api.setTokens(user.accessToken, user.refreshToken);
+        const [overview, chart] = await Promise.all([
+          api.request('/analytics/me/overview'),
+          api.request('/analytics/me/chart'),
+        ]);
+
+        if (active) {
+          setAnalyticsOverview({
+            totalListings: overview?.total_listings || 0,
+            profileViews: overview?.profile_views || 0,
+            contactClicks: overview?.contact_clicks || 0,
+            activeBoosts: overview?.active_boosts || 0,
+          });
+          setChartData({
+            traffic: chart?.traffic || [],
+            visitors: chart?.visitors || [],
+            spent: chart?.spent || [],
+            contacts: chart?.contacts || [],
+          });
+        }
+      } catch {
+        // Use defaults on error
+      }
+    };
+
+    loadAnalytics();
+    return () => { active = false; };
+  }, [user?.accessToken, user?.refreshToken]);
+
   // Edit / unpublish / delete state
   const [openMenuId, setOpenMenuId] = useState(null);
   const [editListing, setEditListing] = useState(null);
@@ -2107,10 +2147,10 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
   };
 
   const monthlyData = {
-    traffic:  [620,645,660,680,670,700,720,740,760,800,820,860],
-    visitors: [440,450,460,470,465,480,500,510,520,540,560,590],
-    spent:    [220,230,240,250,245,260,270,280,290,300,320,330],
-    contacts: [630,650,665,680,675,695,715,730,755,790,815,850],
+    traffic:  chartData.traffic?.length > 0 ? chartData.traffic : [0,0,0,0,0,0,0,0,0,0,0,0],
+    visitors: chartData.visitors?.length > 0 ? chartData.visitors : [0,0,0,0,0,0,0,0,0,0,0,0],
+    spent:    chartData.spent?.length > 0 ? chartData.spent : [0,0,0,0,0,0,0,0,0,0,0,0],
+    contacts: chartData.contacts?.length > 0 ? chartData.contacts : [0,0,0,0,0,0,0,0,0,0,0,0],
   };
 
   const SIDEBAR = [
@@ -2342,10 +2382,10 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
             {/* Stat cards */}
             <div className="dash-stats-grid" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"1.25rem",marginBottom:"2rem"}}>
               {[
-                { label:"Total Listings", val:"6", sub:"+2 this week", icon:"☰", spark:[3,3,4,4,4,5,6], color:"var(--blue)" },
-                { label:"Profile Views",  val:"1,247", sub:"+18% vs last week", icon:"👁", spark:[600,700,800,900,1000,1100,1247], color:"#22c55e" },
-                { label:"WhatsApp Clicks", val:"34", sub:"+5 this week", icon:"💬", spark:[10,15,18,20,22,28,34], color:"var(--amber)" },
-                { label:"Active Boosts", val:"2", sub:"2 ending soon", icon:"⚡", spark:[0,1,1,2,2,2,2], color:"#a855f7" },
+                { label:"Total Listings", val:listings.length.toString(), sub:listings.length===0?"No listings yet":"+1", icon:"☰", spark:[], color:"var(--blue)" },
+                { label:"Profile Views",  val:analyticsOverview.profileViews.toString(), sub:"+0 this week", icon:"👁", spark:[], color:"#22c55e" },
+                { label:"WhatsApp Clicks", val:analyticsOverview.contactClicks.toString(), sub:"+0 this week", icon:"💬", spark:[], color:"var(--amber)" },
+                { label:"Active Boosts", val:analyticsOverview.activeBoosts.toString(), sub:analyticsOverview.activeBoosts===0?"No active boosts":analyticsOverview.activeBoosts+" active", icon:"⚡", spark:[], color:"#a855f7" },
               ].map(s=>(
                 <div key={s.label} style={{background:"#fff",border:"1px solid var(--g200)",borderRadius:"var(--r)",padding:"1.4rem",display:"flex",flexDirection:"column",gap:".5rem",animation:"fadeUp .4s ease both"}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
