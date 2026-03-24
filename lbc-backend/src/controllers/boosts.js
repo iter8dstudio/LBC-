@@ -20,6 +20,7 @@ exports.getPlans = (req, res) => {
 exports.initiateBoost = async (req, res) => {
   try {
     const { target, plan, listingId } = req.body;
+    const frontendBaseUrl = (process.env.FRONTEND_URL_PROD || process.env.FRONTEND_URL || '').replace(/\/$/, '');
 
     if (!target || !plan) {
       return res.status(400).json({ error: 'target and plan are required' });
@@ -79,7 +80,7 @@ exports.initiateBoost = async (req, res) => {
             { display_name: 'Business', value: store.bizName },
           ],
         },
-        callback_url: `${process.env.FRONTEND_URL}/boost-success`,
+        callback_url: `${frontendBaseUrl}/boost-success`,
       }),
     });
 

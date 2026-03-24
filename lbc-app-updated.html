@@ -339,12 +339,30 @@ class ApiService {
     return this.request(`/stores/${slug}`);
   }
 
+  async getMe() {
+    return this.request('/users/me');
+  }
+
   async getBoostPlans() {
     return this.request('/boosts/plans');
   }
 
   async getMyBoosts() {
     return this.request('/boosts/me');
+  }
+
+  async initiateBoost(payload) {
+    return this.request('/boosts/initiate', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async verifyBoost(reference) {
+    return this.request('/boosts/verify', {
+      method: 'POST',
+      body: JSON.stringify({ reference }),
+    });
   }
 }
 
@@ -1949,6 +1967,8 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
   const [boostPlan, setBoostPlan] = useState("weekly");
   const [boostProduct, setBoostProduct] = useState(1);
   const [boostDone, setBoostDone] = useState(false);
+  const [boostActionLoading, setBoostActionLoading] = useState(false);
+  const [boostActionError, setBoostActionError] = useState("");
   const updL = (k,v) => setNewListing(l=>({...l,[k]:v}));
   const [listingActionError, setListingActionError] = useState("");
   const [listingActionLoading, setListingActionLoading] = useState(false);
@@ -2094,6 +2114,45 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
     if (!endDate) return null;
     const diffMs = new Date(endDate).getTime() - Date.now();
     return Math.max(0, Math.ceil(diffMs / (24 * 60 * 60 * 1000)));
+  };
+
+  const activateBoostPayment = async () => {
+    if (!user?.accessToken) {
+      setBoostActionError('Please sign in again before starting a boost payment.');
+      return;
+    }
+
+    if (!selectedBoostPlan) {
+      setBoostActionError('Please select a boost plan.');
+      return;
+    }
+
+    if (boostTarget === 'product' && !boostProduct) {
+      setBoostActionError('Please choose a live listing to boost.');
+      return;
+    }
+
+    setBoostActionLoading(true);
+    setBoostActionError('');
+
+    try {
+      api.setTokens(user.accessToken, user.refreshToken);
+      const payload = {
+        target: boostTarget === 'store' ? 'store' : 'listing',
+        plan: selectedBoostPlan.id,
+        ...(boostTarget === 'product' ? { listingId: String(boostProduct) } : {}),
+      };
+
+      const initiated = await api.initiateBoost(payload);
+      if (!initiated?.authorizationUrl) {
+        throw new Error('Boost payment initialization failed.');
+      }
+
+      window.location.href = initiated.authorizationUrl;
+    } catch (err) {
+      setBoostActionError(err.message || 'Failed to initialize boost payment.');
+      setBoostActionLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -3196,9 +3255,10 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
                         </span>
                       </div>
                     </div>
-                    <button onClick={()=>setBoostDone(true)} style={{width:"100%",background:"var(--amber)",color:"#7c3e00",border:"none",padding:".95rem",borderRadius:10,fontWeight:800,fontSize:".95rem",cursor:"pointer",marginBottom:".75rem"}}>
-                      ⚡ Activate Boost
+                    <button onClick={activateBoostPayment} disabled={boostActionLoading || (boostTarget === 'product' && listings.filter(l=>l.status==='live').length === 0)} style={{width:"100%",background:boostActionLoading?"#fcd68a":"var(--amber)",color:"#7c3e00",border:"none",padding:".95rem",borderRadius:10,fontWeight:800,fontSize:".95rem",cursor:boostActionLoading?"not-allowed":"pointer",marginBottom:".75rem",opacity:(boostTarget === 'product' && listings.filter(l=>l.status==='live').length === 0)?0.6:1}}>
+                      {boostActionLoading ? 'Redirecting to Paystack…' : '⚡ Pay With Paystack'}
                     </button>
+                    {boostActionError && <div style={{marginBottom:".75rem",background:"rgba(239,68,68,.12)",border:"1px solid rgba(239,68,68,.25)",borderRadius:8,padding:".75rem",fontSize:".8rem",fontWeight:600,color:"#fecaca"}}>{boostActionError}</div>}
                     <p style={{fontSize:".72rem",color:"rgba(255,255,255,.3)",textAlign:"center",lineHeight:1.5}}>Your listing goes live as sponsored within minutes. Cancel anytime before renewal.</p>
                   </div>
                 </div>
@@ -3207,6 +3267,77 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
           </div>
         )}
 
+      </div>
+    </div>
+  );
+}
+
+function BoostCallbackPage({ setPage, setUser }) {
+  const [state, setState] = useState({ status: 'verifying', message: 'Confirming your Paystack payment and activating your boost…' });
+
+  useEffect(() => {
+    let mounted = true;
+    const params = new URLSearchParams(window.location.search);
+    const reference = params.get('reference') || params.get('trxref');
+
+    const finish = async () => {
+      if (!reference) {
+        if (mounted) {
+          setState({ status: 'error', message: 'Missing payment reference. Please return to your dashboard and try again.' });
+        }
+        return;
+      }
+
+      try {
+        const verified = await api.verifyBoost(reference);
+        const me = await api.getMe();
+
+        if (!mounted) return;
+
+        setUser({
+          ...(me || {}),
+          accessToken: api.accessToken,
+          refreshToken: api.refreshToken,
+        });
+
+        setState({
+          status: 'success',
+          message: verified?.message || 'Boost activated successfully. Redirecting to your dashboard…',
+        });
+
+        setTimeout(() => {
+          window.history.replaceState({}, '', '/');
+          setPage('dashboard');
+        }, 2500);
+      } catch (err) {
+        if (mounted) {
+          setState({ status: 'error', message: err.message || 'Payment verification failed. Please contact support if you were charged.' });
+        }
+      }
+    };
+
+    finish();
+    return () => { mounted = false; };
+  }, [setPage, setUser]);
+
+  return (
+    <div style={{minHeight:"calc(100vh - 64px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"2rem",background:"var(--offwhite)"}}>
+      <div style={{maxWidth:560,width:"100%",background:"#fff",border:"1px solid var(--g200)",borderRadius:20,padding:"3rem",textAlign:"center",boxShadow:"var(--sh)"}}>
+        <div style={{fontSize:"4rem",marginBottom:"1rem"}}>{state.status === 'success' ? '⚡' : state.status === 'error' ? '⚠️' : '⟳'}</div>
+        <h1 style={{fontFamily:"Syne",fontWeight:800,fontSize:"1.8rem",marginBottom:".75rem",color:"var(--navy)"}}>
+          {state.status === 'success' ? 'Boost Confirmed' : state.status === 'error' ? 'Boost Verification Failed' : 'Verifying Payment'}
+        </h1>
+        <p style={{fontSize:".92rem",lineHeight:1.7,color:"var(--muted)",marginBottom:"1.5rem"}}>{state.message}</p>
+        {state.status === 'success' && (
+          <div style={{background:"rgba(34,197,94,.08)",border:"1px solid rgba(34,197,94,.2)",borderRadius:12,padding:"1rem 1.25rem",fontSize:".84rem",fontWeight:600,color:"#15803d",lineHeight:1.6}}>
+            Your sponsored placement is now being applied. You will be redirected to your dashboard automatically.
+          </div>
+        )}
+        {state.status === 'error' && (
+          <button onClick={() => { window.history.replaceState({}, '', '/'); setPage('boosts'); }} style={{marginTop:"1rem",background:"var(--blue)",color:"#fff",border:"none",padding:".85rem 1.5rem",borderRadius:10,fontWeight:700,cursor:"pointer"}}>
+            Back to Boosts
+          </button>
+        )}
       </div>
     </div>
   );
@@ -3251,7 +3382,7 @@ function Footer({ setPage }) {
 
 // ── APP ──
 function App() {
-  const [page,setPage] = useState("home");
+  const [page,setPage] = useState(() => window.location.pathname === '/boost-success' ? 'boostCallback' : 'home');
   const [searchQ,setSearchQ] = useState("");
   const [activeCategory,setActiveCategory] = useState("all");
   const [wishlist,setWishlist] = useState([]);
@@ -3283,6 +3414,31 @@ function App() {
   const footerPages = ["about","howitworks","pricing","blog","faq","contact","report","advertise","privacy","userterms","cookies","refund"];
   const isDash = ["dashboard","settings"].includes(page);
   useEffect(() => { window.scrollTo(0,0); }, [page]);
+
+  useEffect(() => {
+    let active = true;
+
+    const bootstrapSession = async () => {
+      if (!api.accessToken) return;
+
+      try {
+        const me = await api.getMe();
+        if (!active) return;
+
+        setUser({
+          ...(me || {}),
+          accessToken: api.accessToken,
+          refreshToken: api.refreshToken,
+        });
+      } catch {
+        api.clearTokens();
+        if (active) setUser(null);
+      }
+    };
+
+    bootstrapSession();
+    return () => { active = false; };
+  }, []);
 
   // Load user store data when logged in
   useEffect(() => {
@@ -3359,6 +3515,7 @@ function App() {
       {page==="cart" && <CartPage cart={cart} setCart={setCart} setPage={setPage} />}
       {page==="dashboard" && <DashboardPage user={user} setUser={setUser} setPage={setPage} vendorSettings={vendorSettings} />}
       {page==="settings" && <SettingsPage user={user} setUser={setUser} setPage={setPage} vendorSettings={vendorSettings} setVendorSettings={setVendorSettings} />}
+      {page==="boostCallback" && <BoostCallbackPage setPage={setPage} setUser={setUser} />}
       {page==="about" && <AboutPage setPage={setPage} />}
       {page==="howitworks" && <HowItWorksPage setPage={setPage} />}
       {page==="pricing" && <PricingPage setPage={setPage} />}
