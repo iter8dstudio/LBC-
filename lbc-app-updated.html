@@ -1576,10 +1576,10 @@ function OnboardingPage({ setPage, user, setUser }) {
           bizName: biz.name,
           category: biz.category,
           location: biz.location,
-          bizPhone: biz.phone || null,
-          bizEmail: biz.email || null,
-          whatsapp: biz.whatsapp || null,
-          bizDesc: biz.desc || null,
+          ...(biz.phone ? { bizPhone: biz.phone } : {}),
+          ...(biz.email ? { bizEmail: biz.email } : {}),
+          ...(biz.whatsapp ? { whatsapp: biz.whatsapp } : {}),
+          ...(biz.desc ? { bizDesc: biz.desc } : {}),
         });
       } catch (err) {
         if (!String(err.message || '').toLowerCase().includes('already have a store')) {
@@ -1594,7 +1594,7 @@ function OnboardingPage({ setPage, user, setUser }) {
           type: listing.listingType,
           category: biz.category,
           location: biz.location,
-          description: listing.listingDesc || null,
+          ...(listing.listingDesc ? { description: listing.listingDesc } : {}),
           status: biz.plan === 'free' ? 'draft' : 'live',
         });
       }
