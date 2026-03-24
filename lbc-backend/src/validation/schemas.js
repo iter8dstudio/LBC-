@@ -133,7 +133,7 @@ const updateNotificationsSchema = z.object({
 
 const initiateBoostSchema = z.object({
   target: z.enum(['listing', 'store']),
-  plan: z.enum(['weekly', 'monthly', 'premium']),
+  plan: z.enum(['weekly', 'biweekly', 'monthly', 'premium']),
   listingId: z.string().trim().optional(),
 }).refine((data) => data.target !== 'listing' || !!data.listingId, {
   message: 'listingId is required when target is listing',

@@ -208,7 +208,22 @@ async function activateBoost(boost) {
   if (!plan) {
     throw new Error(`Unknown boost plan: ${boost.plan}`);
   }
-  const startDate = new Date();
+
+  const now = new Date();
+  const activeBoostFilter = {
+    storeId: boost.storeId,
+    target: boost.target,
+    status: 'active',
+    ...(boost.target === 'listing' ? { listingId: boost.listingId } : { listingId: null }),
+  };
+
+  const latestActiveBoost = await prisma.boost.findFirst({
+    where: activeBoostFilter,
+    orderBy: { endDate: 'desc' },
+  });
+
+  const hasUnexpiredActiveBoost = latestActiveBoost?.endDate && new Date(latestActiveBoost.endDate).getTime() > now.getTime();
+  const startDate = hasUnexpiredActiveBoost ? new Date(latestActiveBoost.endDate) : now;
   const endDate = new Date(startDate.getTime() + plan.days * 24 * 60 * 60 * 1000);
 
   await prisma.boost.update({
