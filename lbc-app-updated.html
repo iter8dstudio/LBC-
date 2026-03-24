@@ -2121,6 +2121,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
 
   const selectedBoostPlan = boostPlanOptions.find((plan) => plan.id === boostPlan) || boostPlanOptions[0] || null;
   const activeBoosts = boosts.filter((boost) => boost.status === 'active');
+  const currentBoost = activeBoosts[0] || null;
 
   const formatBoostDateRange = (startDate, endDate) => {
     if (!startDate || !endDate) return 'Dates unavailable';
