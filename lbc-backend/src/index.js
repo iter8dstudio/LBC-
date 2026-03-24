@@ -6,6 +6,7 @@ const helmet     = require('helmet');
 const cors       = require('cors');
 const rateLimit  = require('express-rate-limit');
 const { sanitizeRequest } = require('./middleware/sanitize');
+const { getAllowedOrigins, getFrontendBaseUrl } = require('./lib/frontend');
 
 const app = express();
 
@@ -13,14 +14,7 @@ const app = express();
 app.use(helmet());
 
 app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL,
-    process.env.FRONTEND_URL_PROD,
-    process.env.FRONTEND_URL_STAGING,
-    'http://localhost:3000',
-    'http://localhost:5500',
-    'http://127.0.0.1:5500',
-  ].filter(Boolean),
+  origin: getAllowedOrigins(),
   credentials: true,
 }));
 
@@ -119,7 +113,7 @@ const startServer = (port, attempt = 0) => {
   const server = app.listen(port, () => {
     console.log(`\n🚀 LBC API running on port ${port}`);
     console.log(`   ENV:      ${process.env.NODE_ENV || 'development'}`);
-    console.log(`   Frontend: ${process.env.FRONTEND_URL || 'not set'}\n`);
+    console.log(`   Frontend: ${getFrontendBaseUrl() || 'not set'}\n`);
   });
 
   server.on('error', (err) => {

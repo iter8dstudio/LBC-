@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const prisma = require('../lib/prisma');
 const { sendEmail, templates } = require('../lib/email');
+const { getFrontendBaseUrl } = require('../lib/frontend');
 
 // ── Helpers ────────────────────────────────────────────────
 
@@ -359,7 +360,7 @@ exports.forgotPassword = async (req, res) => {
       },
     });
 
-    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}&userId=${user.id}`;
+    const resetUrl = `${getFrontendBaseUrl()}/reset-password?token=${resetToken}&userId=${user.id}`;
     const tpl = templates.resetPassword(user.name, resetUrl);
     const emailResult = await sendEmail({ to: user.email, ...tpl });
 

@@ -47,7 +47,25 @@ exports.getListings = async (req, res) => {
         skip,
         take: parseInt(limit),
         orderBy,
-        include: { store: { select: { bizName: true, slug: true, verified: true, location: true } } },
+        include: {
+          store: {
+            select: {
+              id: true,
+              bizName: true,
+              slug: true,
+              verified: true,
+              sponsored: true,
+              category: true,
+              location: true,
+              whatsapp: true,
+              bizPhone: true,
+              bizEmail: true,
+              logo: true,
+              banner: true,
+              createdAt: true,
+            },
+          },
+        },
       }),
       prisma.listing.count({ where }),
     ]);

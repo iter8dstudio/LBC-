@@ -1,5 +1,6 @@
 // src/lib/email.js
 const nodemailer = require('nodemailer');
+const { getFrontendBaseUrl } = require('./frontend');
 
 const mailHost = process.env.SMTP_HOST || process.env.EMAIL_HOST;
 const mailPort = parseInt(process.env.SMTP_PORT || process.env.EMAIL_PORT || '587', 10);
@@ -72,7 +73,7 @@ const templates = {
           <li>Upload product photos for better visibility</li>
           <li>Consider a Weekly Boost (N5,000) to appear on the homepage</li>
         </ul>
-        <a href="${process.env.FRONTEND_URL}" style="display:inline-block;background:#0066ff;color:#fff;padding:.75rem 2rem;border-radius:10px;text-decoration:none;font-weight:700;margin-top:1rem">Go to Dashboard</a>
+        <a href="${getFrontendBaseUrl()}" style="display:inline-block;background:#0066ff;color:#fff;padding:.75rem 2rem;border-radius:10px;text-decoration:none;font-weight:700;margin-top:1rem">Go to Dashboard</a>
       </div>
     </div>`,
   }),
@@ -86,7 +87,7 @@ const templates = {
       <div style="background:#fff;padding:2rem;border-radius:0 0 12px 12px;border:1px solid #e2e8f0">
         <h2 style="color:#060d1f">Your Boost is Live, ${name}!</h2>
         <p style="color:#64748b">Your <strong>${plan}</strong> boost is now active. Expires: <strong>${endDate}</strong></p>
-        <a href="${process.env.FRONTEND_URL}" style="display:inline-block;background:#f59e0b;color:#7c3e00;padding:.75rem 2rem;border-radius:10px;text-decoration:none;font-weight:700;margin-top:1rem">View Dashboard</a>
+        <a href="${getFrontendBaseUrl()}" style="display:inline-block;background:#f59e0b;color:#7c3e00;padding:.75rem 2rem;border-radius:10px;text-decoration:none;font-weight:700;margin-top:1rem">View Dashboard</a>
       </div>
     </div>`,
   }),

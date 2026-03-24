@@ -20,6 +20,46 @@
 
 const ENV = window.location.hostname === 'localhost' ? 'dev' : 'prod';
 const API = API_CONFIG[ENV];
+const MARKETPLACE_CACHE_KEY = 'lbc.marketplace.cache.v2';
+const MARKETPLACE_CACHE_TTL = 5 * 60 * 1000;
+
+const getCollection = (payload, key) => {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.[key])) return payload[key];
+  return [];
+};
+
+const readMarketplaceCache = () => {
+  try {
+    const raw = localStorage.getItem(MARKETPLACE_CACHE_KEY);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw);
+    if (!parsed || !Array.isArray(parsed.products) || !Array.isArray(parsed.businesses)) {
+      return null;
+    }
+
+    if (Date.now() - Number(parsed.timestamp || 0) > MARKETPLACE_CACHE_TTL) {
+      return null;
+    }
+
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
+const writeMarketplaceCache = (products, businesses) => {
+  try {
+    localStorage.setItem(MARKETPLACE_CACHE_KEY, JSON.stringify({
+      products,
+      businesses,
+      timestamp: Date.now(),
+    }));
+  } catch {
+    // Ignore storage failures.
+  }
+};
 </script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -457,12 +497,14 @@ const normalizeListing = (listing, storesById = new Map()) => {
     ? {
         id: listing.storeId,
         name: listing.store.bizName,
-        category: listing.category,
+        category: listing.store.category || listing.category,
         location: listing.store.location,
         verified: listing.store.verified,
-        sponsored: false,
+        sponsored: !!listing.store.sponsored,
         whatsapp: listing.store.whatsapp || "",
         bizPhone: listing.store.bizPhone || "",
+        bizEmail: listing.store.bizEmail || "",
+        img: listing.store.banner || listing.store.logo || "",
         createdAt: listing.store.createdAt || null,
       }
     : null;
@@ -981,8 +1023,8 @@ function ProductDetailPage({ product, setPage, setSelectedBusiness, setSelectedP
   const galleryImgs = Array.isArray(product.images) && product.images.length > 0 ? product.images : [product.img, product.img, product.img, product.img];
   const [activeImg, setActiveImg] = useState(0);
   const [showPhone, setShowPhone] = useState(false);
-  const vendorPhone = product.vendorPhone || vendorBiz?.bizPhone || vendorSettings?.bizPhone || "Not provided";
   const vendorBiz = businesses.find(b => b.id === product.storeId);
+  const vendorPhone = product.vendorPhone || vendorBiz?.bizPhone || vendorSettings?.bizPhone || "Not provided";
   const related = products.filter(p => p.category === product.category && p.id !== product.id).slice(0, 4);
   const similarVendors = businesses.filter(b => b.category === product.category).slice(0, 3);
 
@@ -3459,25 +3501,43 @@ function App() {
   }, [user?.accessToken, user?.email, user?.name]);
 
   useEffect(() => {
+    let active = true;
+    const cachedMarketplace = readMarketplaceCache();
+
+    if (cachedMarketplace) {
+      setMarketProducts(cachedMarketplace.products);
+      setMarketBusinesses(cachedMarketplace.businesses);
+    }
+
     const loadMarketplaceData = async () => {
       try {
-        const [listingsRes, storesRes] = await Promise.all([
+        const [listingsResult, storesResult] = await Promise.allSettled([
           api.getListings({ limit: 200 }),
           api.getStores({ limit: 200 }),
         ]);
 
-        const normalizedStores = (storesRes?.stores || []).map(normalizeStore).filter(Boolean);
+        const storePayload = storesResult.status === 'fulfilled' ? getCollection(storesResult.value, 'stores') : [];
+        const listingPayload = listingsResult.status === 'fulfilled' ? getCollection(listingsResult.value, 'listings') : [];
+        const normalizedStores = storePayload.map(normalizeStore).filter(Boolean);
         const storesById = new Map(normalizedStores.map((store) => [store.id, store]));
-        const normalizedListings = (listingsRes?.listings || []).map((listing) => normalizeListing(listing, storesById)).filter(Boolean);
+        const normalizedListings = listingPayload.map((listing) => normalizeListing(listing, storesById)).filter(Boolean);
+
+        if (!active) return;
 
         setMarketBusinesses(normalizedStores);
         setMarketProducts(normalizedListings);
+        writeMarketplaceCache(normalizedListings, normalizedStores);
       } catch (error) {
+        if (!cachedMarketplace && active) {
+          setMarketBusinesses([]);
+          setMarketProducts([]);
+        }
         console.warn('Marketplace data load failed.', error?.message || error);
       }
     };
 
     loadMarketplaceData();
+    return () => { active = false; };
   }, []);
 
   return (

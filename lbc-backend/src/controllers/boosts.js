@@ -2,6 +2,7 @@
 const crypto = require('crypto');
 const prisma = require('../lib/prisma');
 const { sendEmail, templates } = require('../lib/email');
+const { getFrontendBaseUrl } = require('../lib/frontend');
 
 const PLANS = {
   weekly:  { amount: 5000,  days: 7,  label: 'Weekly Spotlight' },
@@ -20,7 +21,7 @@ exports.getPlans = (req, res) => {
 exports.initiateBoost = async (req, res) => {
   try {
     const { target, plan, listingId } = req.body;
-    const frontendBaseUrl = (process.env.FRONTEND_URL_PROD || process.env.FRONTEND_URL || '').replace(/\/$/, '');
+    const frontendBaseUrl = getFrontendBaseUrl();
 
     if (!target || !plan) {
       return res.status(400).json({ error: 'target and plan are required' });
