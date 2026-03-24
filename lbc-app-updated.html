@@ -328,6 +328,10 @@ class ApiService {
     return this.request('/analytics/me/listings');
   }
 
+  async getAnalyticsChart(period = 'monthly') {
+    return this.request(`/analytics/me/chart?period=${encodeURIComponent(period)}`);
+  }
+
   async createListing(listingData) {
     return this.request('/listings', {
       method: 'POST',
@@ -1282,6 +1286,7 @@ function BusinessDetailPage({ business, setPage, setSelectedProduct, wishlist, t
 function AuthPage({ setPage, setUser }) {
   const [mode, setMode] = useState("signin");
   const [form, setForm] = useState({name:"",email:"",password:"",confirm:""});
+  const [passwordVisibility, setPasswordVisibility] = useState({ password:false, confirm:false });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [verifyUserId, setVerifyUserId] = useState("");
@@ -1406,14 +1411,31 @@ function AuthPage({ setPage, setUser }) {
     }
   };
 
-  const inp = (label, key, type="text", placeholder="") => (
-    <div>
-      <label style={{display:"block",fontSize:".82rem",fontWeight:700,color:"var(--g700)",marginBottom:".4rem"}}>{label}</label>
-      <input type={type} value={form[key]} onChange={e=>upd(key,e.target.value)} placeholder={placeholder}
-        style={{width:"100%",padding:".75rem 1rem",borderRadius:8,border:"1px solid var(--g200)",fontSize:".9rem",outline:"none"}}
-        onFocus={e=>e.target.style.borderColor="var(--blue)"} onBlur={e=>e.target.style.borderColor="var(--g200)"} />
-    </div>
-  );
+  const inp = (label, key, type="text", placeholder="") => {
+    const isPasswordField = type === "password";
+    const inputType = isPasswordField && passwordVisibility[key] ? "text" : type;
+
+    return (
+      <div>
+        <label style={{display:"block",fontSize:".82rem",fontWeight:700,color:"var(--g700)",marginBottom:".4rem"}}>{label}</label>
+        <div style={{position:"relative"}}>
+          <input type={inputType} value={form[key]} onChange={e=>upd(key,e.target.value)} placeholder={placeholder}
+            style={{width:"100%",padding:isPasswordField?".75rem 2.75rem .75rem 1rem":".75rem 1rem",borderRadius:8,border:"1px solid var(--g200)",fontSize:".9rem",outline:"none"}}
+            onFocus={e=>e.target.style.borderColor="var(--blue)"} onBlur={e=>e.target.style.borderColor="var(--g200)"} />
+          {isPasswordField && (
+            <button
+              type="button"
+              onClick={()=>setPasswordVisibility(v=>({ ...v, [key]: !v[key] }))}
+              aria-label={passwordVisibility[key] ? "Hide password" : "Show password"}
+              style={{position:"absolute",right:".75rem",top:"50%",transform:"translateY(-50%)",border:"none",background:"transparent",color:"var(--muted)",cursor:"pointer",fontSize:".95rem",padding:0,lineHeight:1}}
+            >
+              {passwordVisibility[key] ? "🙈" : "👁"}
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   // ── EMAIL VERIFY SCREEN ──
   if (verifyStep) return (
@@ -1913,16 +1935,18 @@ function BarChart({ data, color="#0066ff" }) {
 }
 
 // Line chart (pure SVG)
-function LineChart({ datasets }) {
+function LineChart({ datasets, labels }) {
   const W=560, H=180, PAD=36;
-  const allVals = datasets.flatMap(d=>d.data);
-  const max = Math.max(...allVals), min = 0;
+  const allVals = datasets.flatMap(d=>d.data || []);
+  const max = Math.max(...allVals, 0), min = 0;
+  const resolvedLabels = Array.isArray(labels) && labels.length > 0
+    ? labels
+    : ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   const pts = (data) => data.map((v,i)=>{
-    const x = PAD + (i/(data.length-1))*(W-PAD*2);
+    const x = PAD + ((data.length <= 1 ? 0 : i/(data.length-1)))*(W-PAD*2);
     const y = PAD + (1-(v-min)/(max-min||1))*(H-PAD*2);
     return `${x},${y}`;
   }).join(" ");
-  const labels = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",height:"auto",display:"block"}}>
       {/* Grid lines */}
@@ -1931,8 +1955,8 @@ function LineChart({ datasets }) {
         return <line key={i} x1={PAD} y1={y} x2={W-PAD} y2={y} stroke="#e2e8f0" strokeWidth="1" />;
       })}
       {/* X labels */}
-      {labels.map((l,i)=>{
-        const x = PAD + (i/11)*(W-PAD*2);
+      {resolvedLabels.map((l,i)=>{
+        const x = PAD + ((resolvedLabels.length <= 1 ? 0 : i/(resolvedLabels.length-1)))*(W-PAD*2);
         return <text key={i} x={x} y={H-6} textAnchor="middle" fontSize="9" fill="#94a3b8">{l}</text>;
       })}
       {/* Lines */}
@@ -1963,6 +1987,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
   // Analytics data from backend
   const [analyticsOverview, setAnalyticsOverview] = useState({ totalListings:0, profileViews:0, contactClicks:0, activeBoosts:0 });
   const [chartData, setChartData] = useState({ traffic:[], visitors:[], spent:[], contacts:[] });
+  const [chartLabels, setChartLabels] = useState(["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]);
   const [listingAnalytics, setListingAnalytics] = useState([]);
   const [boosts, setBoosts] = useState([]);
   const [boostPlans, setBoostPlans] = useState({});
@@ -2172,7 +2197,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
     }
   }, [listings, boostTarget, boostProduct]);
 
-  // Load analytics data
+  // Load analytics summary data
   useEffect(() => {
     if (!user?.accessToken) return;
 
@@ -2180,9 +2205,8 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
     const loadAnalytics = async () => {
       try {
         api.setTokens(user.accessToken, user.refreshToken);
-        const [overview, chart, listings] = await Promise.all([
+        const [overview, listings] = await Promise.all([
           api.request('/analytics/me/overview'),
-          api.request('/analytics/me/chart'),
           api.getListingAnalytics(),
         ]);
 
@@ -2192,12 +2216,6 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
             profileViews: overview?.profileViews || 0,
             contactClicks: overview?.waClicks || 0,
             activeBoosts: overview?.activeBoosts || 0,
-          });
-          setChartData({
-            traffic: chart?.views || [],
-            visitors: chart?.views || [],
-            spent: chart?.spent || [],
-            contacts: chart?.waClicks || [],
           });
           setListingAnalytics(Array.isArray(listings) ? listings : []);
         }
@@ -2210,6 +2228,50 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
     loadAnalytics();
     return () => { active = false; };
   }, [user?.accessToken, user?.refreshToken]);
+
+  useEffect(() => {
+    if (!user?.accessToken) return;
+
+    let active = true;
+    const period = chartPeriod.toLowerCase();
+    const fallbackLabels = period === 'daily'
+      ? ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]
+      : period === 'weekly'
+        ? ["Week 1","Week 2","Week 3","Week 4"]
+        : ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+    const loadChart = async () => {
+      try {
+        api.setTokens(user.accessToken, user.refreshToken);
+        const chart = await api.getAnalyticsChart(period);
+        if (!active) return;
+
+        const labels = Array.isArray(chart?.labels) && chart.labels.length > 0 ? chart.labels : fallbackLabels;
+        const fillToSize = (values = []) => labels.map((_, index) => Number(values[index] || 0));
+
+        setChartLabels(labels);
+        setChartData({
+          traffic: fillToSize(chart?.views),
+          visitors: fillToSize(chart?.views),
+          spent: fillToSize(chart?.spent),
+          contacts: fillToSize(chart?.waClicks),
+        });
+      } catch {
+        if (!active) return;
+
+        setChartLabels(fallbackLabels);
+        setChartData({
+          traffic: fallbackLabels.map(() => 0),
+          visitors: fallbackLabels.map(() => 0),
+          spent: fallbackLabels.map(() => 0),
+          contacts: fallbackLabels.map(() => 0),
+        });
+      }
+    };
+
+    loadChart();
+    return () => { active = false; };
+  }, [user?.accessToken, user?.refreshToken, chartPeriod]);
 
   useEffect(() => {
     if (!user?.accessToken) {
@@ -2297,11 +2359,12 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
     }
   };
 
-  const monthlyData = {
-    traffic:  chartData.traffic?.length > 0 ? chartData.traffic : [0,0,0,0,0,0,0,0,0,0,0,0],
-    visitors: chartData.visitors?.length > 0 ? chartData.visitors : [0,0,0,0,0,0,0,0,0,0,0,0],
-    spent:    chartData.spent?.length > 0 ? chartData.spent : [0,0,0,0,0,0,0,0,0,0,0,0],
-    contacts: chartData.contacts?.length > 0 ? chartData.contacts : [0,0,0,0,0,0,0,0,0,0,0,0],
+  const emptySeries = chartLabels.map(() => 0);
+  const periodData = {
+    traffic:  chartData.traffic?.length > 0 ? chartData.traffic : emptySeries,
+    visitors: chartData.visitors?.length > 0 ? chartData.visitors : emptySeries,
+    spent:    chartData.spent?.length > 0 ? chartData.spent : emptySeries,
+    contacts: chartData.contacts?.length > 0 ? chartData.contacts : emptySeries,
   };
 
   const SIDEBAR = [
@@ -2312,10 +2375,10 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
   ];
 
   const datasets = [
-    { key:"traffic",  color:"#f59e0b", label:"Traffic",       data: monthlyData.traffic },
-    { key:"visitors", color:"#22c55e", label:"Visitors",      data: monthlyData.visitors },
-    { key:"spent",    color:"#0066ff", label:"Pro Sales",     data: monthlyData.spent },
-    { key:"contacts", color:"#a855f7", label:"Contact Views", data: monthlyData.contacts },
+    { key:"traffic",  color:"#f59e0b", label:"Traffic",       data: periodData.traffic },
+    { key:"visitors", color:"#22c55e", label:"Visitors",      data: periodData.visitors },
+    { key:"spent",    color:"#0066ff", label:"Pro Sales",     data: periodData.spent },
+    { key:"contacts", color:"#a855f7", label:"Contact Views", data: periodData.contacts },
   ].map(d=>({...d, active: chartToggles[d.key]}));
 
   return (
@@ -2565,7 +2628,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
                     ))}
                   </div>
                 </div>
-                <LineChart datasets={datasets} />
+                <LineChart datasets={datasets} labels={chartLabels} />
                 {/* Toggles */}
                 <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:".5rem",marginTop:"1rem"}}>
                   {datasets.map(d=>(
@@ -3673,6 +3736,7 @@ function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSetting
   const [saved, setSaved] = useState({});
   const [activeSection, setActiveSection] = useState("personal");
   const [pwForm, setPwForm] = useState({old:"",newp:"",confirm:""});
+  const [pwVisibility, setPwVisibility] = useState({old:false,newp:false,confirm:false});
   const upd = (k,v) => setLocal(l=>({...l,[k]:v}));
   const saveSection = (section) => {
     setVendorSettings(s=>({...s,...local}));
@@ -3680,6 +3744,25 @@ function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSetting
     setSaved(s=>({...s,[section]:true}));
     setTimeout(()=>setSaved(s=>({...s,[section]:false})),3000);
   };
+  const renderPasswordField = (fieldKey, placeholder) => (
+    <div style={{position:"relative"}}>
+      <SInput
+        value={pwForm[fieldKey]}
+        onChange={e=>setPwForm(p=>({...p,[fieldKey]:e.target.value}))}
+        type={pwVisibility[fieldKey] ? "text" : "password"}
+        placeholder={placeholder}
+        style={{paddingRight:"2.75rem"}}
+      />
+      <button
+        type="button"
+        onClick={()=>setPwVisibility(v=>({...v,[fieldKey]:!v[fieldKey]}))}
+        aria-label={pwVisibility[fieldKey] ? "Hide password" : "Show password"}
+        style={{position:"absolute",right:".75rem",top:"50%",transform:"translateY(-50%)",border:"none",background:"transparent",color:"var(--muted)",cursor:"pointer",fontSize:".95rem",padding:0,lineHeight:1}}
+      >
+        {pwVisibility[fieldKey] ? "🙈" : "👁"}
+      </button>
+    </div>
+  );
   const saveAll = () => {
     setVendorSettings(s=>({...s,...local}));
     if(local.name && user) setUser(u=>({...u, name:local.name, email:local.email}));
@@ -3863,13 +3946,13 @@ function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSetting
           <SSection title="Change Password" subtitle="Use a strong password you don't use elsewhere" icon="🔒" onSave={()=>saveSection("security")} saved={saved.security}>
             <div style={{display:"flex",flexDirection:"column",gap:"1.1rem",maxWidth:480}}>
               <SField label="Current Password" required>
-                <SInput value={pwForm.old} onChange={e=>setPwForm(p=>({...p,old:e.target.value}))} type="password" placeholder="Enter your current password" />
+                {renderPasswordField("old", "Enter your current password")}
               </SField>
               <SField label="New Password" required>
-                <SInput value={pwForm.newp} onChange={e=>setPwForm(p=>({...p,newp:e.target.value}))} type="password" placeholder="Min 8 characters" />
+                {renderPasswordField("newp", "Min 8 characters")}
               </SField>
               <SField label="Confirm New Password" required>
-                <SInput value={pwForm.confirm} onChange={e=>setPwForm(p=>({...p,confirm:e.target.value}))} type="password" placeholder="Repeat new password" />
+                {renderPasswordField("confirm", "Repeat new password")}
               </SField>
               {pwForm.newp && pwForm.confirm && pwForm.newp !== pwForm.confirm && (
                 <p style={{fontSize:".8rem",color:"var(--red)",fontWeight:600}}>⚠ Passwords don't match</p>

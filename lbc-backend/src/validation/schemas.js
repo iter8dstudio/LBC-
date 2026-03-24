@@ -73,6 +73,7 @@ const createListingSchema = z.object({
   category: nonEmptyString('category').max(64, 'category is too long'),
   location: z.string().trim().max(120, 'location is too long').optional(),
   description: z.string().trim().max(5000, 'description is too long').optional(),
+  stock: z.coerce.number().int().min(0, 'stock cannot be negative').optional(),
   status: listingStatus.optional(),
 });
 
@@ -83,6 +84,7 @@ const updateListingSchema = z.object({
   category: z.string().trim().min(1).max(64).optional(),
   location: z.string().trim().max(120).optional(),
   description: z.string().trim().max(5000).optional(),
+  stock: z.coerce.number().int().min(0).optional(),
 }).refine((obj) => Object.keys(obj).length > 0, {
   message: 'At least one field is required',
 });

@@ -154,7 +154,7 @@ exports.createListing = async (req, res) => {
     const store = await prisma.store.findUnique({ where: { userId: req.user.id } });
     if (!store) return res.status(404).json({ error: 'Set up your store profile before adding listings' });
 
-    const { title, price, type, category, description, status = 'draft' } = req.body;
+    const { title, price, type, category, description, status = 'draft', stock } = req.body;
 
     if (!title || !price || !type || !category) {
       return res.status(400).json({ error: 'Title, price, type and category are required' });
@@ -169,6 +169,7 @@ exports.createListing = async (req, res) => {
         category,
         location: req.body.location || store.location,
         description: description || null,
+        stock: stock !== undefined ? parseInt(stock, 10) : 1,
         status: ['draft', 'live'].includes(status) ? status : 'draft',
       },
     });
@@ -192,10 +193,11 @@ exports.updateListing = async (req, res) => {
       return res.status(403).json({ error: 'You can only edit your own listings' });
     }
 
-    const allowed = ['title', 'price', 'type', 'category', 'location', 'description'];
+    const allowed = ['title', 'price', 'type', 'category', 'location', 'description', 'stock'];
     const data = {};
     allowed.forEach((k) => { if (req.body[k] !== undefined) data[k] = req.body[k]; });
     if (data.price) data.price = parseFloat(data.price);
+    if (data.stock !== undefined) data.stock = parseInt(data.stock, 10);
 
     const updated = await prisma.listing.update({ where: { id: listing.id }, data });
     res.json(updated);
