@@ -4,16 +4,25 @@ const prisma = require('../lib/prisma');
 const { sendEmail, templates } = require('../lib/email');
 const { getFrontendBaseUrl } = require('../lib/frontend');
 
-const PLANS = {
+const LISTING_PLANS = {
   weekly:  { amount: 5000,  days: 7,  label: 'Weekly Spotlight' },
   monthly: { amount: 15000, days: 30, label: 'Monthly Growth' },
   premium: { amount: 35000, days: 30, label: 'Premium Presence' },
 };
 
+const STORE_PLANS = {
+  biweekly: { amount: 10000, days: 14, label: 'Bi-weekly Spotlight' },
+  monthly:  { amount: 18000, days: 30, label: 'Monthly Growth' },
+  premium:  { amount: 35000, days: 30, label: 'Premium Presence' },
+};
+
+const getPlansForTarget = (target) => (target === 'store' ? STORE_PLANS : LISTING_PLANS);
+
 // ── GET BOOST PLANS (public) ──────────────────────────────
 
 exports.getPlans = (req, res) => {
-  res.json(PLANS);
+  const target = req.query.target === 'store' ? 'store' : 'listing';
+  res.json(getPlansForTarget(target));
 };
 
 // ── INITIATE BOOST (vendor) ───────────────────────────────
@@ -26,8 +35,10 @@ exports.initiateBoost = async (req, res) => {
     if (!target || !plan) {
       return res.status(400).json({ error: 'target and plan are required' });
     }
-    if (!PLANS[plan]) {
-      return res.status(400).json({ error: `Invalid plan. Choose: ${Object.keys(PLANS).join(', ')}` });
+    const plansForTarget = getPlansForTarget(target);
+
+    if (!plansForTarget[plan]) {
+      return res.status(400).json({ error: `Invalid plan for ${target}. Choose: ${Object.keys(plansForTarget).join(', ')}` });
     }
     if (target === 'listing' && !listingId) {
       return res.status(400).json({ error: 'listingId is required when boosting a listing' });
@@ -43,7 +54,7 @@ exports.initiateBoost = async (req, res) => {
       }
     }
 
-    const planDetails = PLANS[plan];
+    const planDetails = plansForTarget[plan];
     const reference = `LBC_${Date.now()}_${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
 
     // Create boost record with pending status
@@ -192,7 +203,11 @@ exports.getMyBoosts = async (req, res) => {
 // ── INTERNAL: Activate a boost ────────────────────────────
 
 async function activateBoost(boost) {
-  const plan = PLANS[boost.plan];
+  const plansForTarget = getPlansForTarget(boost.target);
+  const plan = plansForTarget[boost.plan] || LISTING_PLANS[boost.plan];
+  if (!plan) {
+    throw new Error(`Unknown boost plan: ${boost.plan}`);
+  }
   const startDate = new Date();
   const endDate = new Date(startDate.getTime() + plan.days * 24 * 60 * 60 * 1000);
 

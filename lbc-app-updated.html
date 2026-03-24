@@ -391,8 +391,8 @@ class ApiService {
     return this.request('/users/me');
   }
 
-  async getBoostPlans() {
-    return this.request('/boosts/plans');
+  async getBoostPlans(target = 'listing') {
+    return this.request(`/boosts/plans?target=${encodeURIComponent(target)}`);
   }
 
   async getMyBoosts() {
@@ -611,6 +611,7 @@ function NavUserDropdown({ user, setUser, setPage, vendorSettings }) {
 function Navbar({ page, setPage, searchQ, setSearchQ, activeCategory, setActiveCategory, cart, user, setUser, vendorSettings }) {
   const doSearch = (e) => { e.preventDefault(); if (searchQ.trim()) setPage("search"); };
   const isDash = ["dashboard","settings","storefront"].includes(page);
+  const goToBusinessOnboarding = () => setPage(user ? "onboarding" : "signin");
   return (
     <nav className="nav-pad" style={{position:"sticky",top:0,zIndex:200,background:"var(--navy)",borderBottom:"1px solid rgba(255,255,255,.07)",padding:"0 2rem",height:64,display:"flex",alignItems:"center",gap:"1rem",animation:"slideDown .4s ease both"}}>
       {/* Logo */}
@@ -657,7 +658,7 @@ function Navbar({ page, setPage, searchQ, setSearchQ, activeCategory, setActiveC
         }
 
         {!isDash && (
-          <button onClick={()=>setPage("onboarding")} className="nav-list-btn" style={{background:"var(--blue)",color:"#fff",border:"none",padding:".55rem 1.2rem",borderRadius:8,fontSize:".82rem",fontWeight:700,cursor:"pointer"}}>
+          <button onClick={goToBusinessOnboarding} className="nav-list-btn" style={{background:"var(--blue)",color:"#fff",border:"none",padding:".55rem 1.2rem",borderRadius:8,fontSize:".82rem",fontWeight:700,cursor:"pointer"}}>
             List Your Business
           </button>
         )}
@@ -768,9 +769,10 @@ function Section({ title, badge, link, onLink, children }) {
 }
 
 // ── PROMO BANNER ──
-function PromoBanner({ setPage }) {
+function PromoBanner({ setPage, user }) {
   const [activePlan,setActivePlan] = useState(0);
   const plans = [{p:"Weekly",price:"₦5,000",sub:"/wk"},{p:"Monthly",price:"₦15,000",sub:"/mo"},{p:"Premium",price:"₦35,000",sub:"/mo"}];
+  const goToBusinessOnboarding = () => setPage(user ? "onboarding" : "signin");
   return (
     <div className="grid-promo" style={{background:"var(--navy)",borderRadius:20,overflow:"hidden",display:"grid",gridTemplateColumns:"1fr 1fr",margin:"3rem 0",position:"relative"}}>
       <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse 60% 80% at 0% 50%,rgba(0,102,255,.2) 0%,transparent 60%)"}} />
@@ -786,7 +788,7 @@ function PromoBanner({ setPage }) {
             </div>
           ))}
         </div>
-        <button onClick={()=>setPage("onboarding")} style={{background:"var(--amber)",color:"#7c3e00",border:"none",padding:".85rem 2rem",borderRadius:10,fontWeight:800,fontSize:".9rem",cursor:"pointer"}}>⚡ List Your Business →</button>
+        <button onClick={goToBusinessOnboarding} style={{background:"var(--amber)",color:"#7c3e00",border:"none",padding:".85rem 2rem",borderRadius:10,fontWeight:800,fontSize:".9rem",cursor:"pointer"}}>⚡ List Your Business →</button>
       </div>
       <div style={{padding:"2.5rem",display:"flex",flexDirection:"column",justifyContent:"center",gap:".75rem",position:"relative",zIndex:2}}>
         {[["👁️","0,102,255","Homepage Impressions","+18,400 this week"],["💬","245,158,11","WhatsApp Leads","342 leads last month"],["✓","34,197,94","Verified Badge","Builds buyer trust instantly"]].map(([icon,rgb,label,val])=>(
@@ -804,7 +806,7 @@ function PromoBanner({ setPage }) {
 }
 
 // ── HOME PAGE ──
-function HomePage({ setPage, searchQ, setSearchQ, activeCategory, setActiveCategory, wishlist, toggleWish, setSelectedProduct, setSelectedBusiness, products = [], businesses = [] }) {
+function HomePage({ setPage, searchQ, setSearchQ, activeCategory, setActiveCategory, wishlist, toggleWish, setSelectedProduct, setSelectedBusiness, user, products = [], businesses = [] }) {
   const [heroLocation,setHeroLocation] = useState("Lekki Phase 1"); // default
   const [heroCat,setHeroCat] = useState("all");
   const [heroQ,setHeroQ] = useState("");
@@ -879,7 +881,7 @@ function HomePage({ setPage, searchQ, setSearchQ, activeCategory, setActiveCateg
             {sponsoredBiz.map(b=><BusinessCard key={b.id} b={b} onClick={setSelectedBusiness} />)}
           </div>
         </Section>
-        <PromoBanner setPage={setPage} />
+        <PromoBanner setPage={setPage} user={user} />
         <Section title="New Listings Near You" link="Browse all" onLink={()=>setPage("search")}>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(200px,100%),1fr))",gap:"1.5rem"}}>
             {recent.map(p=><ProductCard key={p.id} p={p} onClick={setSelectedProduct} wishlist={wishlist} toggleWish={toggleWish} />)}
@@ -2081,17 +2083,29 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
   });
 
   const boostPlanOptions = useMemo(() => {
-    const defaultPlans = {
-      weekly: { amount: 5000, days: 7, label: 'Weekly Spotlight' },
-      monthly: { amount: 15000, days: 30, label: 'Monthly Growth' },
-      premium: { amount: 35000, days: 30, label: 'Premium Presence' },
-    };
+    const defaultPlans = boostTarget === 'store'
+      ? {
+          biweekly: { amount: 10000, days: 14, label: 'Bi-weekly Spotlight' },
+          monthly: { amount: 18000, days: 30, label: 'Monthly Growth' },
+          premium: { amount: 35000, days: 30, label: 'Premium Presence' },
+        }
+      : {
+          weekly: { amount: 5000, days: 7, label: 'Weekly Spotlight' },
+          monthly: { amount: 15000, days: 30, label: 'Monthly Growth' },
+          premium: { amount: 35000, days: 30, label: 'Premium Presence' },
+        };
     const source = Object.keys(boostPlans || {}).length > 0 ? boostPlans : defaultPlans;
-    const perksByPlan = {
-      weekly: ['Homepage featured slot', 'Top of search results', 'Sponsored badge'],
-      monthly: ['Everything in Weekly', 'Priority placement', 'WhatsApp lead alerts'],
-      premium: ['Everything in Monthly', 'Verified badge', 'Account manager'],
-    };
+    const perksByPlan = boostTarget === 'store'
+      ? {
+          biweekly: ['Homepage featured slot', 'Top of search results', 'Sponsored badge'],
+          monthly: ['Everything in Bi-weekly', 'Priority placement', 'WhatsApp lead alerts'],
+          premium: ['Everything in Monthly', 'Verified badge', 'Account manager'],
+        }
+      : {
+          weekly: ['Homepage featured slot', 'Top of search results', 'Sponsored badge'],
+          monthly: ['Everything in Weekly', 'Priority placement', 'WhatsApp lead alerts'],
+          premium: ['Everything in Monthly', 'Verified badge', 'Account manager'],
+        };
 
     return Object.entries(source).map(([id, plan]) => ({
       id,
@@ -2099,15 +2113,14 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
       amount: Number(plan.amount || 0),
       days: Number(plan.days || 0),
       price: `₦${Number(plan.amount || 0).toLocaleString('en-NG')}`,
-      per: id === 'weekly' ? '/week' : '/month',
+      per: id === 'weekly' ? '/week' : id === 'biweekly' ? '/2 weeks' : '/month',
       badge: id === 'monthly' ? 'Most Popular' : undefined,
       perks: perksByPlan[id] || [],
     }));
-  }, [boostPlans]);
+  }, [boostPlans, boostTarget]);
 
   const selectedBoostPlan = boostPlanOptions.find((plan) => plan.id === boostPlan) || boostPlanOptions[0] || null;
   const activeBoosts = boosts.filter((boost) => boost.status === 'active');
-  const currentBoost = activeBoosts[0] || null;
 
   const formatBoostDateRange = (startDate, endDate) => {
     if (!startDate || !endDate) return 'Dates unavailable';
@@ -2130,6 +2143,12 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
     const diffMs = new Date(endDate).getTime() - Date.now();
     return Math.max(0, Math.ceil(diffMs / (24 * 60 * 60 * 1000)));
   };
+
+  useEffect(() => {
+    if (!boostPlanOptions.some((plan) => plan.id === boostPlan) && boostPlanOptions.length > 0) {
+      setBoostPlan(boostPlanOptions[0].id);
+    }
+  }, [boostPlanOptions, boostPlan]);
 
   const activateBoostPayment = async () => {
     if (!user?.accessToken) {
@@ -2284,7 +2303,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
       try {
         api.setTokens(user.accessToken, user.refreshToken);
         const [plansResponse, myBoosts] = await Promise.all([
-          api.getBoostPlans(),
+          api.getBoostPlans(boostTarget === 'store' ? 'store' : 'listing'),
           api.getMyBoosts(),
         ]);
 
@@ -2301,7 +2320,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
 
     loadBoostData();
     return () => { active = false; };
-  }, [user?.accessToken, user?.refreshToken]);
+  }, [user?.accessToken, user?.refreshToken, boostTarget]);
 
   // Edit / unpublish / delete state
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -3337,7 +3356,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
                     <div style={{marginBottom:"1.25rem"}}>
                       <div style={{fontSize:".75rem",color:"rgba(255,255,255,.4)",marginBottom:".25rem"}}>Plan</div>
                       <div style={{fontWeight:700,fontSize:".9rem",color:"var(--amber)"}}>
-                        {selectedBoostPlan ? `${selectedBoostPlan.id === 'weekly' ? '⚡' : selectedBoostPlan.id === 'monthly' ? '📈' : '🚀'} ${selectedBoostPlan.label}` : 'Select a plan'}
+                        {selectedBoostPlan ? `${selectedBoostPlan.id === 'weekly' || selectedBoostPlan.id === 'biweekly' ? '⚡' : selectedBoostPlan.id === 'monthly' ? '📈' : '🚀'} ${selectedBoostPlan.label}` : 'Select a plan'}
                       </div>
                     </div>
                     <div style={{borderTop:"1px solid rgba(255,255,255,.1)",paddingTop:"1.25rem",marginBottom:"1.25rem"}}>
@@ -3620,7 +3639,7 @@ function App() {
     <div>
       <Navbar page={page} setPage={setPage} searchQ={searchQ} setSearchQ={setSearchQ} activeCategory={activeCategory} setActiveCategory={setActiveCategory} cart={cart} user={user} setUser={setUser} vendorSettings={vendorSettings} />
       {showCatBar && <CategoryBar activeCategory={activeCategory} setActiveCategory={setActiveCategory} setPage={setPage} />}
-      {page==="home" && <HomePage setPage={setPage} searchQ={searchQ} setSearchQ={setSearchQ} activeCategory={activeCategory} setActiveCategory={setActiveCategory} wishlist={wishlist} toggleWish={toggleWish} setSelectedProduct={setSelectedProduct} setSelectedBusiness={setSelectedBusiness} products={marketProducts} businesses={marketBusinesses} />}
+      {page==="home" && <HomePage setPage={setPage} searchQ={searchQ} setSearchQ={setSearchQ} activeCategory={activeCategory} setActiveCategory={setActiveCategory} wishlist={wishlist} toggleWish={toggleWish} setSelectedProduct={setSelectedProduct} setSelectedBusiness={setSelectedBusiness} user={user} products={marketProducts} businesses={marketBusinesses} />}
       {page==="search" && <SearchPage searchQ={searchQ} activeCategory={activeCategory} setSelectedProduct={setSelectedProduct} setSelectedBusiness={setSelectedBusiness} wishlist={wishlist} toggleWish={toggleWish} products={marketProducts} businesses={marketBusinesses} />}
       {page==="product" && selectedProduct && <ProductDetailPage product={selectedProduct} setPage={setPage} setSelectedBusiness={setSelectedBusiness} setSelectedProduct={setSelectedProduct} vendorSettings={vendorSettings} products={marketProducts} businesses={marketBusinesses} />}
       {page==="storefront" && <StorefrontPage biz={storefrontBiz} setPage={setPage} vendorSettings={vendorSettings} onProductClick={setSelectedProduct} products={marketProducts} businesses={marketBusinesses} />}
