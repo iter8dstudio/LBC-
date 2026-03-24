@@ -338,6 +338,14 @@ class ApiService {
   async getStoreBySlug(slug) {
     return this.request(`/stores/${slug}`);
   }
+
+  async getBoostPlans() {
+    return this.request('/boosts/plans');
+  }
+
+  async getMyBoosts() {
+    return this.request('/boosts/me');
+  }
 }
 
 const api = new ApiService();
@@ -1948,6 +1956,8 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
   // Analytics data from backend
   const [analyticsOverview, setAnalyticsOverview] = useState({ totalListings:0, profileViews:0, contactClicks:0, activeBoosts:0 });
   const [chartData, setChartData] = useState({ traffic:[], visitors:[], spent:[], contacts:[] });
+  const [boosts, setBoosts] = useState([]);
+  const [boostPlans, setBoostPlans] = useState({});
 
   // Mobile sidebar drawer
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -2035,6 +2045,57 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
     location: item.location || "",
   });
 
+  const boostPlanOptions = useMemo(() => {
+    const defaultPlans = {
+      weekly: { amount: 5000, days: 7, label: 'Weekly Spotlight' },
+      monthly: { amount: 15000, days: 30, label: 'Monthly Growth' },
+      premium: { amount: 35000, days: 30, label: 'Premium Presence' },
+    };
+    const source = Object.keys(boostPlans || {}).length > 0 ? boostPlans : defaultPlans;
+    const perksByPlan = {
+      weekly: ['Homepage featured slot', 'Top of search results', 'Sponsored badge'],
+      monthly: ['Everything in Weekly', 'Priority placement', 'WhatsApp lead alerts'],
+      premium: ['Everything in Monthly', 'Verified badge', 'Account manager'],
+    };
+
+    return Object.entries(source).map(([id, plan]) => ({
+      id,
+      label: plan.label,
+      amount: Number(plan.amount || 0),
+      days: Number(plan.days || 0),
+      price: `₦${Number(plan.amount || 0).toLocaleString('en-NG')}`,
+      per: id === 'weekly' ? '/week' : '/month',
+      badge: id === 'monthly' ? 'Most Popular' : undefined,
+      perks: perksByPlan[id] || [],
+    }));
+  }, [boostPlans]);
+
+  const selectedBoostPlan = boostPlanOptions.find((plan) => plan.id === boostPlan) || boostPlanOptions[0] || null;
+  const activeBoosts = boosts.filter((boost) => boost.status === 'active');
+  const currentBoost = activeBoosts[0] || null;
+
+  const formatBoostDateRange = (startDate, endDate) => {
+    if (!startDate || !endDate) return 'Dates unavailable';
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    return `${start.toLocaleDateString('en-NG', { month: 'short', day: 'numeric' })} → ${end.toLocaleDateString('en-NG', { month: 'short', day: 'numeric' })}`;
+  };
+
+  const getBoostProgress = (startDate, endDate) => {
+    if (!startDate || !endDate) return 0;
+    const start = new Date(startDate).getTime();
+    const end = new Date(endDate).getTime();
+    const now = Date.now();
+    if (Number.isNaN(start) || Number.isNaN(end) || end <= start) return 0;
+    return Math.max(0, Math.min(100, Math.round(((now - start) / (end - start)) * 100)));
+  };
+
+  const getDaysLeft = (endDate) => {
+    if (!endDate) return null;
+    const diffMs = new Date(endDate).getTime() - Date.now();
+    return Math.max(0, Math.ceil(diffMs / (24 * 60 * 60 * 1000)));
+  };
+
   useEffect(() => {
     if (!user?.accessToken) return;
 
@@ -2055,6 +2116,13 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
     return () => { active = false; };
   }, [user?.accessToken, user?.refreshToken]);
 
+  useEffect(() => {
+    const liveListings = listings.filter((listing) => listing.status === 'live');
+    if (boostTarget === 'product' && liveListings.length > 0 && !liveListings.some((listing) => listing.id === boostProduct)) {
+      setBoostProduct(liveListings[0].id);
+    }
+  }, [listings, boostTarget, boostProduct]);
+
   // Load analytics data
   useEffect(() => {
     if (!user?.accessToken) return;
@@ -2070,16 +2138,16 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
 
         if (active) {
           setAnalyticsOverview({
-            totalListings: overview?.total_listings || 0,
-            profileViews: overview?.profile_views || 0,
-            contactClicks: overview?.contact_clicks || 0,
-            activeBoosts: overview?.active_boosts || 0,
+            totalListings: overview?.totalListings || 0,
+            profileViews: overview?.profileViews || 0,
+            contactClicks: overview?.waClicks || 0,
+            activeBoosts: overview?.activeBoosts || 0,
           });
           setChartData({
-            traffic: chart?.traffic || [],
-            visitors: chart?.visitors || [],
+            traffic: chart?.views || [],
+            visitors: chart?.views || [],
             spent: chart?.spent || [],
-            contacts: chart?.contacts || [],
+            contacts: chart?.waClicks || [],
           });
         }
       } catch {
@@ -2088,6 +2156,36 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
     };
 
     loadAnalytics();
+    return () => { active = false; };
+  }, [user?.accessToken, user?.refreshToken]);
+
+  useEffect(() => {
+    if (!user?.accessToken) {
+      setBoosts([]);
+      return;
+    }
+
+    let active = true;
+    const loadBoostData = async () => {
+      try {
+        api.setTokens(user.accessToken, user.refreshToken);
+        const [plansResponse, myBoosts] = await Promise.all([
+          api.getBoostPlans(),
+          api.getMyBoosts(),
+        ]);
+
+        if (active) {
+          setBoostPlans(plansResponse || {});
+          setBoosts(Array.isArray(myBoosts) ? myBoosts : []);
+        }
+      } catch {
+        if (active) {
+          setBoosts([]);
+        }
+      }
+    };
+
+    loadBoostData();
     return () => { active = false; };
   }, [user?.accessToken, user?.refreshToken]);
 
@@ -2437,24 +2535,26 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
                     <h3 style={{fontFamily:"Syne",fontWeight:700,fontSize:".95rem"}}>⚡ Active Boosts</h3>
                     <button onClick={()=>setTab("boosts")} style={{background:"none",border:"none",color:"var(--blue)",fontSize:".75rem",fontWeight:600,cursor:"pointer"}}>View all</button>
                   </div>
-                  {[
-                    { name:"Cartier Santos Wristwatch", dates:"Mar 1 → Mar 14", pct:71, img:"https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=60&h=60&fit=crop", urgent:false },
-                    { name:"Premium Sushi Platter (10pcs)", dates:"Mar 5 → Mar 12", pct:86, img:"https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=60&h=60&fit=crop", urgent:true },
-                  ].map((b,i)=>(
+                  {activeBoosts.length === 0 && (
+                    <div style={{padding:".5rem 0",fontSize:".8rem",color:"var(--muted)"}}>
+                      No active boosts yet.
+                    </div>
+                  )}
+                  {activeBoosts.slice(0, 2).map((boost,i)=>(
                     <div key={i} style={{marginBottom: i===0?"1rem":0}}>
                       <div style={{display:"flex",gap:".75rem",alignItems:"center",marginBottom:".5rem"}}>
-                        <img src={b.img} style={{width:36,height:36,borderRadius:6,objectFit:"cover",flexShrink:0}} />
+                        <img src={boost.listing?.mainImage || listings.find((listing) => listing.id === boost.listingId)?.img || "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=60&h=60&fit=crop"} style={{width:36,height:36,borderRadius:6,objectFit:"cover",flexShrink:0}} />
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontWeight:600,fontSize:".78rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{b.name}</div>
-                          <div style={{fontSize:".68rem",color:"var(--muted)"}}>{b.dates}</div>
+                          <div style={{fontWeight:600,fontSize:".78rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{boost.listing?.title || vendorSettings?.bizName || 'Store Boost'}</div>
+                          <div style={{fontSize:".68rem",color:"var(--muted)"}}>{formatBoostDateRange(boost.startDate, boost.endDate)}</div>
                         </div>
                       </div>
                       <div style={{height:5,background:"var(--g100)",borderRadius:4,overflow:"hidden",marginBottom:".3rem"}}>
-                        <div style={{height:"100%",width:`${b.pct}%`,background:b.urgent?"var(--red)":"var(--blue)",borderRadius:4}} />
+                        <div style={{height:"100%",width:`${getBoostProgress(boost.startDate, boost.endDate)}%`,background:getDaysLeft(boost.endDate) <= 1 ? "var(--red)" : "var(--blue)",borderRadius:4}} />
                       </div>
                       <div style={{display:"flex",justifyContent:"space-between",fontSize:".68rem",color:"var(--muted)"}}>
-                        <span>{b.pct}% elapsed</span>
-                        <span style={{color:b.urgent?"var(--red)":"var(--muted)",fontWeight:b.urgent?700:400}}>{b.urgent?"1d left":"4d left"}</span>
+                        <span>{getBoostProgress(boost.startDate, boost.endDate)}% elapsed</span>
+                        <span style={{color:getDaysLeft(boost.endDate) <= 1 ? "var(--red)" : "var(--muted)",fontWeight:getDaysLeft(boost.endDate) <= 1 ? 700 : 400}}>{getDaysLeft(boost.endDate) === null ? 'Pending' : `${getDaysLeft(boost.endDate)}d left`}</span>
                       </div>
                     </div>
                   ))}
@@ -2463,8 +2563,8 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
                 {/* Current Plan */}
                 <div style={{background:"var(--navy)",borderRadius:"var(--r)",padding:"1.25rem",color:"#fff"}}>
                   <div style={{fontSize:".68rem",fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:"rgba(255,255,255,.4)",marginBottom:".5rem"}}>Current Plan</div>
-                  <div style={{fontFamily:"Syne",fontSize:"1.1rem",fontWeight:800,color:"var(--amber)",marginBottom:".25rem"}}>⚡ Weekly Spotlight</div>
-                  <div style={{fontSize:".78rem",color:"rgba(255,255,255,.4)",marginBottom:"1rem"}}>Renews in 4 days</div>
+                  <div style={{fontFamily:"Syne",fontSize:"1.1rem",fontWeight:800,color:"var(--amber)",marginBottom:".25rem"}}>{currentBoost ? `⚡ ${(boostPlans[currentBoost.plan]?.label || boostPlanOptions.find((plan) => plan.id === currentBoost.plan)?.label || currentBoost.plan)}` : 'No Active Plan'}</div>
+                  <div style={{fontSize:".78rem",color:"rgba(255,255,255,.4)",marginBottom:"1rem"}}>{currentBoost ? `${getDaysLeft(currentBoost.endDate)} day${getDaysLeft(currentBoost.endDate) === 1 ? '' : 's'} remaining` : 'Activate a boost to increase visibility'}</div>
                   <button onClick={()=>setTab("boosts")} style={{width:"100%",background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.15)",color:"#fff",borderRadius:8,padding:".65rem",fontWeight:700,fontSize:".82rem",cursor:"pointer"}}>Upgrade Plan</button>
                 </div>
               </div>
@@ -3051,11 +3151,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
                   <div style={{background:"#fff",border:"1px solid var(--g200)",borderRadius:"var(--r)",padding:"1.5rem"}}>
                     <h3 style={{fontFamily:"Syne",fontWeight:700,fontSize:".95rem",marginBottom:"1rem"}}>Choose a boost plan</h3>
                     <div style={{display:"flex",flexDirection:"column",gap:".75rem"}}>
-                      {[
-                        {id:"weekly",label:"Weekly Spotlight",price:"₦5,000",per:"/week",perks:["Homepage featured slot","Top of search results","⚡ Sponsored badge"]},
-                        {id:"monthly",label:"Monthly Growth",price:"₦15,000",per:"/month",badge:"Most Popular",perks:["Everything in Weekly","Priority placement","WhatsApp lead alerts"]},
-                        {id:"premium",label:"Premium Boost",price:"₦35,000",per:"/month",perks:["Top 3 guaranteed","Verified badge","Account manager"]},
-                      ].map(pl=>(
+                      {boostPlanOptions.map(pl=>(
                         <div key={pl.id} onClick={()=>setBoostPlan(pl.id)} style={{border:`2px solid ${boostPlan===pl.id?"var(--blue)":"var(--g200)"}`,borderRadius:12,padding:"1rem 1.25rem",cursor:"pointer",background:boostPlan===pl.id?"rgba(0,102,255,.03)":"#fff",transition:"all .2s",display:"flex",alignItems:"center",gap:"1rem",position:"relative"}}>
                           {pl.badge&&<span style={{position:"absolute",top:-10,right:12,background:"var(--navy)",color:"#fff",fontSize:".65rem",fontWeight:800,padding:".15rem .65rem",borderRadius:100}}>{pl.badge}</span>}
                           <div style={{flex:1}}>
@@ -3089,14 +3185,14 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
                     <div style={{marginBottom:"1.25rem"}}>
                       <div style={{fontSize:".75rem",color:"rgba(255,255,255,.4)",marginBottom:".25rem"}}>Plan</div>
                       <div style={{fontWeight:700,fontSize:".9rem",color:"var(--amber)"}}>
-                        {boostPlan==="weekly"?"⚡ Weekly Spotlight":boostPlan==="monthly"?"📈 Monthly Growth":"🚀 Premium Boost"}
+                        {selectedBoostPlan ? `${selectedBoostPlan.id === 'weekly' ? '⚡' : selectedBoostPlan.id === 'monthly' ? '📈' : '🚀'} ${selectedBoostPlan.label}` : 'Select a plan'}
                       </div>
                     </div>
                     <div style={{borderTop:"1px solid rgba(255,255,255,.1)",paddingTop:"1.25rem",marginBottom:"1.25rem"}}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                         <span style={{color:"rgba(255,255,255,.5)",fontSize:".85rem"}}>Total</span>
                         <span style={{fontFamily:"Syne",fontSize:"1.5rem",fontWeight:800,color:"var(--amber)"}}>
-                          {boostPlan==="weekly"?"₦5,000":boostPlan==="monthly"?"₦15,000":"₦35,000"}
+                          {selectedBoostPlan ? selectedBoostPlan.price : '₦0'}
                         </span>
                       </div>
                     </div>
