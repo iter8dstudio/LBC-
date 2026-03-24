@@ -38,6 +38,7 @@ enum BoostTarget {
 
 enum BoostPlan {
   weekly
+  biweekly
   monthly
   premium
 }
