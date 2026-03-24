@@ -417,43 +417,8 @@ const LOCATIONS = [
   "Remote / Online"
 ];
 
-const PRODUCTS = [
-  { id:1, name:"Cartier Santos Wristwatch", price:850000, store:"Zacchi Stores", storeId:1, location:"Lekki Phase 1", category:"fashion", sponsored:true, verified:true, rating:4.8, reviews:124, img:"https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=400&fit=crop", type:"physical", desc:"Authentic Cartier Santos stainless steel wristwatch. Original box and papers included. Available for pickup or delivery within Lagos." },
-  { id:2, name:"Premium Sushi Platter (10pcs)", price:18500, store:"Tokyo Kitchen", storeId:2, location:"Victoria Island", category:"food", sponsored:true, verified:true, rating:4.9, reviews:87, img:"https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=400&h=400&fit=crop", type:"physical", desc:"Fresh 10-piece premium sushi platter with salmon, tuna, and prawn nigiri. Pre-order by 12pm for same-day pickup or delivery." },
-  { id:3, name:"Brazilian Body Wave Bundle", price:65000, store:"Glam Hair Co", storeId:3, location:"Ajah", category:"beauty", sponsored:true, verified:true, rating:4.7, reviews:203, img:"https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400&h=400&fit=crop", type:"physical", desc:"100% virgin Brazilian body wave hair bundle. 3 bundles + closure. Available in 16\", 18\", 20\" lengths." },
-  { id:4, name:"Scandinavian Lounge Chair", price:120000, store:"HomeVibe NG", storeId:4, location:"Lekki Phase 2", category:"fashion", sponsored:true, verified:true, rating:4.6, reviews:56, img:"https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?w=400&h=400&fit=crop", type:"physical", desc:"Elegant Scandinavian-inspired lounge chair in premium fabric. Available in 4 colour options. Assembly included with delivery." },
-  { id:5, name:"iPhone 15 Pro Max 256GB", price:1250000, store:"TechHub NG", storeId:5, location:"Chevron", category:"phones", sponsored:false, verified:false, rating:4.5, reviews:41, img:"https://images.unsplash.com/photo-1616348436168-de43ad0db179?w=400&h=400&fit=crop", type:"physical", desc:"Brand new iPhone 15 Pro Max 256GB Natural Titanium. Factory unlocked, comes with 1-year warranty." },
-  { id:6, name:"Velvet 3-Seater Sofa", price:280000, store:"LuxLiving", storeId:6, location:"Ikoyi", category:"fashion", sponsored:false, verified:false, rating:4.3, reviews:29, img:"https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&h=400&fit=crop", type:"physical", desc:"Premium velvet 3-seater sofa in emerald green. Solid wood frame, high-density foam cushions." },
-  { id:7, name:"Baccarat Rouge 540 EDP 70ml", price:95000, store:"Scent Bar NG", storeId:7, location:"Lekki Phase 1", category:"beauty", sponsored:false, verified:false, rating:4.9, reviews:178, img:"https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=400&h=400&fit=crop", type:"physical", desc:"100% authentic Baccarat Rouge 540 Extrait de Parfum 70ml. Comes with original box and certificate of authenticity." },
-  { id:8, name:"Nike Air Max 270 (Sz 40-45)", price:72000, store:"Sole District", storeId:8, location:"Ajah", category:"fashion", sponsored:false, verified:false, rating:4.4, reviews:63, img:"https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop", type:"physical", desc:"Original Nike Air Max 270. Available in sizes 40-45. Multiple colourways in stock." },
-  { id:9, name:"Ankara Wrap Midi Dress", price:22000, store:"Ade's Boutique", storeId:9, location:"Sangotedo", category:"fashion", sponsored:false, verified:false, rating:4.2, reviews:17, img:"https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400&h=400&fit=crop", type:"physical", desc:"Handmade Ankara wrap midi dress. Custom sizing available. Made-to-order in 3-5 business days." },
-  { id:10, name:"MacBook Pro M3 14\" 512GB", price:2100000, store:"iGadgets NG", storeId:10, location:"Lekki Phase 1", category:"electronics", sponsored:false, verified:false, rating:4.8, reviews:34, img:"https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=400&h=400&fit=crop", type:"physical", desc:"Apple MacBook Pro 14-inch M3, 16GB RAM, 512GB SSD. Space Grey, sealed box with full Apple warranty." },
-  { id:11, name:"Leather Tote Bag — Tan", price:38500, store:"Craft & Hide", storeId:11, location:"Ikoyi", category:"fashion", sponsored:false, verified:false, rating:4.6, reviews:48, img:"https://images.unsplash.com/photo-1567721913486-6585f069b3d2?w=400&h=400&fit=crop", type:"physical", desc:"Handcrafted genuine leather tote bag in tan. Spacious interior with laptop compartment. Monogramming available." },
-  { id:12, name:"Jollof Rice Meal Box (2 pax)", price:8500, store:"Mama Chukwu's", storeId:12, location:"Jakande", category:"food", sponsored:false, verified:false, rating:4.7, reviews:211, img:"https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=400&fit=crop", type:"physical", desc:"Party jollof rice with assorted protein for 2 people. Order by 10am for same-day delivery." },
-  { id:13, name:"Logo Design Package", price:35000, store:"Pixel & Co Studio", storeId:13, location:"Remote", category:"digital", sponsored:false, verified:true, rating:4.9, reviews:95, img:"https://images.unsplash.com/photo-1561070791-2526d30994b5?w=400&h=400&fit=crop", type:"digital", desc:"Professional logo design: 3 concepts, unlimited revisions, all source files. Delivered within 5 business days." },
-  { id:14, name:"Home Cleaning Service (3hrs)", price:12000, store:"CleanPro Lagos", storeId:14, location:"Lekki Phase 1", category:"services", sponsored:false, verified:true, rating:4.5, reviews:142, img:"https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=400&h=400&fit=crop", type:"service", desc:"Professional deep cleaning for 1-3 bedroom apartment. Eco-friendly products. Book 24hrs in advance." },
-  { id:15, name:"Samsung 65\" 4K QLED TV", price:680000, store:"ElectroMart NG", storeId:15, location:"Victoria Island", category:"electronics", sponsored:false, verified:false, rating:4.4, reviews:22, img:"https://images.unsplash.com/photo-1593359677879-a4bb92f829e1?w=400&h=400&fit=crop", type:"physical", desc:"Samsung 65-inch 4K QLED Smart TV. HDR10+, Dolby Atmos, built-in Alexa. Installation included within Lagos." },
-  { id:16, name:"Social Media Management (1mo)", price:80000, store:"Digital Spark Agency", storeId:16, location:"Remote / Online", category:"services", sponsored:false, verified:true, rating:4.7, reviews:67, img:"https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&h=400&fit=crop", type:"service", desc:"Full social media management for 1 month. 16 posts, scheduling, community management & monthly report." },
-  { id:17, name:"Leather Crossbody Bag", price:42000, store:"Atelier & Co.", storeId:1, location:"Lekki Phase 1", category:"fashion", sponsored:true, verified:true, rating:4.7, reviews:89, img:"https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=400&fit=crop", type:"physical", desc:"Genuine leather crossbody bag with gold-tone hardware. Available in black, tan and burgundy." },
-  { id:18, name:"Nigerian Jollof Rice (Party Pack)", price:35000, store:"The Grill House Lekki", storeId:3, location:"Victoria Island", category:"food", sponsored:true, verified:false, rating:4.8, reviews:203, img:"https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=400&h=400&fit=crop", type:"physical", desc:"Party-size jollof rice with assorted proteins. Feeds 15-20 people. Order 48hrs in advance." },
-  { id:19, name:"iPhone 15 Case (MagSafe)", price:8500, store:"TechHub NG", storeId:5, location:"Chevron", category:"phones", sponsored:true, verified:false, rating:4.5, reviews:156, img:"https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?w=400&h=400&fit=crop", type:"physical", desc:"Premium MagSafe compatible case for iPhone 15/15 Pro. Military-grade drop protection." },
-  { id:20, name:"Lash & Brow Tint Service", price:15000, store:"Glam Hair Co", storeId:4, location:"Ajah", category:"beauty", sponsored:true, verified:true, rating:4.9, reviews:341, img:"https://images.unsplash.com/photo-1560869713-7d0a29430803?w=400&h=400&fit=crop", type:"service", desc:"Professional lash lift + brow lamination + tint. Results last 6-8 weeks. Book same day." },
-  { id:21, name:"Nike Air Force 1 '07 (UK9)", price:95000, store:"Kicks Lagos", storeId:6, location:"Victoria Island", category:"fashion", sponsored:true, verified:true, rating:4.6, reviews:78, img:"https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop", type:"physical", desc:"100% authentic Nike Air Force 1 '07 in Triple White. UK9. Brand new, original box." },
-  { id:22, name:"Asoebi Fabric (6 yards)", price:28000, store:"Fabric Queen NG", storeId:7, location:"Lagos Island", category:"fashion", sponsored:true, verified:false, rating:4.4, reviews:62, img:"https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=400&h=400&fit=crop", type:"physical", desc:"Premium George lace asoebi fabric, 6 yards. Custom colour matching available. Ships Lagos-wide." },
-  { id:23, name:"Car A/C Full Service", price:25000, store:"Carlona Motors", storeId:2, location:"Chevron", category:"automotive", sponsored:true, verified:true, rating:4.7, reviews:117, img:"https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=400&h=400&fit=crop", type:"service", desc:"Full air conditioning service including gas refill, filter change, and leak check. Drive-in available." },
-];
 
-const BUSINESSES = [
-  { id:1, name:"Atelier & Co.", category:"fashion", location:"Lekki Phase 1", sponsored:true, verified:true, rating:4.8, reviews:312, whatsapp:"2348000000001", img:"https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=700&h=400&fit=crop", tags:["Fashion","Clothing","Accessories"], desc:"Lekki's premier fashion boutique offering curated contemporary and Afrocentric designs." },
-  { id:2, name:"Carlona Motors", category:"automotive", location:"Chevron", sponsored:true, verified:true, rating:4.7, reviews:188, whatsapp:"2348000000002", img:"https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=700&h=400&fit=crop", tags:["Automotive","Car Sales","Servicing"], desc:"Trusted car dealership and servicing centre with over 200 vehicles in stock." },
-  { id:3, name:"The Grill House Lekki", category:"food", location:"Lekki Phase 2", sponsored:false, verified:false, rating:4.5, reviews:421, whatsapp:"2348000000003", img:"https://images.unsplash.com/photo-1560472355-536de3962603?w=700&h=400&fit=crop", tags:["Food","Restaurant","Grills"], desc:"Premium grill restaurant serving Nigerian and continental dishes." },
-  { id:4, name:"Glam Hair Co", category:"beauty", location:"Ajah", sponsored:true, verified:true, rating:4.7, reviews:203, whatsapp:"2348000000004", img:"https://images.unsplash.com/photo-1560066984-138daaa4e4e4?w=700&h=400&fit=crop", tags:["Beauty","Hair","Wigs"], desc:"Premium human hair extensions and wigs. Wholesale and retail." },
-  { id:5, name:"TechHub NG", category:"phones", location:"Chevron", sponsored:false, verified:false, rating:4.5, reviews:41, whatsapp:"2348000000005", img:"https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=700&h=400&fit=crop", tags:["Phones","Tablets","Accessories"], desc:"Your one-stop shop for genuine smartphones, tablets and accessories." },
-  { id:6, name:"Kicks Lagos", category:"fashion", location:"Victoria Island", sponsored:true, verified:true, rating:4.8, reviews:198, whatsapp:"2348000000006", img:"https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=700&h=400&fit=crop", tags:["Sneakers","Footwear","Streetwear"], desc:"Lagos's most trusted sneaker boutique. 100% authenticated kicks delivered to your door." },
-  { id:7, name:"The Grill House Lekki", category:"food", location:"Victoria Island", sponsored:true, verified:true, rating:4.9, reviews:512, whatsapp:"2348000000007", img:"https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=700&h=400&fit=crop", tags:["Restaurant","Grills","Catering"], desc:"Premium grill restaurant & catering for events. Open 7 days, dine-in & delivery." },
-  { id:8, name:"HomeVibe NG", category:"fashion", location:"Lekki Phase 2", sponsored:true, verified:false, rating:4.6, reviews:87, whatsapp:"2348000000008", img:"https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=700&h=400&fit=crop", tags:["Furniture","Interior","Decor"], desc:"Contemporary furniture and interior décor for Nigerian homes. Lagos-wide delivery." },
-  { id:9, name:"Carlona Motors", category:"automotive", location:"Chevron", sponsored:true, verified:true, rating:4.7, reviews:234, whatsapp:"2348000000009", img:"https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=700&h=400&fit=crop", tags:["Car Sales","Servicing","Auto Parts"], desc:"Trusted car dealership & service centre. Over 200 vehicles in stock at our Chevron showroom." },
-];
+
 
 const fmt = (n) => "₦" + n.toLocaleString();
 const stars = (r) => "★".repeat(Math.floor(r)) + "☆".repeat(5 - Math.floor(r));
@@ -793,7 +758,7 @@ function PromoBanner({ setPage }) {
 }
 
 // ── HOME PAGE ──
-function HomePage({ setPage, searchQ, setSearchQ, activeCategory, setActiveCategory, wishlist, toggleWish, setSelectedProduct, setSelectedBusiness, products = PRODUCTS, businesses = BUSINESSES }) {
+function HomePage({ setPage, searchQ, setSearchQ, activeCategory, setActiveCategory, wishlist, toggleWish, setSelectedProduct, setSelectedBusiness, products = [], businesses = [] }) {
   const [heroLocation,setHeroLocation] = useState("Lekki Phase 1"); // default
   const [heroCat,setHeroCat] = useState("all");
   const [heroQ,setHeroQ] = useState("");
@@ -868,7 +833,7 @@ function HomePage({ setPage, searchQ, setSearchQ, activeCategory, setActiveCateg
 }
 
 // ── SEARCH PAGE ──
-function SearchPage({ searchQ, activeCategory, setSelectedProduct, setSelectedBusiness, wishlist, toggleWish, products = PRODUCTS, businesses = BUSINESSES }) {
+function SearchPage({ searchQ, activeCategory, setSelectedProduct, setSelectedBusiness, wishlist, toggleWish, products = [], businesses = [] }) {
   const [priceMin,setPriceMin] = useState("");
   const [priceMax,setPriceMax] = useState("");
   const [location,setLocation] = useState("all");
@@ -1012,42 +977,8 @@ function SearchPage({ searchQ, activeCategory, setSelectedProduct, setSelectedBu
 }
 
 // ── PRODUCT DETAIL ──
-// Gallery images per product - multiple angles using Unsplash variants
-const GALLERY_IMGS = {
-  1: [
-    "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=700&h=700&fit=crop",
-    "https://images.unsplash.com/photo-1542496658-e33a6d0d50f6?w=700&h=700&fit=crop",
-    "https://images.unsplash.com/photo-1508057198894-247b23fe5ade?w=700&h=700&fit=crop",
-    "https://images.unsplash.com/photo-1547996160-81dfa63595aa?w=700&h=700&fit=crop",
-  ],
-  2: [
-    "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=700&h=700&fit=crop",
-    "https://images.unsplash.com/photo-1617196034183-421b4040ed20?w=700&h=700&fit=crop",
-    "https://images.unsplash.com/photo-1611143669185-af224c5e3252?w=700&h=700&fit=crop",
-    "https://images.unsplash.com/photo-1562802378-063ec186a863?w=700&h=700&fit=crop",
-  ],
-  3: [
-    "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=700&h=700&fit=crop",
-    "https://images.unsplash.com/photo-1492106087820-71f1a00d2b11?w=700&h=700&fit=crop",
-    "https://images.unsplash.com/photo-1519699047748-de8e457a634e?w=700&h=700&fit=crop",
-    "https://images.unsplash.com/photo-1560066984-138daaa4e4e4?w=700&h=700&fit=crop",
-  ],
-  4: [
-    "https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?w=700&h=700&fit=crop",
-    "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=700&h=700&fit=crop",
-    "https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?w=700&h=700&fit=crop",
-    "https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=700&h=700&fit=crop",
-  ],
-  5: [
-    "https://images.unsplash.com/photo-1616348436168-de43ad0db179?w=700&h=700&fit=crop",
-    "https://images.unsplash.com/photo-1592286927505-1def25115558?w=700&h=700&fit=crop",
-    "https://images.unsplash.com/photo-1512499617640-c74ae3a79d37?w=700&h=700&fit=crop",
-    "https://images.unsplash.com/photo-1580910051074-3eb694886505?w=700&h=700&fit=crop",
-  ],
-};
-
-function ProductDetailPage({ product, setPage, setSelectedBusiness, setSelectedProduct, vendorSettings, products = PRODUCTS, businesses = BUSINESSES }) {
-  const galleryImgs = GALLERY_IMGS[product.id] || [product.img, product.img, product.img, product.img];
+function ProductDetailPage({ product, setPage, setSelectedBusiness, setSelectedProduct, vendorSettings, products = [], businesses = [] }) {
+  const galleryImgs = Array.isArray(product.images) && product.images.length > 0 ? product.images : [product.img, product.img, product.img, product.img];
   const [activeImg, setActiveImg] = useState(0);
   const [showPhone, setShowPhone] = useState(false);
   const vendorPhone = product.vendorPhone || vendorBiz?.bizPhone || vendorSettings?.bizPhone || "Not provided";
@@ -1252,8 +1183,8 @@ function ProductDetailPage({ product, setPage, setSelectedBusiness, setSelectedP
 }
 
 // ── BUSINESS DETAIL ──
-function BusinessDetailPage({ business, setPage, setSelectedProduct, wishlist, toggleWish }) {
-  const products = PRODUCTS.filter(p=>p.storeId===business.id);
+function BusinessDetailPage({ business, setPage, setSelectedProduct, wishlist, toggleWish, products = [] }) {
+  const bizItems = products.filter(p=>p.storeId===business.id);
   return (
     <div style={{maxWidth:1280,margin:"0 auto",padding:"2rem"}}>
       <button onClick={()=>setPage("search")} style={{background:"none",border:"none",color:"var(--blue)",fontWeight:600,fontSize:".85rem",cursor:"pointer",marginBottom:"1.5rem"}}>← Back to results</button>
@@ -1272,10 +1203,10 @@ function BusinessDetailPage({ business, setPage, setSelectedProduct, wishlist, t
       <div style={{display:"grid",gridTemplateColumns:"1fr 280px",gap:"2rem",alignItems:"start"}}>
         <div>
           <p style={{fontSize:".95rem",lineHeight:1.75,color:"var(--g700)",marginBottom:"2rem"}}>{business.desc}</p>
-          {products.length>0&&(<>
+          {bizItems.length>0&&(<>
             <h2 style={{fontFamily:"Syne",fontWeight:700,fontSize:"1.2rem",marginBottom:"1.25rem"}}>Products & Services</h2>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:"1.25rem"}}>
-              {products.map(p=><ProductCard key={p.id} p={p} onClick={setSelectedProduct} wishlist={wishlist} toggleWish={toggleWish} />)}
+              {bizItems.map(p=><ProductCard key={p.id} p={p} onClick={setSelectedProduct} wishlist={wishlist} toggleWish={toggleWish} />)}
             </div>
           </>)}
         </div>
@@ -1551,9 +1482,10 @@ function AuthPage({ setPage, setUser }) {
           <p style={{fontSize:".8rem",color:"var(--muted)",marginBottom:"1rem"}}>Or continue with</p>
           <div style={{display:"flex",gap:".75rem"}}>
             {["🔵 Google","🔷 Facebook"].map(p=>(
-              <button key={p} onClick={()=>{setUser({name:"Demo User",email:"demo@lbc.ng",emailVerified:true,phoneVerified:false});setPage("home");}} style={{flex:1,background:"var(--g100)",border:"1px solid var(--g200)",borderRadius:8,padding:".65rem",fontWeight:600,fontSize:".82rem",cursor:"pointer",color:"var(--text)"}}>{p}</button>
+              <button key={p} disabled style={{flex:1,background:"var(--g100)",border:"1px solid var(--g200)",borderRadius:8,padding:".65rem",fontWeight:600,fontSize:".82rem",cursor:"not-allowed",color:"var(--muted)"}}>{p}</button>
             ))}
           </div>
+          <p style={{fontSize:".72rem",color:"var(--muted)",marginTop:".6rem"}}>Social login coming soon</p>
         </div>
       </div>
     </div>
@@ -2454,7 +2386,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
             {(user?.name||"D")[0].toUpperCase()}
           </div>
           <div>
-            <div style={{color:"#fff",fontWeight:700,fontSize:".82rem",lineHeight:1.2}}>{user?.name||"Demo"}</div>
+            <div style={{color:"#fff",fontWeight:700,fontSize:".82rem",lineHeight:1.2}}>{user?.name||""}</div>
             <div style={{color:"rgba(255,255,255,.4)",fontSize:".72rem"}}>Vendor</div>
           </div>
         </div>
@@ -2535,7 +2467,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
                     {phoneOtpError && (
                       <div style={{marginTop:".65rem",fontSize:".8rem",color:"var(--red)",fontWeight:600,display:"flex",alignItems:"center",gap:".4rem"}}>
                         ⚠️ {phoneOtpError}
-                        <span style={{color:"var(--muted)",fontWeight:400,marginLeft:".25rem"}}>— Demo code: <strong>654321</strong></span>
+                        <span style={{color:"var(--muted)",fontWeight:400,marginLeft:".25rem"}}>Please try again or contact support.</span>
                       </div>
                     )}
                   </div>
@@ -3434,8 +3366,8 @@ function App() {
   const [selectedProduct,setSelectedProductState] = useState(null);
   const [selectedBusiness,setSelectedBusinessState] = useState(null);
   const [storefrontBiz,setStorefrontBiz] = useState(null);
-  const [marketProducts, setMarketProducts] = useState(PRODUCTS);
-  const [marketBusinesses, setMarketBusinesses] = useState(BUSINESSES);
+  const [marketProducts, setMarketProducts] = useState([]);
+  const [marketBusinesses, setMarketBusinesses] = useState([]);
 
   // Global vendor settings — synced with backend user data
   const [vendorSettings, setVendorSettings] = useState({
@@ -3445,7 +3377,7 @@ function App() {
     bizName:"", bizCategory:"", bizLocation:"",
     whatsapp:"", bizPhone:"", bizEmail:"",
     bizDesc:"", logo:"", banner:"",
-    storeCreatedAt:null,
+    storeCreatedAt:null, storeId:null,
     // Notifications
     emailNotif:true, smsAlert:true, browserNotif:false,
   });
@@ -3487,7 +3419,7 @@ function App() {
   // Load user store data when logged in
   useEffect(() => {
     if (!user?.accessToken) {
-      setVendorSettings(s => ({ ...s, name:"", email:"", phone:"", bizName:"", bizCategory:"", bizLocation:"", whatsapp:"", bizPhone:"", bizEmail:"", bizDesc:"", logo:"", banner:"", storeCreatedAt:null }));
+      setVendorSettings(s => ({ ...s, name:"", email:"", phone:"", bizName:"", bizCategory:"", bizLocation:"", whatsapp:"", bizPhone:"", bizEmail:"", bizDesc:"", logo:"", banner:"", storeCreatedAt:null, storeId:null }));
       return;
     }
 
@@ -3512,6 +3444,7 @@ function App() {
             logo: store.logo || "",
             banner: store.banner || "",
             storeCreatedAt: store.createdAt || null,
+            storeId: store.id || null,
           }));
         }
       } catch (err) {
@@ -3540,7 +3473,7 @@ function App() {
         setMarketBusinesses(normalizedStores);
         setMarketProducts(normalizedListings);
       } catch (error) {
-        console.warn('Marketplace data load failed; using local fallback data.', error?.message || error);
+        console.warn('Marketplace data load failed.', error?.message || error);
       }
     };
 
@@ -3942,22 +3875,8 @@ function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSetting
 }
 
 // ── STOREFRONT PAGE ──
-const STOREFRONT_PRODUCTS = [
-  { id:101, name:"Cartier Santos Wristwatch", price:850000, type:"physical", category:"fashion", img:"https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&h=600&fit=crop", desc:"Authentic stainless steel. Original box & papers. Comes with 1-year warranty." },
-  { id:102, name:"Ankara Print Mini Dress", price:28500, type:"physical", category:"fashion", img:"https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600&h=600&fit=crop", desc:"Hand-stitched Ankara mini dress. Custom sizing available. 5–7 day turnaround." },
-  { id:103, name:"Gold Cuff Bracelet Set", price:45000, type:"physical", category:"fashion", img:"https://images.unsplash.com/photo-1573408301185-9519f94ae7cb?w=600&h=600&fit=crop", desc:"18k gold-plated cuff bracelets. Set of 3. Gift box included." },
-  { id:104, name:"Social Media Content Pack", price:18000, type:"digital", category:"digital", img:"https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=600&h=600&fit=crop", desc:"30 editable Canva templates for Instagram & TikTok. Instant download." },
-  { id:105, name:"Brand Identity Kit", price:55000, type:"digital", category:"digital", img:"https://images.unsplash.com/photo-1561070791-2526d30994b5?w=600&h=600&fit=crop", desc:"Logo, colour palette, brand guide & all files. Delivered in 5 business days." },
-  { id:106, name:"Personal Shopping Session (2hrs)", price:35000, type:"service", category:"services", img:"https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=600&h=600&fit=crop", desc:"We shop for you! Book a 2-hour personal styling and shopping session in Lekki." },
-  { id:107, name:"Wardrobe Audit & Styling", price:60000, type:"service", category:"services", img:"https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=600&fit=crop", desc:"Full wardrobe assessment with a professional stylist. Includes a lookbook." },
-  { id:108, name:"Leather Tote Bag — Cognac", price:72000, type:"physical", category:"fashion", img:"https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=600&h=600&fit=crop", desc:"Hand-stitched genuine leather tote. Fits a 15\" laptop. Monogramming available." },
-  { id:109, name:"E-book: Style Your Way", price:8500, type:"digital", category:"digital", img:"https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&h=600&fit=crop", desc:"80-page guide to building a capsule wardrobe on any budget. PDF + audio." },
-  { id:110, name:"Gift Wrapping & Delivery Service", price:5000, type:"service", category:"services", img:"https://images.unsplash.com/photo-1513201099705-a9746072228c?w=600&h=600&fit=crop", desc:"Premium gift wrapping with handwritten note + same-day delivery within Lekki." },
-  { id:111, name:"Vintage Denim Jacket", price:38000, type:"physical", category:"fashion", img:"https://images.unsplash.com/photo-1551537482-f2075a1d41f2?w=600&h=600&fit=crop", desc:"Authentic vintage Levi's denim jacket. Size M-L. Only one available." },
-  { id:112, name:"Capsule Wardrobe Planner", price:12000, type:"digital", category:"digital", img:"https://images.unsplash.com/photo-1586717791821-3f44a563fa4c?w=600&h=600&fit=crop", desc:"Interactive Notion template for planning a minimalist wardrobe. Lifetime access." },
-];
 
-function StorefrontPage({ biz, setPage, vendorSettings, onProductClick, products = PRODUCTS, businesses = BUSINESSES }) {
+function StorefrontPage({ biz, setPage, vendorSettings, onProductClick, products = [], businesses = [] }) {
   const [typeFilter, setTypeFilter] = useState("all");
   const [searchQ, setSearchQ] = useState("");
   const [showPhone, setShowPhone] = useState(false);
@@ -3986,13 +3905,11 @@ function StorefrontPage({ biz, setPage, vendorSettings, onProductClick, products
     ? `https://wa.me/${waNum.replace(/[^0-9]/g,"")}?text=Hi, I'd like to know more about your store on LBC!`
     : "#";
 
-  // Products: own store uses STOREFRONT_PRODUCTS; visiting another store uses live products filtered by store
-  const bizProducts = isOwn
-    ? STOREFRONT_PRODUCTS
-    : products.filter(p => p.storeId === biz.id).length > 0
-      ? products.filter(p => p.storeId === biz.id)
-          .map(p => ({...p, type: p.type || "physical"}))
-      : STOREFRONT_PRODUCTS; // fallback if no products matched
+  // Products: filter live API data by store ID (own store uses vendorSettings.storeId)
+  const bizProducts = (isOwn
+    ? products.filter(p => p.storeId === vendorSettings.storeId)
+    : products.filter(p => p.storeId === biz?.id)
+  ).map(p => ({...p, type: p.type || "physical"}));
 
   const totalReviews = bizProducts.reduce((sum, item) => sum + Number(item.reviews || 0), 0);
   const weightedRating = bizProducts.reduce((sum, item) => {
