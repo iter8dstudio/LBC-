@@ -284,6 +284,10 @@ class ApiService {
     return this.request('/listings/me');
   }
 
+  async getListingAnalytics() {
+    return this.request('/analytics/me/listings');
+  }
+
   async createListing(listingData) {
     return this.request('/listings', {
       method: 'POST',
@@ -1960,7 +1964,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
   const [tab, setTab] = useState("overview");
   const [listingStep, setListingStep] = useState(1);
   const [showAddListing, setShowAddListing] = useState(false);
-  const [newListing, setNewListing] = useState({ title:"", price:"", type:"physical", category:"fashion", desc:"", showGallery:true });
+  const [newListing, setNewListing] = useState({ title:"", price:"", type:"physical", category:"fashion", desc:"", showGallery:true, stock: 1 });
   const [chartPeriod, setChartPeriod] = useState("Monthly");
   const [chartToggles, setChartToggles] = useState({ traffic:true, visitors:true, spent:false, contacts:true });
   const [boostTarget, setBoostTarget] = useState("product");
@@ -1976,6 +1980,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
   // Analytics data from backend
   const [analyticsOverview, setAnalyticsOverview] = useState({ totalListings:0, profileViews:0, contactClicks:0, activeBoosts:0 });
   const [chartData, setChartData] = useState({ traffic:[], visitors:[], spent:[], contacts:[] });
+  const [listingAnalytics, setListingAnalytics] = useState([]);
   const [boosts, setBoosts] = useState([]);
   const [boostPlans, setBoostPlans] = useState({});
 
@@ -2060,6 +2065,8 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
     status: item.status,
     sponsored: item.sponsored,
     views: item.views || 0,
+    stock: item.stock || 1,
+    sold: item.sold || 0,
     img: item.mainImage || item.images?.[0] || "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=80&h=80&fit=crop",
     desc: item.description || "",
     location: item.location || "",
@@ -2190,9 +2197,10 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
     const loadAnalytics = async () => {
       try {
         api.setTokens(user.accessToken, user.refreshToken);
-        const [overview, chart] = await Promise.all([
+        const [overview, chart, listings] = await Promise.all([
           api.request('/analytics/me/overview'),
           api.request('/analytics/me/chart'),
+          api.getListingAnalytics(),
         ]);
 
         if (active) {
@@ -2208,9 +2216,11 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
             spent: chart?.spent || [],
             contacts: chart?.waClicks || [],
           });
+          setListingAnalytics(Array.isArray(listings) ? listings : []);
         }
       } catch {
         // Use defaults on error
+        if (active) setListingAnalytics([]);
       }
     };
 
@@ -2294,6 +2304,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
         category: editListing.category,
         description: editListing.desc,
         location: editListing.location,
+        stock: Number(editListing.stock) || 1,
       });
       setListings(ls => ls.map(l => l.id===editListing.id ? { ...l, ...mapListingToUi(updated) } : l));
       setEditListing(null);
@@ -2698,6 +2709,12 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
                         </select>
                       </div>
                     </div>
+                    {/* Stock */}
+                    <div>
+                      <label style={{display:"block",fontSize:".82rem",fontWeight:700,color:"var(--g700)",marginBottom:".4rem"}}>Available Stock</label>
+                      <input value={newListing.stock} onChange={e=>updL("stock",Math.max(1, parseInt(e.target.value) || 1))} type="number" placeholder="e.g. 10" min="1" style={{width:"100%",padding:".75rem 1rem",borderRadius:8,border:"1px solid var(--g200)",fontSize:".9rem",outline:"none"}} onFocus={e=>e.target.style.borderColor="var(--blue)"} onBlur={e=>e.target.style.borderColor="var(--g200)"} />
+                      <p style={{fontSize:".7rem",color:"var(--muted)",marginTop:".3rem"}}>Defaults to 1. Stock decrements automatically when products are sold.</p>
+                    </div>
                     {/* Description */}
                     <div>
                       <label style={{display:"block",fontSize:".82rem",fontWeight:700,color:"var(--g700)",marginBottom:".4rem"}}>Description *</label>
@@ -2770,6 +2787,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
                         ["Type", newListing.type],
                         ["Title", newListing.title || "—"],
                         ["Price", newListing.price ? fmt(parseInt(newListing.price)) : "—"],
+                        ["Stock", newListing.stock || "1"],
                         ["Category", CATEGORIES.find(c=>c.id===newListing.category)?.label || "—"],
                         ["Gallery", newListing.type==="service"?"N/A":newListing.showGallery?"Enabled":"Disabled"],
                       ].map(([k,v])=>(
@@ -2791,12 +2809,13 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
                             type: newListing.type,
                             category: newListing.category,
                             description: newListing.desc,
+                            stock: Number(newListing.stock) || 1,
                             status: 'live',
                           });
                           setListings(ls => [{ ...mapListingToUi(created) }, ...ls]);
                           setShowAddListing(false);
                           setListingStep(1);
-                          setNewListing({title:"",price:"",type:"physical",category:"fashion",desc:"",showGallery:true});
+                          setNewListing({title:"",price:"",type:"physical",category:"fashion",desc:"",showGallery:true,stock:1});
                         } catch (err) {
                           setListingActionError(err.message || "Failed to publish listing.");
                         } finally {
@@ -2817,12 +2836,13 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
                             type: newListing.type,
                             category: newListing.category,
                             description: newListing.desc,
+                            stock: Number(newListing.stock) || 1,
                             status: 'draft',
                           });
                           setListings(ls => [{ ...mapListingToUi(created) }, ...ls]);
                           setShowAddListing(false);
                           setListingStep(1);
-                          setNewListing({title:"",price:"",type:"physical",category:"fashion",desc:"",showGallery:true});
+                          setNewListing({title:"",price:"",type:"physical",category:"fashion",desc:"",showGallery:true,stock:1});
                         } catch (err) {
                           setListingActionError(err.message || "Failed to save draft.");
                         } finally {
@@ -2931,6 +2951,12 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
                           </select>
                         </div>
                       </div>
+                      {/* Stock */}
+                      <div>
+                        <label style={{display:"block",fontSize:".82rem",fontWeight:700,color:"var(--g700)",marginBottom:".4rem"}}>Available Stock</label>
+                        <input value={editListing.stock || 1} onChange={e=>updEdit("stock",Math.max(1, parseInt(e.target.value) || 1))} type="number" placeholder="e.g. 10" min="1" style={{width:"100%",padding:".75rem 1rem",borderRadius:8,border:"1px solid var(--g200)",fontSize:".9rem",outline:"none"}} onFocus={e=>e.target.style.borderColor="var(--blue)"} onBlur={e=>e.target.style.borderColor="var(--g200)"} />
+                        <p style={{fontSize:".7rem",color:"var(--muted)",marginTop:".3rem"}}>Stock decrements when products are sold.</p>
+                      </div>
                       {/* Description */}
                       <div>
                         <label style={{display:"block",fontSize:".82rem",fontWeight:700,color:"var(--g700)",marginBottom:".4rem"}}>Description</label>
@@ -2975,7 +3001,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
                   {editStep===3&&(
                     <div>
                       <div style={{background:"var(--g100)",borderRadius:12,padding:"1.1rem",marginBottom:"1.25rem"}}>
-                        {[["Title",editListing.name],["Type",editListing.type],["Price",fmt(editListing.price)],["Category",CATEGORIES.find(c=>c.id===editListing.category)?.label||""]].map(([k,v])=>(
+                        {[["Title",editListing.name],["Type",editListing.type],["Price",fmt(editListing.price)],["Stock",editListing.stock||1],["Category",CATEGORIES.find(c=>c.id===editListing.category)?.label||""]].map(([k,v])=>(
                           <div key={k} style={{display:"flex",justifyContent:"space-between",padding:".55rem 0",borderBottom:"1px solid var(--g200)"}}>
                             <span style={{fontSize:".82rem",color:"var(--muted)",fontWeight:600}}>{k}</span>
                             <span style={{fontSize:".84rem",fontWeight:700,textTransform:"capitalize"}}>{v}</span>
@@ -3095,13 +3121,19 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
               <p style={{color:"var(--muted)",fontSize:".85rem"}}>Track how your listings and store are performing.</p>
             </div>
 
-            {/* Summary row */}
+            {/* Summary row — calculated from real data */}
             <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"1.25rem",marginBottom:"2rem"}}>
-              {[
-                {label:"Total Page Visits",val:"4,821",change:"+12%",color:"var(--blue)"},
-                {label:"Avg. Daily Views",val:"138",change:"+8%",color:"#22c55e"},
-                {label:"WhatsApp Tap Rate",val:"2.8%",change:"+0.4%",color:"var(--amber)"},
-              ].map(s=>(
+              {(() => {
+                const totalViews = listingAnalytics.reduce((sum, l) => sum + (l.views || 0), 0) || 0;
+                const totalClicks = listingAnalytics.reduce((sum, l) => sum + (l.waClicks || 0), 0) || 0;
+                const avgDaily = listingAnalytics.length > 0 ? Math.round(totalViews / 30) : 0;
+                const tapRate = totalViews > 0 ? ((totalClicks / totalViews) * 100).toFixed(2) : "0";
+                return [
+                  {label:"Total Page Visits",val:totalViews.toLocaleString(),change:"+12%",color:"var(--blue)"},
+                  {label:"Avg. Daily Views",val:avgDaily.toLocaleString(),change:"+8%",color:"#22c55e"},
+                  {label:"WhatsApp Tap Rate",val:`${tapRate}%`,change:"+0.4%",color:"var(--amber)"},
+                ];
+              })().map(s=>(
                 <div key={s.label} style={{background:"#fff",border:"1px solid var(--g200)",borderRadius:"var(--r)",padding:"1.5rem"}}>
                   <div style={{fontSize:".78rem",color:"var(--muted)",fontWeight:600,marginBottom:".4rem"}}>{s.label}</div>
                   <div style={{fontFamily:"Syne",fontSize:"2rem",fontWeight:800,marginBottom:".25rem"}}>{s.val}</div>
@@ -3114,39 +3146,49 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1.5rem",marginBottom:"1.5rem"}}>
               <div style={{background:"#fff",border:"1px solid var(--g200)",borderRadius:"var(--r)",padding:"1.5rem"}}>
                 <h3 style={{fontFamily:"Syne",fontWeight:700,fontSize:"1rem",marginBottom:"1.25rem"}}>Page Visits — Last 12 Months</h3>
-                <BarChart data={[{l:"Jan",v:310},{l:"Feb",v:340},{l:"Mar",v:380},{l:"Apr",v:360},{l:"May",v:410},{l:"Jun",v:430},{l:"Jul",v:460},{l:"Aug",v:480},{l:"Sep",v:500},{l:"Oct",v:520},{l:"Nov",v:550},{l:"Dec",v:580}]} color="var(--blue)" />
+                <LineChart datasets={[
+                  { key:"traffic", color:"#0066ff", label:"Traffic", data: chartData.traffic?.length > 0 ? chartData.traffic : Array(12).fill(0), active: true }
+                ]} />
               </div>
               <div style={{background:"#fff",border:"1px solid var(--g200)",borderRadius:"var(--r)",padding:"1.5rem"}}>
                 <h3 style={{fontFamily:"Syne",fontWeight:700,fontSize:"1rem",marginBottom:"1.25rem"}}>WhatsApp Clicks — Last 12 Months</h3>
-                <BarChart data={[{l:"Jan",v:8},{l:"Feb",v:10},{l:"Mar",v:14},{l:"Apr",v:12},{l:"May",v:16},{l:"Jun",v:18},{l:"Jul",v:22},{l:"Aug",v:20},{l:"Sep",v:24},{l:"Oct",v:28},{l:"Nov",v:30},{l:"Dec",v:34}]} color="#25D366" />
+                <LineChart datasets={[
+                  { key:"contacts", color:"#25D366", label:"Contacts", data: chartData.contacts?.length > 0 ? chartData.contacts : Array(12).fill(0), active: true }
+                ]} />
               </div>
             </div>
 
             {/* Top performing products */}
             <div style={{background:"#fff",border:"1px solid var(--g200)",borderRadius:"var(--r)",padding:"1.5rem"}}>
               <h3 style={{fontFamily:"Syne",fontWeight:700,fontSize:"1rem",marginBottom:"1.25rem"}}>🏆 Top Performing Listings by Visibility</h3>
-              {[
-                {name:"Cartier Santos Wristwatch",views:423,clicks:14,pct:100,img:"https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=60&h=60&fit=crop",sponsored:true},
-                {name:"Premium Sushi Platter (10pcs)",views:211,clicks:7,pct:50,img:"https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=60&h=60&fit=crop",sponsored:true},
-                {name:"Brazilian Body Wave Bundle",views:98,clicks:4,pct:23,img:"https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=60&h=60&fit=crop",sponsored:false},
-                {name:"Home Cleaning Service (3hrs)",views:57,clicks:2,pct:13,img:"https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=60&h=60&fit=crop",sponsored:false},
-              ].map((p,i)=>(
-                <div key={i} style={{display:"flex",alignItems:"center",gap:"1rem",padding:".875rem 0",borderBottom:i<3?"1px solid var(--g100)":"none"}}>
-                  <span style={{fontFamily:"Syne",fontWeight:800,fontSize:"1.1rem",color:"var(--muted)",width:24,textAlign:"center"}}>{i+1}</span>
-                  <img src={p.img} style={{width:44,height:44,borderRadius:8,objectFit:"cover",flexShrink:0}} />
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontWeight:600,fontSize:".88rem",marginBottom:".3rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</div>
-                    <div style={{height:6,background:"var(--g100)",borderRadius:4,overflow:"hidden"}}>
-                      <div style={{height:"100%",width:`${p.pct}%`,background:i===0?"var(--blue)":i===1?"#22c55e":i===2?"var(--amber)":"var(--g300)",borderRadius:4}} />
-                    </div>
-                  </div>
-                  <div style={{textAlign:"right",flexShrink:0}}>
-                    <div style={{fontSize:".88rem",fontWeight:700}}>{p.views.toLocaleString()} views</div>
-                    <div style={{fontSize:".72rem",color:"var(--muted)"}}>{p.clicks} WA clicks</div>
-                  </div>
-                  {p.sponsored&&<span style={{fontSize:".65rem",fontWeight:800,color:"#92600a",background:"rgba(245,158,11,.12)",padding:".2rem .5rem",borderRadius:4,flexShrink:0}}>⚡</span>}
+              {listingAnalytics.length === 0 ? (
+                <div style={{padding:"2rem",textAlign:"center",color:"var(--muted)"}}>
+                  <p style={{fontWeight:600,marginBottom:".25rem"}}>No listing data yet</p>
+                  <p style={{fontSize:".85rem"}}>Create listings to see analytics.</p>
                 </div>
-              ))}
+              ) : (
+                listingAnalytics.slice(0, 6).map((l, i) => {
+                  const maxViews = Math.max(...listingAnalytics.map(x => x.views || 0), 1);
+                  const pct = l.views ? Math.round((l.views / maxViews) * 100) : 0;
+                  return (
+                    <div key={l.id} style={{display:"flex",alignItems:"center",gap:"1rem",padding:".875rem 0",borderBottom:i<listingAnalytics.slice(0, 6).length - 1?"1px solid var(--g100)":"none"}}>
+                      <span style={{fontFamily:"Syne",fontWeight:800,fontSize:"1.1rem",color:"var(--muted)",width:24,textAlign:"center"}}>{i+1}</span>
+                      <img src={l.mainImage || "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=60&h=60&fit=crop"} style={{width:44,height:44,borderRadius:8,objectFit:"cover",flexShrink:0}} />
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontWeight:600,fontSize:".88rem",marginBottom:".3rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{l.title}</div>
+                        <div style={{height:6,background:"var(--g100)",borderRadius:4,overflow:"hidden"}}>
+                          <div style={{height:"100%",width:`${pct}%`,background:i===0?"var(--blue)":i===1?"#22c55e":i===2?"var(--amber)":"var(--g300)",borderRadius:4}} />
+                        </div>
+                      </div>
+                      <div style={{textAlign:"right",flexShrink:0}}>
+                        <div style={{fontSize:".88rem",fontWeight:700}}>{(l.views || 0).toLocaleString()} views</div>
+                        <div style={{fontSize:".72rem",color:"var(--muted)"}}>{(l.waClicks || 0)} WA clicks</div>
+                      </div>
+                      {l.sponsored && <span style={{fontSize:".65rem",fontWeight:800,color:"#92600a",background:"rgba(245,158,11,.12)",padding:".2rem .5rem",borderRadius:4,flexShrink:0}}>⚡</span>}
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         )}
