@@ -479,6 +479,7 @@ const normalizeStore = (store) => {
     desc: store.bizDesc || "",
     bizPhone: store.bizPhone || "",
     bizEmail: store.bizEmail || "",
+    createdAt: store.createdAt || null,
   };
 };
 
@@ -496,6 +497,8 @@ const normalizeListing = (listing, storesById = new Map()) => {
         verified: listing.store.verified,
         sponsored: false,
         whatsapp: listing.store.whatsapp || "",
+        bizPhone: listing.store.bizPhone || "",
+        createdAt: listing.store.createdAt || null,
       }
     : null;
 
@@ -514,6 +517,7 @@ const normalizeListing = (listing, storesById = new Map()) => {
     verified: !!resolvedStore?.verified,
     rating: Number(listing.rating || 4.5),
     reviews: Number(listing.reviews || 0),
+    vendorPhone: resolvedStore?.bizPhone || "",
     img: image,
     type: listing.type || "physical",
     desc: listing.description || "",
@@ -1042,19 +1046,11 @@ const GALLERY_IMGS = {
   ],
 };
 
-// Vendor phone numbers
-const VENDOR_PHONES = {
-  1:"08103311129", 2:"08056781234", 3:"08167894321", 4:"09012345678",
-  5:"07098765432", 6:"08123456789", 7:"09087654321", 8:"08034567890",
-  9:"07056789012", 10:"08078901234", 11:"09023456789", 12:"08145678901",
-  13:"07012345678", 14:"08167890123", 15:"09056789012", 16:"08089012345",
-};
-
 function ProductDetailPage({ product, setPage, setSelectedBusiness, setSelectedProduct, vendorSettings, products = PRODUCTS, businesses = BUSINESSES }) {
   const galleryImgs = GALLERY_IMGS[product.id] || [product.img, product.img, product.img, product.img];
   const [activeImg, setActiveImg] = useState(0);
   const [showPhone, setShowPhone] = useState(false);
-  const vendorPhone = VENDOR_PHONES[product.storeId] || "08100000000";
+  const vendorPhone = product.vendorPhone || vendorBiz?.bizPhone || vendorSettings?.bizPhone || "Not provided";
   const vendorBiz = businesses.find(b => b.id === product.storeId);
   const related = products.filter(p => p.category === product.category && p.id !== product.id).slice(0, 4);
   const similarVendors = businesses.filter(b => b.category === product.category).slice(0, 3);
@@ -3449,6 +3445,7 @@ function App() {
     bizName:"", bizCategory:"", bizLocation:"",
     whatsapp:"", bizPhone:"", bizEmail:"",
     bizDesc:"", logo:"", banner:"",
+    storeCreatedAt:null,
     // Notifications
     emailNotif:true, smsAlert:true, browserNotif:false,
   });
@@ -3490,7 +3487,7 @@ function App() {
   // Load user store data when logged in
   useEffect(() => {
     if (!user?.accessToken) {
-      setVendorSettings(s => ({ ...s, name:"", email:"", phone:"", bizName:"", bizCategory:"", bizLocation:"", whatsapp:"", bizPhone:"", bizEmail:"", bizDesc:"", logo:"", banner:"" }));
+      setVendorSettings(s => ({ ...s, name:"", email:"", phone:"", bizName:"", bizCategory:"", bizLocation:"", whatsapp:"", bizPhone:"", bizEmail:"", bizDesc:"", logo:"", banner:"", storeCreatedAt:null }));
       return;
     }
 
@@ -3514,6 +3511,7 @@ function App() {
             bizDesc: store.bizDesc || "",
             logo: store.logo || "",
             banner: store.banner || "",
+            storeCreatedAt: store.createdAt || null,
           }));
         }
       } catch (err) {
@@ -3973,7 +3971,7 @@ function StorefrontPage({ biz, setPage, vendorSettings, onProductClick, products
   const name     = isOwn ? (vendorSettings.bizName || "My Store")     : (biz.name || "Store");
   const desc     = isOwn ? (vendorSettings.bizDesc || "")             : (biz.desc || "");
   const location = isOwn ? (vendorSettings.bizLocation || "Lagos")    : (biz.location || "Lagos");
-  const phone    = isOwn ? (vendorSettings.bizPhone || "")            : "";   // BUSINESSES has no separate phone field
+  const phone    = isOwn ? (vendorSettings.bizPhone || "")            : (biz?.bizPhone || biz?.phone || "");
   const waNum    = isOwn ? (vendorSettings.whatsapp || "")            : (biz.whatsapp || "");
   const hasWa    = waNum.trim().length > 5;
   const category = isOwn ? (vendorSettings.bizCategory || "fashion")  : (biz.category || "fashion");
@@ -3995,6 +3993,23 @@ function StorefrontPage({ biz, setPage, vendorSettings, onProductClick, products
       ? products.filter(p => p.storeId === biz.id)
           .map(p => ({...p, type: p.type || "physical"}))
       : STOREFRONT_PRODUCTS; // fallback if no products matched
+
+  const totalReviews = bizProducts.reduce((sum, item) => sum + Number(item.reviews || 0), 0);
+  const weightedRating = bizProducts.reduce((sum, item) => {
+    const reviewCount = Number(item.reviews || 0);
+    const ratingValue = Number(item.rating || 0);
+    return sum + (ratingValue * reviewCount);
+  }, 0);
+  const avgRating = totalReviews > 0
+    ? (weightedRating / totalReviews)
+    : (bizProducts.length > 0
+      ? bizProducts.reduce((sum, item) => sum + Number(item.rating || 0), 0) / bizProducts.length
+      : 0);
+
+  const storeCreatedAt = isOwn ? vendorSettings.storeCreatedAt : biz?.createdAt;
+  const memberSince = storeCreatedAt
+    ? new Date(storeCreatedAt).toLocaleDateString('en-NG', { month: 'short', year: 'numeric' })
+    : '—';
 
   const filtered = bizProducts.filter(p => {
     const matchType = typeFilter === "all" || p.type === typeFilter;
@@ -4080,15 +4095,17 @@ function StorefrontPage({ biz, setPage, vendorSettings, onProductClick, products
               <div style={{display:"flex",gap:".65rem",alignItems:"flex-start",fontSize:".85rem"}}>
                 <span style={{color:"var(--muted)",flexShrink:0,marginTop:1}}>📞</span>
                 <div style={{flex:1}}>
-                  {showPhone
-                    ? <span style={{color:"var(--navy)",fontWeight:700}}>{phone || vendorSettings.bizPhone}</span>
-                    : <button onClick={()=>setShowPhone(true)} style={{background:"none",border:"none",color:"var(--blue)",fontWeight:600,cursor:"pointer",padding:0,fontSize:".85rem"}}>Tap to reveal number</button>}
+                  {phone
+                    ? (showPhone
+                      ? <span style={{color:"var(--navy)",fontWeight:700}}>{phone}</span>
+                      : <button onClick={()=>setShowPhone(true)} style={{background:"none",border:"none",color:"var(--blue)",fontWeight:600,cursor:"pointer",padding:0,fontSize:".85rem"}}>Show number</button>)
+                    : <span style={{color:"var(--muted)",fontSize:".82rem"}}>No phone number provided</span>}
                 </div>
               </div>
-              {vendorSettings.bizEmail && (
+              {(isOwn ? vendorSettings.bizEmail : biz?.bizEmail) && (
                 <div style={{display:"flex",gap:".65rem",alignItems:"flex-start",fontSize:".85rem"}}>
                   <span style={{color:"var(--muted)",flexShrink:0,marginTop:1}}>✉️</span>
-                  <span style={{color:"var(--g700)"}}>{vendorSettings.bizEmail}</span>
+                  <span style={{color:"var(--g700)"}}>{isOwn ? vendorSettings.bizEmail : biz?.bizEmail}</span>
                 </div>
               )}
             </div>
@@ -4116,9 +4133,9 @@ function StorefrontPage({ biz, setPage, vendorSettings, onProductClick, products
             <h3 style={{fontFamily:"Syne",fontWeight:800,fontSize:".9rem",marginBottom:"1rem",color:"rgba(255,255,255,.6)",textTransform:"uppercase",letterSpacing:".06em"}}>Store Stats</h3>
             {[
               {label:"Total Listings",val:bizProducts.length},
-              {label:"Avg. Rating",val:"4.8 ⭐"},
-              {label:"Response Time",val:"< 1 hour"},
-              {label:"Member Since",val:"Jan 2024"},
+              {label:"Avg. Rating",val:avgRating > 0 ? `${avgRating.toFixed(1)} ⭐` : "No ratings yet"},
+              {label:"Response Time",val:"<1hour"},
+              {label:"Member Since",val:memberSince},
             ].map(s=>(
               <div key={s.label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:".6rem 0",borderBottom:"1px solid rgba(255,255,255,.07)"}}>
                 <span style={{fontSize:".78rem",color:"rgba(255,255,255,.45)"}}>{s.label}</span>
@@ -4183,6 +4200,7 @@ function StorefrontPage({ biz, setPage, vendorSettings, onProductClick, products
                         location: p.location || (biz?.location) || "Lagos",
                         storeId: p.storeId || (biz?.id) || 1,
                         store: p.store || (biz?.name) || name,
+                        vendorPhone: p.vendorPhone || phone || "",
                         rating: p.rating || 4.8,
                         reviews: p.reviews || 0,
                         sponsored: p.sponsored || false,
