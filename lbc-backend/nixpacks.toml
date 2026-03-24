@@ -1,0 +1,8 @@
+[providers]
+  providers = ["node"]
+
+[phases.build]
+  cmds = ["npm install && npm run db:generate"]
+
+[start]
+  cmd = "npm start"
