@@ -2014,13 +2014,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
     }
   };
 
-  const [listings, setListings] = useState([
-    { id:1, name:"Cartier Santos Wristwatch", price:850000, type:"physical", category:"fashion", status:"live", sponsored:true, views:423, img:"https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=80&h=80&fit=crop", desc:"Authentic Cartier Santos stainless steel wristwatch. Original box and papers included." },
-    { id:2, name:"Premium Sushi Platter (10pcs)", price:18500, type:"physical", category:"food", status:"live", sponsored:true, views:211, img:"https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=80&h=80&fit=crop", desc:"Fresh 10-piece premium sushi platter. Pre-order by 12pm for same-day delivery." },
-    { id:3, name:"Brazilian Body Wave Bundle", price:65000, type:"physical", category:"beauty", status:"live", sponsored:false, views:98, img:"https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=80&h=80&fit=crop", desc:"100% virgin Brazilian body wave hair bundle. 3 bundles + closure." },
-    { id:4, name:"Logo Design Package", price:35000, type:"digital", category:"digital", status:"draft", sponsored:false, views:0, img:"https://images.unsplash.com/photo-1561070791-2526d30994b5?w=80&h=80&fit=crop", desc:"Professional logo design: 3 concepts, unlimited revisions, all source files." },
-    { id:5, name:"Home Cleaning Service (3hrs)", price:12000, type:"service", category:"services", status:"live", sponsored:false, views:57, img:"https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=80&h=80&fit=crop", desc:"Professional deep cleaning for 1-3 bedroom apartment. Eco-friendly products." },
-  ]);
+  const [listings, setListings] = useState([]);
 
   const mapListingToUi = (item) => ({
     id: item.id,
@@ -2045,10 +2039,11 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
       try {
         api.setTokens(user.accessToken, user.refreshToken);
         const remoteListings = await api.getMyListings();
-        if (active && Array.isArray(remoteListings) && remoteListings.length > 0) {
+        if (active && Array.isArray(remoteListings)) {
           setListings(remoteListings.map(mapListingToUi));
         }
       } catch {
+        if (active) setListings([]);
       }
     };
 
@@ -3132,13 +3127,13 @@ function App() {
   const [marketProducts, setMarketProducts] = useState(PRODUCTS);
   const [marketBusinesses, setMarketBusinesses] = useState(BUSINESSES);
 
-  // Global vendor settings — WhatsApp number powers all WA buttons
+  // Global vendor settings — synced with backend user data
   const [vendorSettings, setVendorSettings] = useState({
     // Personal
-    name:"Demo User", email:"demo@lbc.ng", phone:"08100000000",
+    name:"", email:"", phone:"",
     // Store
-    bizName:"Demo Store", bizCategory:"fashion", bizLocation:"Lekki Phase 1",
-    whatsapp:"", bizPhone:"08100000000", bizEmail:"",
+    bizName:"", bizCategory:"", bizLocation:"",
+    whatsapp:"", bizPhone:"", bizEmail:"",
     bizDesc:"", logo:"", banner:"",
     // Notifications
     emailNotif:true, smsAlert:true, browserNotif:false,
@@ -3152,6 +3147,46 @@ function App() {
   const footerPages = ["about","howitworks","pricing","blog","faq","contact","report","advertise","privacy","userterms","cookies","refund"];
   const isDash = ["dashboard","settings"].includes(page);
   useEffect(() => { window.scrollTo(0,0); }, [page]);
+
+  // Load user store data when logged in
+  useEffect(() => {
+    if (!user?.accessToken) {
+      setVendorSettings(s => ({ ...s, name:"", email:"", phone:"", bizName:"", bizCategory:"", bizLocation:"", whatsapp:"", bizPhone:"", bizEmail:"", bizDesc:"", logo:"", banner:"" }));
+      return;
+    }
+
+    let active = true;
+    const loadUserStore = async () => {
+      try {
+        api.setTokens(user.accessToken, user.refreshToken);
+        const store = await api.getMyStore();
+        if (active && store) {
+          setVendorSettings(s => ({
+            ...s,
+            name: user.name || s.name,
+            email: user.email || s.email,
+            phone: user.phone || s.phone,
+            bizName: store.bizName || "",
+            bizCategory: store.category || "",
+            bizLocation: store.location || "",
+            whatsapp: store.whatsapp || "",
+            bizPhone: store.bizPhone || "",
+            bizEmail: store.bizEmail || "",
+            bizDesc: store.bizDesc || "",
+            logo: store.logo || "",
+            banner: store.banner || "",
+          }));
+        }
+      } catch (err) {
+        if (active) {
+          setVendorSettings(s => ({ ...s, name: user.name || "", email: user.email || "", phone: user.phone || "" }));
+        }
+      }
+    };
+
+    loadUserStore();
+    return () => { active = false; };
+  }, [user?.accessToken, user?.email, user?.name]);
 
   useEffect(() => {
     const loadMarketplaceData = async () => {
