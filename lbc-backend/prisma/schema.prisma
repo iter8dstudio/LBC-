@@ -100,6 +100,7 @@ model Store {
   verified    Boolean   @default(false)
   sponsored   Boolean   @default(false)
   active      Boolean   @default(true)
+  showStockCount Boolean @default(true)  // Show available stock on product listings
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
