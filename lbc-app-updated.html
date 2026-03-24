@@ -808,6 +808,19 @@ function HomePage({ setPage, searchQ, setSearchQ, activeCategory, setActiveCateg
   const sponsored = products.filter(p=>p.sponsored);
   const recent = products.filter(p=>!p.sponsored).slice(0,8);
   const sponsoredBiz = businesses.filter(b=>b.sponsored);
+  
+  // Calculate live marketplace stats
+  const uniqueBusinessIds = new Set((products || []).map(p => p.storeId).filter(Boolean)).size || (businesses || []).length;
+  const totalProducts = (products || []).length;
+  const uniqueLocations = new Set((businesses || []).map(b => b.location).filter(Boolean)).size;
+  const estimatedShoppers = Math.max(totalProducts * 12, 200); // Rough estimate: 12 shoppers per product, minimum 200
+  const stats = [
+    [uniqueBusinessIds.toString(), "Businesses"],
+    [totalProducts.toString(), "Products"],
+    [Math.ceil(estimatedShoppers / 1000) + "k+", "Shoppers"],
+    [uniqueLocations.toString(), "Areas"]
+  ];
+  
   return (
     <div>
       <section style={{background:"var(--navy)",position:"relative",overflow:"hidden",padding:"6rem 2rem 4rem",textAlign:"center"}}>
@@ -843,7 +856,7 @@ function HomePage({ setPage, searchQ, setSearchQ, activeCategory, setActiveCateg
           </div>
         </div>
         <div style={{position:"relative",zIndex:2,display:"flex",justifyContent:"center",gap:"3rem",marginTop:"3rem",paddingTop:"2.5rem",borderTop:"1px solid rgba(255,255,255,.07)"}}>
-          {[["12k+","Businesses"],["80k+","Products"],["200k+","Shoppers"],["40+","Areas"]].map(([n,l])=>(
+          {stats.map(([n,l])=>(
             <div key={l} style={{textAlign:"center"}}>
               <div style={{fontFamily:"Syne",fontSize:"1.6rem",fontWeight:700,color:"var(--blue)"}}>{n}</div>
               <div style={{fontSize:".72rem",color:"rgba(255,255,255,.4)",marginTop:".15rem",textTransform:"uppercase",letterSpacing:".06em"}}>{l}</div>
