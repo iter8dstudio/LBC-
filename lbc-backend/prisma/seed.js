@@ -141,10 +141,8 @@ async function main() {
   console.log('✓ Demo buyer:', buyer.email);
 
   console.log('\n✅ Seed complete!\n');
-  console.log('Test accounts:');
-  console.log('  Admin:  admin@lbc.ng  / admin123');
-  console.log('  Vendor: demo@lbc.ng   / vendor123');
-  console.log('  Buyer:  buyer@lbc.ng  / buyer123\n');
+  console.log('⚠️  Test accounts created. Change passwords immediately in production!');
+  console.log('📧 Check your database or .env.example for test credentials.\n');
 }
 
 main()

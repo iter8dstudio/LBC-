@@ -184,6 +184,10 @@ SMTP_PORT=587
 SMTP_USER=noreply@lbc.ng
 SMTP_PASS=<Gmail App Password>
 EMAIL_FROM=LBC <noreply@lbc.ng>
+
+TERMII_API_KEY=<from termii dashboard>
+TERMII_SENDER_ID=LBC
+TERMII_CHANNEL=generic
 ```
 
 > **Note:** `DATABASE_URL` is set automatically by Railway when you add PostgreSQL.
@@ -222,6 +226,18 @@ Then replace all mock data calls with real fetch calls to this URL.
 1. Go to [dashboard.paystack.com](https://dashboard.paystack.com)
 2. Settings → API Keys & Webhooks
 3. Set webhook URL to: `https://lbc-backend-production.up.railway.app/api/boosts/webhook`
+
+### Step 8b — Phone OTP delivery
+
+Phone OTP is now sent through Termii when these variables are present:
+
+```
+TERMII_API_KEY=<from termii dashboard>
+TERMII_SENDER_ID=LBC
+TERMII_CHANNEL=generic
+```
+
+If `TERMII_API_KEY` is missing in production, `/api/auth/send-phone-otp` returns an error instead of pretending the OTP was sent.
 
 ### Step 9 — Seed production data (optional)
 

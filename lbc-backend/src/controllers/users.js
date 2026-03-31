@@ -1,6 +1,28 @@
 // src/controllers/users.js
 const bcrypt = require('bcryptjs');
 const prisma = require('../lib/prisma');
+const { normalizePhone } = require('../lib/sms');
+
+// ── Password Validation Helper ────────────────────────────
+const validatePassword = (password) => {
+  if (!password) return { valid: false, error: 'Password is required' };
+  if (password.length < 12) {
+    return { valid: false, error: 'Password must be at least 12 characters' };
+  }
+  if (!/[A-Z]/.test(password)) {
+    return { valid: false, error: 'Password must contain at least one uppercase letter' };
+  }
+  if (!/[a-z]/.test(password)) {
+    return { valid: false, error: 'Password must contain at least one lowercase letter' };
+  }
+  if (!/[0-9]/.test(password)) {
+    return { valid: false, error: 'Password must contain at least one number' };
+  }
+  if (!/[!@#$%^&*]/.test(password)) {
+    return { valid: false, error: 'Password must contain at least one special character (!@#$%^&*)' };
+  }
+  return { valid: true };
+};
 
 // ── GET ME ────────────────────────────────────────────────
 
@@ -28,8 +50,10 @@ exports.updateMe = async (req, res) => {
     const data = {};
     if (name) data.name = name;
     if (phone !== undefined) {
-      data.phone = phone;
-      data.phoneVerified = false; // reset if phone changes
+      data.phone = normalizePhone(phone) || '';
+      data.phoneVerified = false;
+      data.phoneOtp = null;
+      data.phoneOtpExpiry = null;
     }
 
     const updated = await prisma.user.update({ where: { id: req.user.id }, data });
@@ -49,8 +73,11 @@ exports.changePassword = async (req, res) => {
     if (!currentPassword || !newPassword) {
       return res.status(400).json({ error: 'Current and new passwords are required' });
     }
-    if (newPassword.length < 6) {
-      return res.status(400).json({ error: 'New password must be at least 6 characters' });
+
+    // Validate new password strength
+    const passValidation = validatePassword(newPassword);
+    if (!passValidation.valid) {
+      return res.status(400).json({ error: passValidation.error });
     }
 
     const user = await prisma.user.findUnique({ where: { id: req.user.id } });

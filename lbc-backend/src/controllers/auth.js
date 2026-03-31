@@ -5,26 +5,72 @@ const crypto = require('crypto');
 const prisma = require('../lib/prisma');
 const { sendEmail, templates } = require('../lib/email');
 const { getFrontendBaseUrl } = require('../lib/frontend');
+const { normalizePhone, sendSms } = require('../lib/sms');
 
 // ── Helpers ────────────────────────────────────────────────
 
 const generateOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
 const isProduction = process.env.NODE_ENV === 'production';
-const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET || process.env.JWT_SECRET;
-const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET;
+
+// ── JWT Secret Validation ─────────────────────────────────
+const validateJwtSecret = (secret, name) => {
+  if (!secret) {
+    throw new Error(`${name} is not set`);
+  }
+  if (secret.length < 64) {
+    throw new Error(`${name} must be at least 64 characters (use openssl rand -base64 48)`);
+  }
+  return secret;
+};
+
+const accessTokenSecret = validateJwtSecret(
+  process.env.ACCESS_TOKEN_SECRET,
+  'ACCESS_TOKEN_SECRET'
+);
+const refreshTokenSecret = validateJwtSecret(
+  process.env.REFRESH_TOKEN_SECRET,
+  'REFRESH_TOKEN_SECRET'
+);
 
 const logDevOtp = (label, user, secret, expiresAt) => {
   if (isProduction) return;
-
-  console.log(
-    `[DEV ${label}] userId=${user.id} email=${user.email} code=${secret} expires=${expiresAt.toISOString()}`
+  // Only log to stderr in development for debugging, NEVER log to stdout to prevent accidental exposure
+  console.error(
+    `[DEV OTP] userId=${user.id} code=${secret} expires=${expiresAt.toISOString()}`
   );
 };
 
+const logDeliveryFailure = (channel, identifier, error) => {
+  console.error(`${channel} delivery failed for ${identifier}: ${error}`);
+};
+
+// ── Password Validation Helper ────────────────────────────
+const validatePassword = (password) => {
+  if (!password) return { valid: false, error: 'Password is required' };
+  if (password.length < 12) {
+    return { valid: false, error: 'Password must be at least 12 characters' };
+  }
+  if (!/[A-Z]/.test(password)) {
+    return { valid: false, error: 'Password must contain at least one uppercase letter' };
+  }
+  if (!/[a-z]/.test(password)) {
+    return { valid: false, error: 'Password must contain at least one lowercase letter' };
+  }
+  if (!/[0-9]/.test(password)) {
+    return { valid: false, error: 'Password must contain at least one number' };
+  }
+  if (!/[!@#$%^&*]/.test(password)) {
+    return { valid: false, error: 'Password must contain at least one special character (!@#$%^&*)' };
+  }
+  return { valid: true };
+};
+
 const generateTokens = (userId) => {
+  // Access token: short-lived (15 minutes)
   const accessToken = jwt.sign({ userId }, accessTokenSecret, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+    expiresIn: process.env.JWT_EXPIRES_IN || '15m',
   });
+  // Refresh token: long-lived (30 days), used to get new access tokens
   const refreshToken = jwt.sign({ userId }, refreshTokenSecret, {
     expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
   });
@@ -52,8 +98,11 @@ exports.register = async (req, res) => {
     if (!name || !email || !password) {
       return res.status(400).json({ error: 'Name, email and password are required' });
     }
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+
+    // Validate password strength
+    const passValidation = validatePassword(password);
+    if (!passValidation.valid) {
+      return res.status(400).json({ error: passValidation.error });
     }
    
     const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
@@ -82,6 +131,7 @@ exports.register = async (req, res) => {
     const emailResult = await sendEmail({ to: normalizedEmail, ...tpl });
 
     if (!emailResult.delivered) {
+      logDeliveryFailure('Email OTP', normalizedEmail, emailResult.error || 'Unknown email error');
       logDevOtp('EMAIL OTP', user, otp, otpExpiry);
     }
 
@@ -164,6 +214,7 @@ exports.resendEmailOtp = async (req, res) => {
     const emailResult = await sendEmail({ to: user.email, ...tpl });
 
     if (!emailResult.delivered) {
+      logDeliveryFailure('Email OTP', user.email, emailResult.error || 'Unknown email error');
       logDevOtp('EMAIL OTP', user, otp, otpExpiry);
     }
 
@@ -179,9 +230,15 @@ exports.resendEmailOtp = async (req, res) => {
 
 exports.getDevEmailOtp = async (req, res) => {
   try {
-    if (isProduction) {
+    // CRITICAL: This endpoint should NEVER exist in production
+    // Even if NODE_ENV is misconfigured, block access with multiple checks
+    if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'prod' || !process.env.NODE_ENV) {
+      console.warn('[SECURITY] Dev OTP endpoint accessed in production-like environment!');
       return res.status(404).json({ error: 'Route not found' });
     }
+
+    // Additional security: Log all access to this endpoint
+    console.warn(`[DEV-OTP-ACCESS] User agent: ${req.get('user-agent')}, IP: ${req.ip}`);
 
     const userId = req.query.userId || req.body?.userId;
     const email = req.query.email?.toLowerCase().trim() || req.body?.email?.toLowerCase().trim();
@@ -203,7 +260,11 @@ exports.getDevEmailOtp = async (req, res) => {
 
     if (!user) return res.status(404).json({ error: 'User not found' });
 
+    // SECURITY: Only return OTP in development with explicit warning
+    console.warn(`[DEV-OTP] Returning OTP for ${user.email} - DO NOT USE IN PRODUCTION`);
+
     res.json({
+      _warning: 'This is a development-only endpoint. Should not exist in production!',
       userId: user.id,
       email: user.email,
       emailVerified: user.emailVerified,
@@ -296,20 +357,30 @@ exports.logout = async (req, res) => {
 
 exports.sendPhoneOtp = async (req, res) => {
   try {
+    const normalizedPhone = normalizePhone(req.user.phone);
+    if (!normalizedPhone) {
+      return res.status(400).json({ error: 'Add a valid phone number in your account settings before requesting an OTP.' });
+    }
+
     const otp = generateOtp();
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const smsMessage = `Your LBC verification code is ${otp}. It expires in 10 minutes.`;
+
+    const smsResult = await sendSms({ to: normalizedPhone, message: smsMessage });
+
+    if (!smsResult.delivered) {
+      logDeliveryFailure('Phone OTP', normalizedPhone, smsResult.error || 'Unknown SMS error');
+      return res.status(503).json({ error: smsResult.error || 'Failed to send OTP. Please try again.' });
+    }
 
     await prisma.user.update({
       where: { id: req.user.id },
-      data: { phoneOtp: otp, phoneOtpExpiry: otpExpiry },
+      data: { phone: normalizedPhone, phoneOtp: otp, phoneOtpExpiry: otpExpiry, phoneVerified: false },
     });
-
-    // In production: integrate with Termii or Africa's Talking SMS API here
-    // For now we log it (replace with real SMS provider)
-    console.log(`[SMS OTP] To: ${req.user.phone || 'no phone'} | OTP: ${otp}`);
 
     res.json({ message: 'OTP sent to your phone number' });
   } catch (err) {
+    console.error('sendPhoneOtp error:', err);
     res.status(500).json({ error: 'Failed to send OTP' });
   }
 };
@@ -365,6 +436,7 @@ exports.forgotPassword = async (req, res) => {
     const emailResult = await sendEmail({ to: user.email, ...tpl });
 
     if (!emailResult.delivered) {
+      logDeliveryFailure('Password reset', user.email, emailResult.error || 'Unknown email error');
       logDevOtp('RESET TOKEN', user, resetToken, resetExpiry);
     }
 
@@ -383,8 +455,11 @@ exports.resetPassword = async (req, res) => {
     if (!userId || !token || !password) {
       return res.status(400).json({ error: 'All fields are required' });
     }
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+
+    // Validate password strength
+    const passValidation = validatePassword(password);
+    if (!passValidation.valid) {
+      return res.status(400).json({ error: passValidation.error });
     }
 
     const user = await prisma.user.findUnique({ where: { id: userId } });

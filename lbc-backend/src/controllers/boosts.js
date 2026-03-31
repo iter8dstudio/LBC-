@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const prisma = require('../lib/prisma');
 const { sendEmail, templates } = require('../lib/email');
 const { getFrontendBaseUrl } = require('../lib/frontend');
+const { assertPaystackConfigured } = require('../lib/paystack');
 
 const LISTING_PLANS = {
   weekly:  { amount: 5000,  days: 7,  label: 'Weekly Spotlight' },
@@ -29,6 +30,7 @@ exports.getPlans = (req, res) => {
 
 exports.initiateBoost = async (req, res) => {
   try {
+    const paystackSecretKey = assertPaystackConfigured();
     const { target, plan, listingId } = req.body;
     const frontendBaseUrl = getFrontendBaseUrl();
 
@@ -75,7 +77,7 @@ exports.initiateBoost = async (req, res) => {
     const paystackRes = await fetch('https://api.paystack.co/transaction/initialize', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        Authorization: `Bearer ${paystackSecretKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -118,6 +120,7 @@ exports.initiateBoost = async (req, res) => {
 
 exports.verifyBoost = async (req, res) => {
   try {
+    const paystackSecretKey = assertPaystackConfigured();
     const { reference } = req.body;
     if (!reference) return res.status(400).json({ error: 'Payment reference required' });
 
@@ -127,7 +130,7 @@ exports.verifyBoost = async (req, res) => {
 
     // Verify with Paystack
     const verifyRes = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
-      headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` },
+      headers: { Authorization: `Bearer ${paystackSecretKey}` },
     });
     const verifyData = await verifyRes.json();
 
@@ -153,9 +156,10 @@ exports.verifyBoost = async (req, res) => {
 
 exports.paystackWebhook = async (req, res) => {
   try {
+    const paystackSecretKey = assertPaystackConfigured();
     // Verify webhook signature
     const hash = crypto
-      .createHmac('sha512', process.env.PAYSTACK_SECRET_KEY)
+      .createHmac('sha512', paystackSecretKey)
       .update(JSON.stringify(req.body))
       .digest('hex');
 

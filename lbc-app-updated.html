@@ -9,13 +9,27 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
-<script> const API_CONFIG = {
-  dev: {
-    API_BASE_URL: 'https://testlbc-production.up.railway.app/api',
-  },
-  prod: {
-    API_BASE_URL: 'https://testlbc-production.up.railway.app/api',
-  }
+<script>
+// ── API Configuration (Environment-aware) ───────────────────
+// This dynamically determines the API base URL based on hostname
+const API_BASE_URL_MAP = {
+  'localhost': 'http://localhost:8000/api',
+  '127.0.0.1': 'http://localhost:8000/api',
+  'lbc.ng': 'https://api.lbc.ng/api',
+  'www.lbc.ng': 'https://api.lbc.ng/api',
+  'testlbc-production.up.railway.app': 'https://testlbc-production.up.railway.app/api',
+};
+
+const determineApiUrl = () => {
+  const hostname = window.location.hostname;
+  if (API_BASE_URL_MAP[hostname]) return API_BASE_URL_MAP[hostname];
+  if (hostname === 'localhost' || hostname === '127.0.0.1') return 'http://localhost:8000/api';
+  return `${window.location.origin}/api`;
+};
+
+const API_CONFIG = {
+  dev: { API_BASE_URL: determineApiUrl() },
+  prod: { API_BASE_URL: determineApiUrl() }
 };
 
 const ENV = window.location.hostname === 'localhost' ? 'dev' : 'prod';
@@ -70,9 +84,10 @@ const writeMarketplaceCache = (products, businesses) => {
   --g100:#f1f5f9; --g200:#e2e8f0; --g300:#cbd5e1; --g500:#64748b; --g700:#334155;
   --text:#0f172a; --muted:#64748b; --r:12px; --rsm:8px;
   --sh:0 4px 24px rgba(6,13,31,.08); --shh:0 12px 40px rgba(6,13,31,.16);
+  --nav-height:64px; --spring:cubic-bezier(.22,1,.36,1);
 }
-html { scroll-behavior: smooth; }
-body { font-family:'Manrope',sans-serif; background:var(--offwhite); color:var(--text); overflow-x:hidden; }
+html { scroll-behavior: smooth; scroll-padding-top: 88px; }
+body { font-family:'Manrope',sans-serif; background:var(--offwhite); color:var(--text); overflow-x:hidden; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; overscroll-behavior-y:none; }
 button { cursor:pointer; font-family:'Manrope',sans-serif; }
 input, select, textarea { font-family:'Manrope',sans-serif; }
 @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
@@ -82,9 +97,30 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
 @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
 @keyframes slideRight { from{opacity:0;transform:translateX(-100%)} to{opacity:1;transform:translateX(0)} }
+@keyframes railBounce { 0%{transform:scale(.88)} 55%{transform:scale(1.08)} 78%{transform:scale(.97)} 100%{transform:scale(1)} }
 ::-webkit-scrollbar { width:6px; height:6px; }
 ::-webkit-scrollbar-track { background:var(--g100); }
 ::-webkit-scrollbar-thumb { background:var(--g300); border-radius:3px; }
+
+#root { min-height:100vh; }
+.app-shell { min-height:calc(100vh - var(--nav-height)); align-items:stretch; }
+.dash-content-shell, .settings-main { min-width:0; overflow:visible; }
+.dash-main, .settings-main, .storefront-layout { min-width:0; animation:fadeUp .32s var(--spring) both; }
+.storefront-side-column { display:flex; flex-direction:column; gap:1rem; align-self:start; }
+.settings-toggle { transform-origin:center; transition:transform .22s var(--spring), background .22s ease, color .22s ease, border-color .22s ease; }
+.settings-toggle:hover { transform:translateY(-1px) scale(1.03); }
+.settings-sidebar { transition:width .32s var(--spring), box-shadow .24s ease, border-color .24s ease, background .24s ease; }
+.settings-sidebar.is-collapsed .settings-sidebar-item { justify-content:center; }
+.settings-sidebar.is-collapsed .settings-sidebar-label,
+.settings-sidebar.is-collapsed .settings-user-meta,
+.settings-sidebar.is-collapsed .settings-back-label { display:none !important; }
+.settings-sidebar.is-collapsed .settings-user-card { justify-content:center; }
+.settings-sidebar.is-collapsed .settings-back-btn { justify-content:center; }
+.settings-saved-dot { margin-left:auto; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .settings-toggle { animation:railBounce .58s var(--spring); }
+}
 
 /* ── MOBILE UTILITIES ── */
 .mob-hide { display: block; }
@@ -105,7 +141,7 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
   .nav-pad { padding: 0 1rem !important; }
 
   /* Hero */
-  .hero-section { padding: 2.5rem 1.25rem 2rem !important; min-height: auto !important; }
+  .hero-section { padding: 2.5rem 1.25rem 2rem !important; min-height: 0 !important; }
   .hero-title { font-size: 2rem !important; }
   .hero-search { flex-direction: column !important; gap: .5rem !important; padding: .5rem !important; }
   .hero-search-btn { width: 100% !important; justify-content: center !important; }
@@ -175,6 +211,46 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
   .hero-title { font-size: 1.7rem !important; }
   .otp-box { width: 40px !important; height: 48px !important; font-size: 1.2rem !important; }
   .phone-otp-box { width: 36px !important; height: 44px !important; }
+}
+
+@media (max-width: 768px) {
+  .dash-layout,
+  .settings-layout { min-height: calc(100vh - var(--nav-height)) !important; }
+
+  .dash-content-shell,
+  .settings-main { overflow: visible !important; }
+
+  .dash-main { padding: 1rem !important; padding-bottom: 88px !important; }
+
+  .storefront-layout { grid-template-columns: 1fr !important; gap: 1rem !important; padding: 1rem 1rem 2rem !important; }
+  .storefront-side-column { position: static !important; }
+  .storefront-hero-meta { left: 1rem !important; right: 1rem !important; bottom: 1rem !important; flex-direction: column !important; align-items: flex-start !important; }
+  .storefront-back-btn { top: 1rem !important; left: 1rem !important; }
+  .storefront-badge { top: 1rem !important; right: 1rem !important; }
+  .storefront-toolbar { flex-direction: column !important; align-items: stretch !important; }
+  .storefront-toolbar-search { max-width: none !important; width: 100% !important; }
+
+  .settings-sidebar {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: .75rem !important;
+    position: sticky !important;
+    top: 64px !important;
+    z-index: 185 !important;
+    border-right: none !important;
+    border-bottom: 1px solid var(--g200) !important;
+    background: rgba(255,255,255,.92) !important;
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
+    box-shadow: 0 10px 30px rgba(6,13,31,.08);
+  }
+
+  .settings-nav-list { display: flex; flex-direction: column; gap: .35rem; margin-top: .75rem; }
+  .settings-sidebar.is-collapsed .settings-nav-list { display: none !important; }
+  .settings-main { width: 100% !important; max-width: none !important; padding: 1rem !important; }
+  .settings-user-card { border-bottom: none !important; padding: 0 !important; margin: 0 !important; }
+  .settings-section-head { margin-bottom: 1.25rem !important; }
 }
 
 </style>
@@ -339,6 +415,16 @@ class ApiService {
     });
   }
 
+  async uploadListingImages(listingId, files) {
+    const formData = new FormData();
+    files.forEach((file) => formData.append('images', file));
+
+    return this.request(`/listings/${listingId}/images`, {
+      method: 'POST',
+      body: formData,
+    });
+  }
+
   async updateListing(listingId, data) {
     return this.request(`/listings/${listingId}`, {
       method: 'PATCH',
@@ -389,6 +475,47 @@ class ApiService {
 
   async getMe() {
     return this.request('/users/me');
+  }
+
+  async updateMe(data) {
+    return this.request('/users/me', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async changePassword(currentPassword, newPassword) {
+    return this.request('/users/me/password', {
+      method: 'PATCH',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  }
+
+  async updateNotifications(data) {
+    return this.request('/users/me/notifications', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async uploadStoreLogo(file) {
+    const formData = new FormData();
+    formData.append('logo', file);
+
+    return this.request('/stores/me/logo', {
+      method: 'POST',
+      body: formData,
+    });
+  }
+
+  async uploadStoreBanner(file) {
+    const formData = new FormData();
+    formData.append('banner', file);
+
+    return this.request('/stores/me/banner', {
+      method: 'POST',
+      body: formData,
+    });
   }
 
   async getBoostPlans(target = 'listing') {
@@ -474,8 +601,8 @@ const normalizeStore = (store) => {
   const categoryLabel = CATEGORIES.find((c) => c.id === store.category)?.label || "General";
   return {
     id: store.id,
+    name: store.bizName || store.name || "Unnamed Store",
     slug: store.slug,
-    name: store.bizName || "Store",
     category: store.category || "all",
     location: store.location || "Lagos",
     sponsored: !!store.sponsored,
@@ -483,6 +610,8 @@ const normalizeStore = (store) => {
     rating: Number(store.rating || 4.5),
     reviews: Number(store.reviews || 0),
     whatsapp: store.whatsapp || "",
+    logo: store.logo || "",
+    banner: store.banner || "",
     img: store.banner || store.logo || "https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=700&h=400&fit=crop",
     tags: Array.isArray(store.tags) && store.tags.length ? store.tags : [categoryLabel],
     desc: store.bizDesc || "",
@@ -508,6 +637,8 @@ const normalizeListing = (listing, storesById = new Map()) => {
         whatsapp: listing.store.whatsapp || "",
         bizPhone: listing.store.bizPhone || "",
         bizEmail: listing.store.bizEmail || "",
+        logo: listing.store.logo || "",
+        banner: listing.store.banner || "",
         img: listing.store.banner || listing.store.logo || "",
         createdAt: listing.store.createdAt || null,
       }
@@ -535,6 +666,20 @@ const normalizeListing = (listing, storesById = new Map()) => {
     status: listing.status,
   };
 };
+
+const createEmptyListingDraft = () => ({
+  title:"",
+  price:"",
+  type:"physical",
+  category:"fashion",
+  desc:"",
+  showGallery:true,
+  stock:1,
+  mainImageFile:null,
+  mainImagePreview:"",
+  galleryFiles:[],
+  galleryPreviews:[],
+});
 
 // ── NAVBAR ──
 // ── USER DROPDOWN (proper component so hooks work) ──
@@ -1973,7 +2118,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
   const [tab, setTab] = useState("overview");
   const [listingStep, setListingStep] = useState(1);
   const [showAddListing, setShowAddListing] = useState(false);
-  const [newListing, setNewListing] = useState({ title:"", price:"", type:"physical", category:"fashion", desc:"", showGallery:true, stock: 1 });
+  const [newListing, setNewListing] = useState(createEmptyListingDraft);
   const [chartPeriod, setChartPeriod] = useState("Monthly");
   const [chartToggles, setChartToggles] = useState({ traffic:true, visitors:true, spent:false, contacts:true });
   const [boostTarget, setBoostTarget] = useState("product");
@@ -1985,6 +2130,101 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
   const updL = (k,v) => setNewListing(l=>({...l,[k]:v}));
   const [listingActionError, setListingActionError] = useState("");
   const [listingActionLoading, setListingActionLoading] = useState(false);
+  const mainImageInputRef = useRef(null);
+  const galleryInputRef = useRef(null);
+
+  const resetListingComposer = () => {
+    setShowAddListing(false);
+    setListingStep(1);
+    setListingActionError("");
+    setNewListing(createEmptyListingDraft());
+  };
+
+  const handleMainImageSelection = (event) => {
+    const [file] = Array.from(event.target.files || []);
+    if (!file) return;
+
+    setListingActionError("");
+    setNewListing((current) => ({
+      ...current,
+      mainImageFile: file,
+      mainImagePreview: URL.createObjectURL(file),
+    }));
+
+    event.target.value = "";
+  };
+
+  const handleGallerySelection = (event) => {
+    const selectedFiles = Array.from(event.target.files || []);
+    if (!selectedFiles.length) return;
+
+    setListingActionError("");
+    setNewListing((current) => {
+      const remainingSlots = Math.max(0, 4 - current.galleryFiles.length);
+      const filesToAdd = selectedFiles.slice(0, remainingSlots);
+
+      return {
+        ...current,
+        galleryFiles: [...current.galleryFiles, ...filesToAdd],
+        galleryPreviews: [
+          ...current.galleryPreviews,
+          ...filesToAdd.map((file) => URL.createObjectURL(file)),
+        ],
+      };
+    });
+
+    event.target.value = "";
+  };
+
+  const removeGalleryImage = (indexToRemove) => {
+    setNewListing((current) => ({
+      ...current,
+      galleryFiles: current.galleryFiles.filter((_, index) => index !== indexToRemove),
+      galleryPreviews: current.galleryPreviews.filter((_, index) => index !== indexToRemove),
+    }));
+  };
+
+  const submitListing = async (status) => {
+    if (status === 'live' && !newListing.mainImageFile) {
+      setListingActionError('Add a main product image before publishing this listing.');
+      setListingStep(2);
+      return;
+    }
+
+    try {
+      setListingActionLoading(true);
+      setListingActionError("");
+      api.setTokens(user?.accessToken, user?.refreshToken);
+
+      const created = await api.createListing({
+        title: newListing.title,
+        price: Number(newListing.price),
+        type: newListing.type,
+        category: newListing.category,
+        description: newListing.desc,
+        stock: Number(newListing.stock) || 1,
+        status,
+      });
+
+      const uploadFiles = [
+        newListing.mainImageFile,
+        ...(newListing.showGallery ? newListing.galleryFiles : []),
+      ].filter(Boolean);
+      let finalListing = created;
+
+      if (uploadFiles.length) {
+        const uploadResult = await api.uploadListingImages(created.id, uploadFiles);
+        finalListing = uploadResult.listing || created;
+      }
+
+      setListings((current) => [{ ...mapListingToUi(finalListing) }, ...current]);
+      resetListingComposer();
+    } catch (err) {
+      setListingActionError(err.message || `Failed to ${status === 'live' ? 'publish' : 'save'} listing.`);
+    } finally {
+      setListingActionLoading(false);
+    }
+  };
 
   // Analytics data from backend
   const [analyticsOverview, setAnalyticsOverview] = useState({ totalListings:0, profileViews:0, contactClicks:0, activeBoosts:0 });
@@ -2402,7 +2642,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
   ].map(d=>({...d, active: chartToggles[d.key]}));
 
   return (
-    <div className="dash-layout" style={{display:"flex",minHeight:"calc(100vh - 64px)",background:"var(--offwhite)"}}>
+    <div className="dash-layout app-shell" style={{display:"flex",minHeight:"calc(100vh - 64px)",background:"var(--offwhite)"}}>
 
       {/* ── MOBILE TOP BAR ── */}
       <div className="mob-show-flex" style={{display:"none",position:"sticky",top:64,zIndex:250,background:"var(--navy)",alignItems:"center",justifyContent:"space-between",padding:".75rem 1rem",borderBottom:"1px solid rgba(255,255,255,.08)"}}>
@@ -2531,7 +2771,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
       </aside>
 
       {/* ── MAIN CONTENT ── */}
-      <div style={{flex:1,overflow:"auto"}}>
+      <div className="dash-content-shell" style={{flex:1,minWidth:0}}>
 
         {/* ── OVERVIEW ── */}
         {tab==="overview" && (
@@ -2560,7 +2800,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
                     </div>
                     <p style={{fontSize:".82rem",color:"var(--muted)",margin:0}}>
                       {phoneOtpSent
-                        ? `We sent a 6-digit code to ${vendorSettings?.bizPhone || user?.phone || "+234 000 000 0000"}. Enter it below to verify.`
+                        ? `We sent a 6-digit code to ${user?.phone || "+234 000 000 0000"}. Enter it below to verify.`
                         : "Add your phone number to unlock full access — customers need to reach you."}
                     </p>
                   </div>
@@ -2726,7 +2966,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
                   <h3 style={{fontFamily:"Syne",fontWeight:800,fontSize:"1.1rem"}}>
                     {listingStep===1?"📦 Product Details":listingStep===2?"🖼️ Media & Gallery":"✅ Review & Publish"}
                   </h3>
-                  <button onClick={()=>{setShowAddListing(false);setListingStep(1);}} style={{background:"var(--g100)",border:"none",borderRadius:8,padding:".4rem .75rem",cursor:"pointer",fontWeight:700,color:"var(--muted)",fontSize:".85rem"}}>✕ Cancel</button>
+                  <button onClick={resetListingComposer} style={{background:"var(--g100)",border:"none",borderRadius:8,padding:".4rem .75rem",cursor:"pointer",fontWeight:700,color:"var(--muted)",fontSize:".85rem"}}>✕ Cancel</button>
                 </div>
 
                 {/* Progress */}
@@ -2795,12 +3035,25 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
                     {/* Main image */}
                     <div>
                       <label style={{display:"block",fontSize:".82rem",fontWeight:700,color:"var(--g700)",marginBottom:".6rem"}}>Main Product Image *</label>
-                      <div style={{border:"2px dashed var(--g300)",borderRadius:12,padding:"2.5rem",textAlign:"center",background:"var(--g100)",cursor:"pointer",color:"var(--muted)",transition:"all .2s"}}
+                      <input ref={mainImageInputRef} type="file" accept="image/png,image/jpeg,image/webp" style={{display:"none"}} onChange={handleMainImageSelection} />
+                      <div onClick={()=>mainImageInputRef.current?.click()} style={{border:"2px dashed var(--g300)",borderRadius:12,padding:"2.5rem",textAlign:"center",background:"var(--g100)",cursor:"pointer",color:"var(--muted)",transition:"all .2s"}}
                         onMouseEnter={e=>{e.currentTarget.style.borderColor="var(--blue)";e.currentTarget.style.background="rgba(0,102,255,.02)";}}
                         onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--g300)";e.currentTarget.style.background="var(--g100)";}}>
-                        <div style={{fontSize:"2.5rem",marginBottom:".75rem"}}>📸</div>
-                        <p style={{fontWeight:700,fontSize:".9rem",marginBottom:".25rem"}}>Click to upload main image</p>
-                        <p style={{fontSize:".75rem"}}>JPG, PNG or WEBP · Max 5MB · Recommended 800×800px</p>
+                        {newListing.mainImagePreview ? (
+                          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:".8rem"}}>
+                            <img src={newListing.mainImagePreview} alt="Main listing preview" style={{width:160,height:160,borderRadius:14,objectFit:"cover",boxShadow:"var(--sh)"}} />
+                            <div>
+                              <p style={{fontWeight:700,fontSize:".9rem",marginBottom:".25rem",color:"var(--text)"}}>Main image selected</p>
+                              <p style={{fontSize:".75rem"}}>Click to replace image</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div style={{fontSize:"2.5rem",marginBottom:".75rem"}}>📸</div>
+                            <p style={{fontWeight:700,fontSize:".9rem",marginBottom:".25rem"}}>Click to upload main image</p>
+                            <p style={{fontSize:".75rem"}}>JPG, PNG or WEBP · Max 5MB · Recommended 800×800px</p>
+                          </>
+                        )}
                       </div>
                     </div>
 
@@ -2818,16 +3071,34 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
                           </div>
                         </div>
                         {newListing.showGallery && (
-                          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:".75rem"}}>
-                            {[1,2,3,4].map(i=>(
-                              <div key={i} style={{border:"2px dashed var(--g300)",borderRadius:10,aspectRatio:"1/1",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",background:"var(--g100)",color:"var(--muted)",fontSize:".72rem",gap:".3rem",transition:"all .2s"}}
-                                onMouseEnter={e=>{e.currentTarget.style.borderColor="var(--blue)";}}
-                                onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--g300)";}}>
-                                <span style={{fontSize:"1.25rem"}}>+</span>
-                                <span>Image {i}</span>
-                              </div>
-                            ))}
-                          </div>
+                          <>
+                            <input ref={galleryInputRef} type="file" accept="image/png,image/jpeg,image/webp" multiple style={{display:"none"}} onChange={handleGallerySelection} />
+                            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:".75rem"}}>
+                              {Array.from({ length: 4 }).map((_, index) => {
+                                const preview = newListing.galleryPreviews[index];
+
+                                if (preview) {
+                                  return (
+                                    <div key={index} style={{position:"relative",borderRadius:10,aspectRatio:"1/1",overflow:"hidden",boxShadow:"var(--sh)"}}>
+                                      <img src={preview} alt={`Gallery preview ${index + 1}`} style={{width:"100%",height:"100%",objectFit:"cover"}} />
+                                      <button type="button" onClick={(event)=>{event.stopPropagation();removeGalleryImage(index);}} style={{position:"absolute",top:8,right:8,width:28,height:28,borderRadius:"50%",border:"none",background:"rgba(6,13,31,.75)",color:"#fff",fontWeight:800,cursor:"pointer"}}>
+                                        ×
+                                      </button>
+                                    </div>
+                                  );
+                                }
+
+                                return (
+                                  <div key={index} onClick={()=>galleryInputRef.current?.click()} style={{border:"2px dashed var(--g300)",borderRadius:10,aspectRatio:"1/1",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",background:"var(--g100)",color:"var(--muted)",fontSize:".72rem",gap:".3rem",transition:"all .2s"}}
+                                    onMouseEnter={e=>{e.currentTarget.style.borderColor="var(--blue)";}}
+                                    onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--g300)";}}>
+                                    <span style={{fontSize:"1.25rem"}}>+</span>
+                                    <span>{index === newListing.galleryPreviews.length ? 'Add image' : `Image ${index + 1}`}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
                         )}
                       </div>
                     )}
@@ -2864,57 +3135,11 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
                       ))}
                     </div>
                     <div style={{display:"flex",gap:".75rem"}}>
-                      <button onClick={async ()=>{
-                        try {
-                          setListingActionLoading(true);
-                          setListingActionError("");
-                          api.setTokens(user?.accessToken, user?.refreshToken);
-                          const created = await api.createListing({
-                            title: newListing.title,
-                            price: Number(newListing.price),
-                            type: newListing.type,
-                            category: newListing.category,
-                            description: newListing.desc,
-                            stock: Number(newListing.stock) || 1,
-                            status: 'live',
-                          });
-                          setListings(ls => [{ ...mapListingToUi(created) }, ...ls]);
-                          setShowAddListing(false);
-                          setListingStep(1);
-                          setNewListing({title:"",price:"",type:"physical",category:"fashion",desc:"",showGallery:true,stock:1});
-                        } catch (err) {
-                          setListingActionError(err.message || "Failed to publish listing.");
-                        } finally {
-                          setListingActionLoading(false);
-                        }
-                      }} disabled={listingActionLoading}
+                      <button onClick={()=>submitListing('live')} disabled={listingActionLoading}
                         style={{flex:1,background:listingActionLoading?"var(--g300)":"var(--blue)",color:listingActionLoading?"var(--muted)":"#fff",border:"none",padding:".875rem",borderRadius:10,fontWeight:700,fontSize:".9rem",cursor:listingActionLoading?"not-allowed":"pointer"}}>
                         {listingActionLoading?"Publishing…":"🚀 Publish Listing"}
                       </button>
-                      <button onClick={async ()=>{
-                        try {
-                          setListingActionLoading(true);
-                          setListingActionError("");
-                          api.setTokens(user?.accessToken, user?.refreshToken);
-                          const created = await api.createListing({
-                            title: newListing.title,
-                            price: Number(newListing.price),
-                            type: newListing.type,
-                            category: newListing.category,
-                            description: newListing.desc,
-                            stock: Number(newListing.stock) || 1,
-                            status: 'draft',
-                          });
-                          setListings(ls => [{ ...mapListingToUi(created) }, ...ls]);
-                          setShowAddListing(false);
-                          setListingStep(1);
-                          setNewListing({title:"",price:"",type:"physical",category:"fashion",desc:"",showGallery:true,stock:1});
-                        } catch (err) {
-                          setListingActionError(err.message || "Failed to save draft.");
-                        } finally {
-                          setListingActionLoading(false);
-                        }
-                      }} disabled={listingActionLoading}
+                      <button onClick={()=>submitListing('draft')} disabled={listingActionLoading}
                         style={{flex:1,background:"var(--g100)",border:"1px solid var(--g200)",padding:".875rem",borderRadius:10,fontWeight:700,fontSize:".9rem",cursor:listingActionLoading?"not-allowed":"pointer",color:"var(--g700)"}}>
                         {listingActionLoading?"Saving…":"💾 Save as Draft"}
                       </button>
@@ -2931,10 +3156,13 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
                 {/* Step nav */}
                 {listingStep < 3 && (
                   <div style={{display:"flex",justifyContent:"space-between",marginTop:"1.5rem",paddingTop:"1.25rem",borderTop:"1px solid var(--g100)"}}>
-                    <button onClick={()=>listingStep>1?setListingStep(s=>s-1):setShowAddListing(false)} style={{background:"var(--g100)",border:"1px solid var(--g200)",padding:".7rem 1.5rem",borderRadius:10,fontWeight:600,fontSize:".85rem",cursor:"pointer",color:"var(--g700)"}}>
+                    <button onClick={()=>listingStep>1?setListingStep(s=>s-1):resetListingComposer()} style={{background:"var(--g100)",border:"1px solid var(--g200)",padding:".7rem 1.5rem",borderRadius:10,fontWeight:600,fontSize:".85rem",cursor:"pointer",color:"var(--g700)"}}>
                       {listingStep===1?"Cancel":"← Back"}
                     </button>
-                    <button onClick={()=>setListingStep(s=>s+1)} style={{background:"var(--blue)",color:"#fff",border:"none",padding:".7rem 2rem",borderRadius:10,fontWeight:700,fontSize:".85rem",cursor:"pointer"}}>
+                    <button onClick={()=>{
+                      setListingActionError('');
+                      setListingStep(s=>s+1);
+                    }} style={{background:"var(--blue)",color:"#fff",border:"none",padding:".7rem 2rem",borderRadius:10,fontWeight:700,fontSize:".85rem",cursor:"pointer"}}>
                       Continue →
                     </button>
                   </div>
@@ -3514,10 +3742,11 @@ function App() {
     // Store
     bizName:"", bizCategory:"", bizLocation:"",
     whatsapp:"", bizPhone:"", bizEmail:"",
-    bizDesc:"", logo:"", banner:"",
+    bizDesc:"", logo:"", banner:"", accentColor:"",
     storeCreatedAt:null, storeId:null,
     // Notifications
     emailNotif:true, smsAlert:true, browserNotif:false,
+    waLeads:true, boostExpiry:true, weeklyReport:false,
   });
 
   const toggleWish = (id) => setWishlist(w=>w.includes(id)?w.filter(x=>x!==id):[...w,id]);
@@ -3527,7 +3756,9 @@ function App() {
   const showCatBar = ["home","search"].includes(page);
   const footerPages = ["about","howitworks","pricing","blog","faq","contact","report","advertise","privacy","userterms","cookies","refund"];
   const isDash = ["dashboard","settings"].includes(page);
-  useEffect(() => { window.scrollTo(0,0); }, [page]);
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+  }, [page]);
 
   useEffect(() => {
     let active = true;
@@ -3544,6 +3775,14 @@ function App() {
           accessToken: api.accessToken,
           refreshToken: api.refreshToken,
         });
+
+        setVendorSettings((current) => ({
+          ...current,
+          name: me?.name || current.name,
+          email: me?.email || current.email,
+          phone: me?.phone || current.phone,
+          ...(me?.notifications || {}),
+        }));
       } catch {
         api.clearTokens();
         if (active) setUser(null);
@@ -3572,6 +3811,7 @@ function App() {
             name: user.name || s.name,
             email: user.email || s.email,
             phone: user.phone || s.phone,
+            ...(user.notifications || {}),
             bizName: store.bizName || "",
             bizCategory: store.category || "",
             bizLocation: store.location || "",
@@ -3581,13 +3821,14 @@ function App() {
             bizDesc: store.bizDesc || "",
             logo: store.logo || "",
             banner: store.banner || "",
+            accentColor: store.accentColor || "",
             storeCreatedAt: store.createdAt || null,
             storeId: store.id || null,
           }));
         }
       } catch (err) {
         if (active) {
-          setVendorSettings(s => ({ ...s, name: user.name || "", email: user.email || "", phone: user.phone || "" }));
+          setVendorSettings(s => ({ ...s, name: user.name || "", email: user.email || "", phone: user.phone || "", ...(user.notifications || {}) }));
         }
       }
     };
@@ -3755,15 +3996,179 @@ function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSetting
   const [local, setLocal] = useState({...vendorSettings, name: vendorSettings.name||user?.name||"", email: vendorSettings.email||user?.email||""});
   const [saved, setSaved] = useState({});
   const [activeSection, setActiveSection] = useState("personal");
+  const [isCompactViewport, setIsCompactViewport] = useState(() => window.innerWidth <= 768);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => window.innerWidth <= 768);
   const [pwForm, setPwForm] = useState({old:"",newp:"",confirm:""});
   const [pwVisibility, setPwVisibility] = useState({old:false,newp:false,confirm:false});
+  const [savingSection, setSavingSection] = useState("");
+  const [saveError, setSaveError] = useState("");
+  const [saveNotice, setSaveNotice] = useState("");
+  const [mediaUploading, setMediaUploading] = useState({ logo:false, banner:false });
+  const logoInputRef = useRef(null);
+  const bannerInputRef = useRef(null);
   const upd = (k,v) => setLocal(l=>({...l,[k]:v}));
-  const saveSection = (section) => {
-    setVendorSettings(s=>({...s,...local}));
-    if(local.name && user) setUser(u=>({...u, name:local.name, email:local.email}));
+
+  useEffect(() => {
+    setLocal({ ...vendorSettings, name: vendorSettings.name||user?.name||"", email: vendorSettings.email||user?.email||"" });
+  }, [vendorSettings, user?.email, user?.name, user?.phone]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const compact = window.innerWidth <= 768;
+      setIsCompactViewport(compact);
+      if (compact) {
+        setSidebarCollapsed(true);
+      }
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize, { passive: true });
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const markSaved = (section) => {
     setSaved(s=>({...s,[section]:true}));
     setTimeout(()=>setSaved(s=>({...s,[section]:false})),3000);
   };
+
+  const applyStoreState = (store) => {
+    if (!store) return;
+
+    const nextStoreState = {
+      bizName: store.bizName || "",
+      bizCategory: store.category || "",
+      bizLocation: store.location || "",
+      whatsapp: store.whatsapp || "",
+      bizPhone: store.bizPhone || "",
+      bizEmail: store.bizEmail || "",
+      bizDesc: store.bizDesc || "",
+      logo: store.logo || "",
+      banner: store.banner || "",
+      storeCreatedAt: store.createdAt || null,
+      storeId: store.id || null,
+      accentColor: store.accentColor || local.accentColor || "",
+    };
+
+    setVendorSettings((current) => ({ ...current, ...nextStoreState }));
+    setLocal((current) => ({ ...current, ...nextStoreState }));
+  };
+
+  const persistSection = async (section, { silent = false } = {}) => {
+    if (!user?.accessToken) {
+      throw new Error('Please sign in again to save changes.');
+    }
+
+    api.setTokens(user.accessToken, user.refreshToken);
+
+    if (!silent) {
+      setSavingSection(section);
+      setSaveError("");
+      setSaveNotice("");
+    }
+
+    if (section === 'personal') {
+      const payload = {};
+      const trimmedName = local.name?.trim() || '';
+      const trimmedPhone = local.phone?.trim() || '';
+
+      if (!trimmedName) {
+        throw new Error('Full name is required.');
+      }
+
+      if (trimmedName !== (user?.name || '')) payload.name = trimmedName;
+      if (trimmedPhone !== (user?.phone || '')) payload.phone = trimmedPhone;
+
+      if (Object.keys(payload).length) {
+        const updatedUser = await api.updateMe(payload);
+        setUser((current) => current ? ({ ...current, ...updatedUser, accessToken: current.accessToken, refreshToken: current.refreshToken }) : current);
+        setVendorSettings((current) => ({ ...current, name: updatedUser.name || '', email: updatedUser.email || current.email || '', phone: updatedUser.phone || '' }));
+        setLocal((current) => ({ ...current, name: updatedUser.name || '', email: updatedUser.email || current.email || '', phone: updatedUser.phone || '' }));
+      }
+    }
+
+    if (section === 'store') {
+      const payload = {
+        bizName: local.bizName?.trim() || '',
+        category: local.bizCategory?.trim() || '',
+        location: local.bizLocation?.trim() || '',
+        bizPhone: local.bizPhone?.trim() || '',
+        whatsapp: local.whatsapp?.trim() || '',
+        bizDesc: local.bizDesc?.trim() || '',
+      };
+
+      const trimmedBizEmail = local.bizEmail?.trim() || '';
+      if (trimmedBizEmail) {
+        payload.bizEmail = trimmedBizEmail;
+      }
+
+      if (!payload.bizName || !payload.category || !payload.location) {
+        throw new Error('Business name, category, and location are required.');
+      }
+
+      const store = vendorSettings.storeId
+        ? await api.updateStore(payload)
+        : await api.createStore(payload);
+
+      if (!vendorSettings.storeId) {
+        setUser((current) => current ? ({ ...current, role: 'VENDOR' }) : current);
+      }
+
+      applyStoreState(store);
+    }
+
+    if (section === 'security') {
+      if (!pwForm.old || !pwForm.newp || !pwForm.confirm) {
+        throw new Error('Complete all password fields before saving.');
+      }
+
+      if (pwForm.newp !== pwForm.confirm) {
+        throw new Error('New password and confirmation do not match.');
+      }
+
+      await api.changePassword(pwForm.old, pwForm.newp);
+      setPwForm({old:"",newp:"",confirm:""});
+    }
+
+    if (section === 'notifications') {
+      const payload = {
+        emailNotif: !!local.emailNotif,
+        smsAlert: !!local.smsAlert,
+        browserNotif: !!local.browserNotif,
+        waLeads: !!local.waLeads,
+        boostExpiry: !!local.boostExpiry,
+        weeklyReport: !!local.weeklyReport,
+      };
+
+      const prefs = await api.updateNotifications(payload);
+      setVendorSettings((current) => ({ ...current, ...prefs }));
+      setLocal((current) => ({ ...current, ...prefs }));
+    }
+
+    if (section === 'appearance') {
+      if (vendorSettings.storeId && local.accentColor && local.accentColor !== vendorSettings.accentColor) {
+        const store = await api.updateStore({ accentColor: local.accentColor });
+        applyStoreState(store);
+      } else {
+        setVendorSettings((current) => ({ ...current, accentColor: local.accentColor }));
+      }
+    }
+
+    if (!silent) {
+      markSaved(section);
+      setSaveNotice(section === 'security' ? 'Password updated successfully.' : 'Changes saved successfully.');
+    }
+  };
+
+  const saveSection = async (section) => {
+    try {
+      await persistSection(section);
+    } catch (error) {
+      setSaveError(error.message || 'Failed to save changes.');
+    } finally {
+      setSavingSection("");
+    }
+  };
+
   const renderPasswordField = (fieldKey, placeholder) => (
     <div style={{position:"relative"}}>
       <SInput
@@ -3783,11 +4188,64 @@ function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSetting
       </button>
     </div>
   );
-  const saveAll = () => {
-    setVendorSettings(s=>({...s,...local}));
-    if(local.name && user) setUser(u=>({...u, name:local.name, email:local.email}));
-    setSaved({personal:true,store:true,security:true,notifications:true,appearance:true});
-    setTimeout(()=>setSaved({}),3000);
+
+  const uploadStoreMedia = async (kind, file) => {
+    if (!file) return;
+    if (!user?.accessToken) {
+      setSaveError('Please sign in again to upload images.');
+      return;
+    }
+
+    try {
+      setSaveError("");
+      setSaveNotice("");
+      setMediaUploading((current) => ({ ...current, [kind]: true }));
+      api.setTokens(user.accessToken, user.refreshToken);
+
+      if (!vendorSettings.storeId) {
+        await persistSection('store', { silent: true });
+      }
+
+      const response = kind === 'logo'
+        ? await api.uploadStoreLogo(file)
+        : await api.uploadStoreBanner(file);
+
+      const field = kind === 'logo' ? 'logo' : 'banner';
+      const url = response.url || '';
+      setLocal((current) => ({ ...current, [field]: url }));
+      setVendorSettings((current) => ({ ...current, [field]: url }));
+      markSaved('store');
+      setSaveNotice(`${kind === 'logo' ? 'Logo' : 'Banner'} uploaded successfully.`);
+    } catch (error) {
+      setSaveError(error.message || `Failed to upload ${kind}.`);
+    } finally {
+      setMediaUploading((current) => ({ ...current, [kind]: false }));
+    }
+  };
+
+  const saveAll = async () => {
+    const sections = ['personal', 'store', 'notifications', 'appearance'];
+    if (pwForm.old || pwForm.newp || pwForm.confirm) {
+      sections.splice(2, 0, 'security');
+    }
+
+    try {
+      setSavingSection('all');
+      setSaveError('');
+      setSaveNotice('');
+
+      for (const section of sections) {
+        await persistSection(section, { silent: true });
+      }
+
+      setSaved({personal:true,store:true,security:true,notifications:true,appearance:true});
+      setTimeout(()=>setSaved({}),3000);
+      setSaveNotice('All changes saved successfully.');
+    } catch (error) {
+      setSaveError(error.message || 'Failed to save all changes.');
+    } finally {
+      setSavingSection('');
+    }
   };
 
   const SECTIONS = [
@@ -3798,18 +4256,48 @@ function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSetting
     {id:"appearance", icon:"🎨", label:"Appearance"},
   ];
 
+  const toggleSidebar = () => setSidebarCollapsed((current) => !current);
+  const selectSection = (sectionId) => {
+    setActiveSection(sectionId);
+    if (isCompactViewport) {
+      setSidebarCollapsed(true);
+    }
+  };
+
+  const sidebarWidth = isCompactViewport ? '100%' : (sidebarCollapsed ? 84 : 220);
+  const showSidebarLabels = !sidebarCollapsed;
+
   return (
-    <div style={{display:"flex",minHeight:"calc(100vh - 64px)",background:"var(--offwhite)"}}>
+    <div className="settings-layout app-shell" style={{display:"flex",minHeight:"calc(100vh - 64px)",background:"var(--offwhite)"}}>
 
       {/* ── LEFT NAV ── */}
-      <aside className="settings-sidebar" style={{width:220,background:"#fff",borderRight:"1px solid var(--g200)",padding:"1.5rem 0",flexShrink:0,position:"sticky",top:64,height:"calc(100vh - 64px)"}}>
+      <aside className={`settings-sidebar ${sidebarCollapsed ? "is-collapsed" : "is-expanded"}`} style={{width:sidebarWidth,background:"#fff",borderRight:"1px solid var(--g200)",padding:isCompactViewport?".75rem":"1.25rem 0",flexShrink:0,position:"sticky",top:64,height:isCompactViewport?"auto":"calc(100vh - 64px)",minHeight:isCompactViewport?"auto":"calc(100vh - 64px)"}}>
+        <div style={{padding:isCompactViewport?0:"0 1rem .9rem",marginBottom:isCompactViewport?0:".15rem",display:"flex",alignItems:"center",justifyContent:showSidebarLabels?"space-between":"center",gap:".75rem"}}>
+          {showSidebarLabels && (
+            <div>
+              <div style={{fontFamily:"Syne",fontWeight:800,fontSize:".92rem",color:"var(--navy)"}}>Settings</div>
+              <div style={{fontSize:".74rem",color:"var(--muted)"}}>Compact, mobile-first controls</div>
+            </div>
+          )}
+          <button
+            key={sidebarCollapsed ? 'settings-collapsed' : 'settings-open'}
+            type="button"
+            className="settings-toggle"
+            onClick={toggleSidebar}
+            aria-label={sidebarCollapsed ? 'Expand settings navigation' : 'Collapse settings navigation'}
+            style={{width:40,height:40,borderRadius:12,border:"1px solid var(--g200)",background:sidebarCollapsed?"var(--navy)":"rgba(0,102,255,.08)",color:sidebarCollapsed?"#fff":"var(--blue)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1rem",fontWeight:800,boxShadow:"0 10px 24px rgba(6,13,31,.08)"}}
+          >
+            {sidebarCollapsed ? "☰" : "⟲"}
+          </button>
+        </div>
+
         {/* User card */}
-        <div className="settings-user-card" style={{padding:"0 1.25rem 1.25rem",marginBottom:".5rem",borderBottom:"1px solid var(--g100)"}}>
+        <div className="settings-user-card" style={{padding:isCompactViewport?0:"0 1.25rem 1.25rem",marginBottom:sidebarCollapsed?0:".5rem",borderBottom:isCompactViewport||sidebarCollapsed?"none":"1px solid var(--g100)",display:"flex",alignItems:"center",gap:".75rem"}}>
           <div style={{display:"flex",alignItems:"center",gap:".75rem"}}>
             <div style={{width:44,height:44,borderRadius:"50%",background:"var(--navy)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:"1rem",flexShrink:0}}>
               {(local.name||"D")[0].toUpperCase()}
             </div>
-            <div style={{minWidth:0}}>
+            <div className="settings-user-meta" style={{minWidth:0}}>
               <div style={{fontWeight:700,fontSize:".88rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{local.name||"Vendor"}</div>
               <div style={{fontSize:".72rem",color:"var(--muted)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{local.email}</div>
             </div>
@@ -3817,25 +4305,29 @@ function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSetting
         </div>
 
         {/* Nav items */}
+        <div className="settings-nav-list">
         {SECTIONS.map(s=>(
-          <button key={s.id} onClick={()=>setActiveSection(s.id)}
+          <button key={s.id} onClick={()=>selectSection(s.id)}
             className={`settings-sidebar-item${activeSection===s.id?" active":""}`}
-            style={{display:"flex",alignItems:"center",gap:".65rem",width:"100%",padding:".75rem 1.25rem",border:"none",background:activeSection===s.id?"rgba(0,102,255,.07)":"transparent",color:activeSection===s.id?"var(--blue)":"var(--g700)",fontWeight:activeSection===s.id?700:500,fontSize:".85rem",cursor:"pointer",textAlign:"left",borderLeft:activeSection===s.id?"3px solid var(--blue)":"3px solid transparent",transition:"all .2s",fontFamily:"Manrope"}}>
-            <span>{s.icon}</span>{s.label}
-            {saved[s.id]&&<span style={{marginLeft:"auto",width:8,height:8,borderRadius:"50%",background:"#22c55e",flexShrink:0}} />}
+            style={{display:"flex",alignItems:"center",gap:".65rem",width:"100%",padding:sidebarCollapsed&&!isCompactViewport?".85rem":".75rem 1.25rem",border:"none",background:activeSection===s.id?"rgba(0,102,255,.07)":"transparent",color:activeSection===s.id?"var(--blue)":"var(--g700)",fontWeight:activeSection===s.id?700:500,fontSize:".85rem",cursor:"pointer",textAlign:"left",borderLeft:isCompactViewport?"none":activeSection===s.id?"3px solid var(--blue)":"3px solid transparent",borderRadius:isCompactViewport?12:0,transition:"all .2s",fontFamily:"Manrope"}}>
+            <span>{s.icon}</span>
+            {showSidebarLabels && <span className="settings-sidebar-label">{s.label}</span>}
+            {saved[s.id]&&<span className="settings-saved-dot" style={{width:8,height:8,borderRadius:"50%",background:"#22c55e",flexShrink:0}} />}
           </button>
         ))}
+        </div>
 
-        <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"1rem 1.25rem",borderTop:"1px solid var(--g100)"}}>
+        <div style={{position:isCompactViewport?"static":"absolute",bottom:0,left:0,right:0,padding:isCompactViewport?".5rem 0 0":"1rem 1.25rem",borderTop:isCompactViewport?"none":"1px solid var(--g100)",marginTop:isCompactViewport?".5rem":"0"}}>
           <button onClick={()=>setPage("dashboard")} className="settings-back-btn" style={{display:"flex",alignItems:"center",gap:".5rem",width:"100%",background:"none",border:"none",color:"var(--muted)",fontSize:".82rem",cursor:"pointer",fontWeight:600,padding:".5rem 0"}}>
-            ← Back to Dashboard
+            <span>←</span>
+            <span className="settings-back-label">Back to Dashboard</span>
           </button>
         </div>
       </aside>
 
       {/* ── MAIN ── */}
-      <div className="settings-main" style={{flex:1,padding:"2rem 2.5rem",maxWidth:920,overflowY:"auto"}}>
-        <div style={{marginBottom:"1.75rem"}}>
+      <div className="settings-main" style={{flex:1,padding:"2rem 2.5rem",maxWidth:"min(920px, 100%)",width:"100%",overflow:"visible"}}>
+        <div className="settings-section-head" style={{marginBottom:"1.75rem"}}>
           <h1 style={{fontFamily:"Syne",fontWeight:800,fontSize:"1.5rem",marginBottom:".25rem"}}>
             {SECTIONS.find(s=>s.id===activeSection)?.icon} {SECTIONS.find(s=>s.id===activeSection)?.label}
           </h1>
@@ -3848,6 +4340,18 @@ function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSetting
           </p>
         </div>
 
+        {saveNotice && (
+          <div style={{marginBottom:"1rem",background:"rgba(34,197,94,.08)",border:"1px solid rgba(34,197,94,.2)",borderRadius:10,padding:".8rem 1rem",color:"#15803d",fontSize:".82rem",fontWeight:700}}>
+            ✓ {saveNotice}
+          </div>
+        )}
+
+        {saveError && (
+          <div style={{marginBottom:"1rem",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:10,padding:".8rem 1rem",color:"var(--red)",fontSize:".82rem",fontWeight:700}}>
+            ⚠️ {saveError}
+          </div>
+        )}
+
         {/* ─ PERSONAL INFO ─ */}
         {activeSection==="personal"&&(
           <SSection title="Personal Information" subtitle="Your private account details" icon="👤" onSave={()=>saveSection("personal")} saved={saved.personal}>
@@ -3856,7 +4360,8 @@ function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSetting
                 <SInput value={local.name} onChange={e=>upd("name",e.target.value)} placeholder="e.g. Adaeze Okafor" />
               </SField>
               <SField label="Email Address" required>
-                <SInput value={local.email} onChange={e=>upd("email",e.target.value)} type="email" placeholder="you@example.com" />
+                <input value={local.email} readOnly type="email" placeholder="you@example.com"
+                  style={{width:"100%",padding:".75rem 1rem",borderRadius:8,border:"1px solid var(--g200)",fontSize:".9rem",background:"var(--g100)",color:"var(--muted)",outline:"none"}} />
               </SField>
               <SField label="Phone Number">
                 <SInput value={local.phone} onChange={e=>upd("phone",e.target.value)} placeholder="+234 800 000 0000" />
@@ -3937,10 +4442,13 @@ function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSetting
                 {/* Logo */}
                 <div>
                   <label style={{display:"block",fontSize:".82rem",fontWeight:700,color:"var(--g700)",marginBottom:".6rem"}}>Store Logo</label>
-                  <div style={{border:"2px dashed var(--g300)",borderRadius:12,padding:"2rem",textAlign:"center",cursor:"pointer",background:"var(--g100)",color:"var(--muted)",transition:"all .2s",aspectRatio:"1/1",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:".5rem"}}
+                  <input ref={logoInputRef} type="file" accept="image/png,image/jpeg,image/webp" style={{display:"none"}} onChange={(event)=>{ const file = event.target.files?.[0]; event.target.value = ''; uploadStoreMedia('logo', file); }} />
+                  <div onClick={()=>logoInputRef.current?.click()} style={{border:"2px dashed var(--g300)",borderRadius:12,padding:"2rem",textAlign:"center",cursor:"pointer",background:"var(--g100)",color:"var(--muted)",transition:"all .2s",aspectRatio:"1/1",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:".5rem"}}
                     onMouseEnter={e=>{e.currentTarget.style.borderColor="var(--blue)";e.currentTarget.style.background="rgba(0,102,255,.02)";}}
                     onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--g300)";e.currentTarget.style.background="var(--g100)";}}>
-                    {local.logo
+                    {mediaUploading.logo
+                      ? <><span style={{animation:"spin 1s linear infinite",display:"inline-block",fontSize:"1.5rem"}}>⟳</span><span style={{fontSize:".8rem",fontWeight:700}}>Uploading logo...</span></>
+                      : local.logo
                       ? <img src={local.logo} style={{width:80,height:80,borderRadius:"50%",objectFit:"cover"}} />
                       : <><span style={{fontSize:"2rem"}}>📷</span><span style={{fontSize:".78rem",fontWeight:600}}>Upload Logo</span><span style={{fontSize:".7rem"}}>Square · Min 200×200px</span></>}
                   </div>
@@ -3948,12 +4456,15 @@ function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSetting
                 {/* Banner */}
                 <div>
                   <label style={{display:"block",fontSize:".82rem",fontWeight:700,color:"var(--g700)",marginBottom:".6rem"}}>Store Banner</label>
-                  <div style={{border:"2px dashed var(--g300)",borderRadius:12,padding:"2rem",textAlign:"center",cursor:"pointer",background:"var(--g100)",color:"var(--muted)",transition:"all .2s",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:".5rem",minHeight:120}}
+                  <input ref={bannerInputRef} type="file" accept="image/png,image/jpeg,image/webp" style={{display:"none"}} onChange={(event)=>{ const file = event.target.files?.[0]; event.target.value = ''; uploadStoreMedia('banner', file); }} />
+                  <div onClick={()=>bannerInputRef.current?.click()} style={{border:"2px dashed var(--g300)",borderRadius:12,padding:"2rem",textAlign:"center",cursor:"pointer",background:"var(--g100)",color:"var(--muted)",transition:"all .2s",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:".5rem",minHeight:120,overflow:"hidden"}}
                     onMouseEnter={e=>{e.currentTarget.style.borderColor="var(--blue)";e.currentTarget.style.background="rgba(0,102,255,.02)";}}
                     onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--g300)";e.currentTarget.style.background="var(--g100)";}}>
-                    <span style={{fontSize:"2rem"}}>🖼️</span>
-                    <span style={{fontSize:".78rem",fontWeight:600}}>Upload Banner</span>
-                    <span style={{fontSize:".7rem"}}>1200×400px recommended</span>
+                    {mediaUploading.banner
+                      ? <><span style={{animation:"spin 1s linear infinite",display:"inline-block",fontSize:"1.5rem"}}>⟳</span><span style={{fontSize:".8rem",fontWeight:700}}>Uploading banner...</span></>
+                      : local.banner
+                        ? <img src={local.banner} alt="Store banner preview" style={{width:"100%",height:120,objectFit:"cover",borderRadius:8}} />
+                        : <><span style={{fontSize:"2rem"}}>🖼️</span><span style={{fontSize:".78rem",fontWeight:600}}>Upload Banner</span><span style={{fontSize:".7rem"}}>1200×400px recommended</span></>}
                   </div>
                 </div>
               </div>
@@ -4041,8 +4552,8 @@ function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSetting
             <div style={{color:"#fff",fontWeight:700,fontSize:".9rem"}}>Save all changes</div>
             <div style={{color:"rgba(255,255,255,.4)",fontSize:".78rem"}}>Updates all sections at once</div>
           </div>
-          <button onClick={saveAll} style={{background:"var(--blue)",color:"#fff",border:"none",padding:".75rem 2rem",borderRadius:10,fontWeight:800,fontSize:".9rem",cursor:"pointer"}}>
-            Save All →
+          <button onClick={saveAll} disabled={savingSection === 'all'} style={{background:savingSection === 'all' ? "var(--g300)" : "var(--blue)",color:"#fff",border:"none",padding:".75rem 2rem",borderRadius:10,fontWeight:800,fontSize:".9rem",cursor:savingSection === 'all' ? "not-allowed" : "pointer"}}>
+            {savingSection === 'all' ? 'Saving…' : 'Save All →'}
           </button>
         </div>
       </div>
@@ -4075,7 +4586,8 @@ function StorefrontPage({ biz, setPage, vendorSettings, onProductClick, products
   const tags     = isOwn
     ? [CATEGORIES.find(c=>c.id===category)?.label || "Fashion"]
     : (biz.tags || []);
-  const bannerImg = isOwn ? (vendorSettings.banner || "") : (biz.img || "");
+  const logoImg = isOwn ? (vendorSettings.logo || "") : (biz?.logo || "");
+  const bannerImg = isOwn ? (vendorSettings.banner || "") : (biz?.banner || biz?.img || biz?.logo || "");
   const defaultBanner = "https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=1400&h=500&fit=crop";
   const waHref = hasWa
     ? `https://wa.me/${waNum.replace(/[^0-9]/g,"")}?text=Hi, I'd like to know more about your store on LBC!`
@@ -4133,22 +4645,24 @@ function StorefrontPage({ biz, setPage, vendorSettings, onProductClick, products
         <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom,rgba(6,13,31,.1) 0%,rgba(6,13,31,.7) 100%)"}} />
 
         {/* Back btn */}
-        <button onClick={()=>window.history.length>1?window.history.back():setPage("home")} style={{position:"absolute",top:"1.25rem",left:"1.5rem",background:"rgba(255,255,255,.15)",backdropFilter:"blur(8px)",border:"1px solid rgba(255,255,255,.2)",color:"#fff",borderRadius:8,padding:".5rem 1rem",fontSize:".82rem",fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:".4rem"}}>
+        <button className="storefront-back-btn" onClick={()=>window.history.length>1?window.history.back():setPage("home")} style={{position:"absolute",top:"1.25rem",left:"1.5rem",background:"rgba(255,255,255,.15)",backdropFilter:"blur(8px)",border:"1px solid rgba(255,255,255,.2)",color:"#fff",borderRadius:8,padding:".5rem 1rem",fontSize:".82rem",fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:".4rem"}}>
           ← Back
         </button>
 
         {/* Sponsor badge */}
         {(sponsored || verified) && (
-          <div style={{position:"absolute",top:"1.25rem",right:"1.5rem",background:"var(--amber)",color:"#7c3e00",borderRadius:8,padding:".3rem .75rem",fontSize:".72rem",fontWeight:800,letterSpacing:".04em"}}>
+          <div className="storefront-badge" style={{position:"absolute",top:"1.25rem",right:"1.5rem",background:"var(--amber)",color:"#7c3e00",borderRadius:8,padding:".3rem .75rem",fontSize:".72rem",fontWeight:800,letterSpacing:".04em"}}>
             ⚡ SPONSORED
           </div>
         )}
 
         {/* Store name overlay */}
-        <div style={{position:"absolute",bottom:"1.5rem",left:"1.75rem",right:"1.75rem",display:"flex",alignItems:"flex-end",gap:"1rem"}}>
+        <div className="storefront-hero-meta" style={{position:"absolute",bottom:"1.5rem",left:"1.75rem",right:"1.75rem",display:"flex",alignItems:"flex-end",gap:"1rem"}}>
           {/* Logo circle */}
           <div style={{width:72,height:72,borderRadius:16,border:"3px solid rgba(255,255,255,.3)",background:"rgba(255,255,255,.15)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Syne",fontWeight:900,fontSize:"1.8rem",color:"#fff",flexShrink:0,overflow:"hidden"}}>
-            {name[0]?.toUpperCase()}
+            {logoImg
+              ? <img src={logoImg} alt={`${name} logo`} style={{width:"100%",height:"100%",objectFit:"cover"}} />
+              : name[0]?.toUpperCase()}
           </div>
           <div style={{flex:1}}>
             <div style={{display:"flex",alignItems:"center",gap:".65rem",flexWrap:"wrap"}}>
@@ -4167,7 +4681,7 @@ function StorefrontPage({ biz, setPage, vendorSettings, onProductClick, products
       <div className="storefront-layout" style={{maxWidth:1280,margin:"0 auto",padding:"2rem 1.5rem",display:"grid",gridTemplateColumns:"280px 1fr",gap:"2rem",alignItems:"start"}}>
 
         {/* ── LEFT SIDEBAR ── */}
-        <div style={{display:"flex",flexDirection:"column",gap:"1rem",position:"sticky",top:80}}>
+        <div className="storefront-side-column" style={{display:"flex",flexDirection:"column",gap:"1rem",position:"sticky",top:80}}>
 
           {/* About */}
           <div style={{background:"#fff",borderRadius:16,padding:"1.4rem",border:"1px solid var(--g200)"}}>
@@ -4241,13 +4755,13 @@ function StorefrontPage({ biz, setPage, vendorSettings, onProductClick, products
         {/* ── RIGHT — Products ── */}
         <div>
           {/* Toolbar */}
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.25rem",flexWrap:"wrap",gap:"1rem"}}>
+          <div className="storefront-toolbar" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.25rem",flexWrap:"wrap",gap:"1rem"}}>
             <div>
               <h2 style={{fontFamily:"Syne",fontWeight:800,fontSize:"1.2rem",margin:0}}>Products & Services</h2>
               <p style={{color:"var(--muted)",fontSize:".8rem",margin:".15rem 0 0"}}>{sorted.length} listing{sorted.length!==1?"s":""}</p>
             </div>
             {/* Search within store */}
-            <div style={{display:"flex",gap:".6rem",alignItems:"center",flex:1,maxWidth:320}}>
+            <div className="storefront-toolbar-search" style={{display:"flex",gap:".6rem",alignItems:"center",flex:1,maxWidth:320}}>
               <div style={{flex:1,display:"flex",background:"#fff",border:"1px solid var(--g200)",borderRadius:8,overflow:"hidden"}}>
                 <input value={searchQ} onChange={e=>setSearchQ(e.target.value)} placeholder={`Search ${name}…`}
                   style={{flex:1,border:"none",outline:"none",padding:".6rem .9rem",fontSize:".85rem"}} />

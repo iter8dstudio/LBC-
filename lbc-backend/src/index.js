@@ -7,6 +7,7 @@ const cors       = require('cors');
 const rateLimit  = require('express-rate-limit');
 const { sanitizeRequest } = require('./middleware/sanitize');
 const { getAllowedOrigins, getFrontendBaseUrl } = require('./lib/frontend');
+const { getPaystackSecretKey } = require('./lib/paystack');
 
 const app = express();
 
@@ -71,6 +72,10 @@ const checkSecret = (name, value) => {
 
 checkSecret('ACCESS_TOKEN_SECRET', process.env.ACCESS_TOKEN_SECRET || process.env.JWT_SECRET);
 checkSecret('REFRESH_TOKEN_SECRET', process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET);
+
+if (process.env.NODE_ENV === 'production' && !getPaystackSecretKey()) {
+  throw new Error('PAYSTACK_SECRET_KEY is not set');
+}
 
 // ── ROUTES ────────────────────────────────────────────────
 app.use('/api',           require('./routes/misc'));
