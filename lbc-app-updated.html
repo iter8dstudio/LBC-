@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' http://localhost:5000 https://testlbc-production.up.railway.app; frame-ancestors 'none'; base-uri 'self';" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' http://localhost:8000 http://localhost:5000 https://testlbc-production.up.railway.app https://api.lbc.ng; frame-ancestors 'none'; base-uri 'self';" />
 <title>LBC — Lekki Business Connect</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -20,11 +20,19 @@ const API_BASE_URL_MAP = {
   'testlbc-production.up.railway.app': 'https://testlbc-production.up.railway.app/api',
 };
 
+const DEFAULT_REMOTE_API_BASE_URL = 'https://testlbc-production.up.railway.app/api';
+
 const determineApiUrl = () => {
   const hostname = window.location.hostname;
   if (API_BASE_URL_MAP[hostname]) return API_BASE_URL_MAP[hostname];
   if (hostname === 'localhost' || hostname === '127.0.0.1') return 'http://localhost:8000/api';
-  return `${window.location.origin}/api`;
+
+  if (hostname.endsWith('netlify.app')) return DEFAULT_REMOTE_API_BASE_URL;
+
+  const configured = window.__LBC_API_BASE_URL;
+  if (configured && typeof configured === 'string') return configured.replace(/\/$/, '');
+
+  return DEFAULT_REMOTE_API_BASE_URL;
 };
 
 const API_CONFIG = {
