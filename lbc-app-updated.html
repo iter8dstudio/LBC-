@@ -177,7 +177,7 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
     overflow-y: visible;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
-    position: sticky;
+    position: fixed !important;
     top: calc(var(--nav-height) + .35rem);
     z-index: 320;
     background: rgba(248,250,252,.95);
@@ -223,7 +223,7 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
     border-radius: .75rem;
     box-shadow: 0 16px 40px rgba(6,13,31,.14);
     padding: .8rem;
-    z-index: 520;
+    z-index: 620;
   }
   .search-products-grid,
   .storefront-products-grid {
@@ -421,14 +421,14 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
   .settings-toggle {
     position: fixed !important;
     top: calc(var(--nav-height) + .5rem);
-    left: .75rem;
+    left: 50%;
     z-index: 360;
-    transform: translateZ(0);
+    transform: translateX(-50%) translateZ(0);
     width: auto !important;
     min-width: 7.25rem;
     padding: 0 .8rem;
     gap: .4rem;
-    justify-content: flex-start !important;
+    justify-content: center !important;
     background: var(--navy) !important;
     color: #fff !important;
     border-color: rgba(6,13,31,.2) !important;
@@ -912,7 +912,7 @@ function NavUserDropdown({ user, setUser, setPage, vendorSettings }) {
       </button>
 
       {ddOpen && (
-        <div style={{position:"absolute",right:0,top:"calc(100% + 8px)",background:"#fff",border:"1px solid var(--g200)",borderRadius:14,boxShadow:"0 12px 40px rgba(6,13,31,.2)",minWidth:200,zIndex:500,overflow:"hidden",animation:"fadeUp .15s ease both"}}>
+        <div style={{position:"absolute",right:0,top:"calc(100% + 8px)",background:"#fff",border:"1px solid var(--g200)",borderRadius:14,boxShadow:"0 12px 40px rgba(6,13,31,.2)",minWidth:200,zIndex:1300,overflow:"hidden",animation:"fadeUp .15s ease both"}}>
           {/* User header */}
           <div style={{padding:"1rem 1.1rem .85rem",borderBottom:"1px solid var(--g100)",background:"var(--offwhite)"}}>
             <div style={{display:"flex",alignItems:"center",gap:".65rem"}}>
@@ -955,7 +955,7 @@ function Navbar({ page, setPage, searchQ, setSearchQ, activeCategory, setActiveC
   const isDash = ["dashboard","settings","storefront"].includes(page);
   const goToBusinessOnboarding = () => setPage(user ? "onboarding" : "signin");
   return (
-    <nav className="nav-pad" style={{position:"sticky",top:0,zIndex:200,background:"var(--navy)",borderBottom:"1px solid rgba(255,255,255,.07)",padding:"0 2rem",height:64,display:"flex",alignItems:"center",gap:"1rem",animation:"slideDown .4s ease both"}}>
+    <nav className="nav-pad" style={{position:"sticky",top:0,zIndex:1200,background:"var(--navy)",borderBottom:"1px solid rgba(255,255,255,.07)",padding:"0 2rem",height:64,display:"flex",alignItems:"center",gap:"1rem",animation:"slideDown .4s ease both"}}>
       {/* Logo */}
       <div onClick={() => setPage("home")} style={{fontFamily:"Syne",fontWeight:800,fontSize:"1.4rem",color:"#fff",letterSpacing:"-.03em",cursor:"pointer",whiteSpace:"nowrap"}}>
         LB<span style={{color:"var(--blue)"}}>C</span>
