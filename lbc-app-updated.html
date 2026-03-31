@@ -170,10 +170,10 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
   .search-results-pane { width: 100% !important; }
   .search-filters-bar {
     display: flex !important;
-    align-items: center;
+    align-items: flex-start;
     gap: .45rem;
-    overflow-x: auto;
-    scrollbar-width: none;
+    flex-wrap: wrap;
+    overflow: visible;
     -webkit-overflow-scrolling: touch;
     position: sticky;
     top: calc(var(--nav-height) + .35rem);
@@ -184,8 +184,17 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
     padding: .45rem 0 .6rem;
     margin-bottom: .75rem;
   }
+  .search-filter-group {
+    position: relative;
+    flex: 1 1 calc(50% - .3rem);
+    min-width: min(10rem, 46vw);
+    max-width: 100%;
+  }
   .search-filters-bar::-webkit-scrollbar { display:none; }
   .search-filter-chip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border: 1px solid var(--g200);
     background: #fff;
     color: var(--g700);
@@ -194,13 +203,19 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
     font-size: .76rem;
     font-weight: 700;
     white-space: nowrap;
-    flex-shrink: 0;
+    flex-shrink: 1;
+    width: 100%;
+    min-width: 0;
+  }
+  .search-filters-bar > .search-filter-chip {
+    flex: 1 1 calc(50% - .3rem);
   }
   .search-filter-menu {
     position: absolute;
     top: calc(100% + .45rem);
     left: 0;
-    width: min(84vw, 20rem);
+    width: 100%;
+    max-width: 100%;
     background: #fff;
     border: 1px solid var(--g200);
     border-radius: .75rem;
@@ -245,6 +260,11 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
   .dash-bottom-nav { display: flex !important; padding-bottom: max(.5rem, env(safe-area-inset-bottom)) !important; }
   .dash-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
   .dash-chart { overflow-x: auto !important; }
+  .home-main { padding: 1.25rem 1rem !important; }
+  .home-products-grid {
+    grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+    gap: .72rem !important;
+  }
 
   /* Settings */
   .settings-layout { flex-direction: column !important; }
@@ -285,12 +305,66 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
   .phone-otp-box { width: 36px !important; height: 44px !important; }
 }
 
+@media (max-width: 390px) {
+  .search-products-grid {
+    grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+    gap: .58rem !important;
+  }
+
+  .search-products-grid .product-card [data-card-body] {
+    padding: .56rem !important;
+  }
+
+  .search-products-grid .product-card [data-card-title] {
+    font-size: .75rem !important;
+  }
+
+  .search-products-grid .product-card [data-card-price] {
+    font-size: .82rem !important;
+  }
+}
+
 @media (max-width: 768px) {
   .dash-layout,
   .settings-layout { min-height: calc(100vh - var(--nav-height)) !important; }
 
   .dash-content-shell,
   .settings-main { overflow: visible !important; }
+
+  .dash-layout,
+  .dash-content-shell,
+  .dash-main,
+  .storefront-layout,
+  .storefront-layout > *,
+  .storefront-side-column,
+  .storefront-toolbar,
+  .storefront-toolbar > * {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .dash-content-shell,
+  .dash-main,
+  .storefront-layout {
+    overflow-x: hidden !important;
+  }
+
+  .dash-overview-panels,
+  .dash-analytics-stats,
+  .dash-analytics-charts,
+  .dash-chart-toggles {
+    grid-template-columns: 1fr !important;
+  }
+
+  .dash-main table {
+    width: 100% !important;
+    table-layout: fixed;
+  }
+
+  .dash-main th,
+  .dash-main td {
+    word-break: break-word;
+  }
 
   .dash-main { padding: 1rem !important; padding-bottom: 88px !important; }
 
@@ -301,6 +375,11 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
   .storefront-badge { top: 1rem !important; right: 1rem !important; }
   .storefront-toolbar { flex-direction: column !important; align-items: stretch !important; }
   .storefront-toolbar-search { max-width: none !important; width: 100% !important; }
+  .storefront-type-filters {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    overflow: visible !important;
+  }
 
   .settings-sidebar {
     width: 100% !important;
@@ -321,9 +400,21 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
   .settings-toggle {
     position: fixed !important;
     top: calc(var(--nav-height) + 1.2dvh);
-    left: 3.5vw;
+    left: .75rem;
     z-index: 240;
     transform: translateZ(0);
+    width: auto !important;
+    min-width: 7.25rem;
+    padding: 0 .8rem;
+    gap: .4rem;
+    justify-content: flex-start !important;
+  }
+
+  .settings-toggle-label {
+    display: inline !important;
+    font-size: .76rem;
+    font-weight: 700;
+    white-space: nowrap;
   }
 
   .settings-nav-list { display: flex; flex-direction: column; gap: .35rem; margin-top: .75rem; }
@@ -1096,9 +1187,9 @@ function HomePage({ setPage, searchQ, setSearchQ, activeCategory, setActiveCateg
           ))}
         </div>
       </section>
-      <main style={{maxWidth:1280,margin:"0 auto",padding:"2.5rem 2rem"}}>
+      <main className="home-main" style={{maxWidth:1280,margin:"0 auto",padding:"2.5rem 2rem"}}>
         <Section title="Featured Products" badge="⚡ Sponsored" link="View all" onLink={()=>setPage("search")}>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(200px,100%),1fr))",gap:"1.5rem"}}>
+          <div className="home-products-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(200px,100%),1fr))",gap:"1.5rem"}}>
             {sponsored.map(p=><ProductCard key={p.id} p={p} onClick={setSelectedProduct} wishlist={wishlist} toggleWish={toggleWish} />)}
           </div>
         </Section>
@@ -1109,7 +1200,7 @@ function HomePage({ setPage, searchQ, setSearchQ, activeCategory, setActiveCateg
         </Section>
         <PromoBanner setPage={setPage} user={user} />
         <Section title="New Listings Near You" link="Browse all" onLink={()=>setPage("search")}>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(200px,100%),1fr))",gap:"1.5rem"}}>
+          <div className="home-products-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(200px,100%),1fr))",gap:"1.5rem"}}>
             {recent.map(p=><ProductCard key={p.id} p={p} onClick={setSelectedProduct} wishlist={wishlist} toggleWish={toggleWish} />)}
           </div>
         </Section>
@@ -1228,7 +1319,7 @@ function SearchPage({ searchQ, activeCategory, setSelectedProduct, setSelectedBu
 
       <div className="search-results-pane">
         <div className="search-filters-bar mob-show" style={{display:"none"}}>
-          <div style={{position:"relative"}}>
+          <div className="search-filter-group" style={{position:"relative"}}>
             <button className="search-filter-chip" onClick={()=>setActiveMobileFilter(activeMobileFilter==="location"?"":"location")}>📍 {location==="all"?"Location":location}</button>
             {activeMobileFilter==="location" && (
               <div className="search-filter-menu">
@@ -1240,7 +1331,7 @@ function SearchPage({ searchQ, activeCategory, setSelectedProduct, setSelectedBu
             )}
           </div>
 
-          <div style={{position:"relative"}}>
+          <div className="search-filter-group" style={{position:"relative"}}>
             <button className="search-filter-chip" onClick={()=>setActiveMobileFilter(activeMobileFilter==="price"?"":"price")}>💸 Price</button>
             {activeMobileFilter==="price" && (
               <div className="search-filter-menu">
@@ -1253,7 +1344,7 @@ function SearchPage({ searchQ, activeCategory, setSelectedProduct, setSelectedBu
             )}
           </div>
 
-          <div style={{position:"relative"}}>
+          <div className="search-filter-group" style={{position:"relative"}}>
             <button className="search-filter-chip" onClick={()=>setActiveMobileFilter(activeMobileFilter==="type"?"":"type")}>🧩 {typeFilter==="all"?"Type":typeFilter}</button>
             {activeMobileFilter==="type" && (
               <div className="search-filter-menu" style={{display:"grid",gap:".45rem"}}>
@@ -1266,7 +1357,7 @@ function SearchPage({ searchQ, activeCategory, setSelectedProduct, setSelectedBu
             )}
           </div>
 
-          <div style={{position:"relative"}}>
+          <div className="search-filter-group" style={{position:"relative"}}>
             <button className="search-filter-chip" onClick={()=>setActiveMobileFilter(activeMobileFilter==="rating"?"":"rating")}>⭐ {ratingFilter===0?"Any":`${ratingFilter}+`}</button>
             {activeMobileFilter==="rating" && (
               <div className="search-filter-menu" style={{display:"grid",gap:".45rem"}}>
@@ -2901,7 +2992,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
       </aside>
 
       {/* ── MAIN CONTENT ── */}
-      <div className="dash-content-shell" style={{flex:1,minWidth:0}}>
+      <div className="dash-content-shell" style={{flex:1,minWidth:0,maxWidth:"100%",overflowX:"hidden"}}>
 
         {/* ── OVERVIEW ── */}
         {tab==="overview" && (
@@ -3005,7 +3096,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
             </div>
 
             {/* Chart + Boosts */}
-            <div style={{display:"grid",gridTemplateColumns:"1fr 300px",gap:"1.5rem"}}>
+            <div className="dash-overview-panels" style={{display:"grid",gridTemplateColumns:"1fr 300px",gap:"1.5rem"}}>
               {/* Performance chart */}
               <div style={{background:"#fff",border:"1px solid var(--g200)",borderRadius:"var(--r)",padding:"1.5rem"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.25rem"}}>
@@ -3020,7 +3111,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
                 </div>
                 <LineChart datasets={datasets} labels={chartLabels} />
                 {/* Toggles */}
-                <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:".5rem",marginTop:"1rem"}}>
+                <div className="dash-chart-toggles" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:".5rem",marginTop:"1rem"}}>
                   {datasets.map(d=>(
                     <label key={d.key} style={{display:"flex",alignItems:"center",gap:".5rem",background:"var(--g100)",borderRadius:8,padding:".6rem .75rem",cursor:"pointer",border:`1px solid ${d.active?d.color+"55":"var(--g200)"}`}}>
                       <input type="checkbox" checked={d.active} onChange={()=>setChartToggles(t=>({...t,[d.key]:!t[d.key]}))} style={{accentColor:d.color,flexShrink:0}} />
@@ -3551,7 +3642,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
             </div>
 
             {/* Summary row — calculated from real data */}
-            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"1.25rem",marginBottom:"2rem"}}>
+            <div className="dash-analytics-stats" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"1.25rem",marginBottom:"2rem"}}>
               {(() => {
                 const totalViews = listingAnalytics.reduce((sum, l) => sum + (l.views || 0), 0) || 0;
                 const totalClicks = listingAnalytics.reduce((sum, l) => sum + (l.waClicks || 0), 0) || 0;
@@ -3572,7 +3663,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
             </div>
 
             {/* Page visits chart */}
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1.5rem",marginBottom:"1.5rem"}}>
+            <div className="dash-analytics-charts" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1.5rem",marginBottom:"1.5rem"}}>
               <div style={{background:"#fff",border:"1px solid var(--g200)",borderRadius:"var(--r)",padding:"1.5rem"}}>
                 <h3 style={{fontFamily:"Syne",fontWeight:700,fontSize:"1rem",marginBottom:"1.25rem"}}>Page Visits — Last 12 Months</h3>
                 <LineChart datasets={[
@@ -4428,7 +4519,8 @@ function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSetting
             aria-label={sidebarCollapsed ? 'Expand settings navigation' : 'Collapse settings navigation'}
             style={{width:40,height:40,borderRadius:12,border:"1px solid var(--g200)",background:sidebarCollapsed?"var(--navy)":"rgba(0,102,255,.08)",color:sidebarCollapsed?"#fff":"var(--blue)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1rem",fontWeight:800,boxShadow:"0 10px 24px rgba(6,13,31,.08)"}}
           >
-            {sidebarCollapsed ? "☰" : "⟲"}
+            <span>⚙</span>
+            <span className="settings-toggle-label">Settings</span>
           </button>
         </div>
 
@@ -4914,7 +5006,7 @@ function StorefrontPage({ biz, setPage, vendorSettings, onProductClick, products
           </div>
 
           {/* Type filter tabs */}
-          <div style={{display:"flex",gap:".5rem",marginBottom:"1.25rem",background:"#fff",borderRadius:12,padding:".4rem",border:"1px solid var(--g200)",overflowX:"auto",scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
+          <div className="storefront-type-filters" style={{display:"flex",gap:".5rem",marginBottom:"1.25rem",background:"#fff",borderRadius:12,padding:".4rem",border:"1px solid var(--g200)",overflowX:"auto",scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
             {[
               {id:"all",    label:`All (${counts.all})`},
               {id:"physical",label:`📦 Physical (${counts.physical})`},
