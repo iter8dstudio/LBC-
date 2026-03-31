@@ -125,6 +125,9 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
 .settings-sidebar.is-collapsed .settings-user-card { justify-content:center; }
 .settings-sidebar.is-collapsed .settings-back-btn { justify-content:center; }
 .settings-saved-dot { margin-left:auto; }
+.search-layout, .search-layout > * { min-width:0; max-width:100%; }
+.search-results-pane, .dash-main, .dash-content-shell, .storefront-layout, .storefront-toolbar { min-width:0; max-width:100%; }
+.search-products-grid, .search-business-grid, .storefront-products-grid { width:100%; min-width:0; max-width:100%; }
 
 @media (prefers-reduced-motion: no-preference) {
   .settings-toggle { animation:railBounce .58s var(--spring); }
@@ -163,6 +166,67 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
 
   /* Search page */
   .search-layout { grid-template-columns: 1fr !important; }
+  .search-filters-column { display: none !important; }
+  .search-results-pane { width: 100% !important; }
+  .search-filters-bar {
+    display: flex !important;
+    align-items: center;
+    gap: .45rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    position: sticky;
+    top: calc(var(--nav-height) + .35rem);
+    z-index: 210;
+    background: rgba(248,250,252,.95);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    padding: .45rem 0 .6rem;
+    margin-bottom: .75rem;
+  }
+  .search-filters-bar::-webkit-scrollbar { display:none; }
+  .search-filter-chip {
+    border: 1px solid var(--g200);
+    background: #fff;
+    color: var(--g700);
+    border-radius: 999px;
+    padding: .42rem .8rem;
+    font-size: .76rem;
+    font-weight: 700;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .search-filter-menu {
+    position: absolute;
+    top: calc(100% + .45rem);
+    left: 0;
+    width: min(84vw, 20rem);
+    background: #fff;
+    border: 1px solid var(--g200);
+    border-radius: .75rem;
+    box-shadow: 0 16px 40px rgba(6,13,31,.14);
+    padding: .8rem;
+    z-index: 260;
+  }
+  .search-products-grid,
+  .storefront-products-grid {
+    grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+    gap: .72rem !important;
+  }
+  .product-card [data-card-image],
+  .storefront-products-grid [data-card-image] {
+    aspect-ratio: 1 / 1;
+  }
+  .product-card [data-card-body],
+  .storefront-products-grid [data-card-body] {
+    padding: .66rem !important;
+  }
+  .product-card [data-card-title] {
+    font-size: .79rem !important;
+  }
+  .product-card [data-card-price] {
+    font-size: .88rem !important;
+  }
   .search-filters-panel { display: none; position: fixed; inset: 0; z-index: 300;
     background: #fff; overflow-y: auto; padding: 1.5rem; animation: fadeIn .2s ease; }
   .search-filters-panel.open { display: block !important; }
@@ -252,6 +316,14 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
     -webkit-backdrop-filter: blur(18px);
     backdrop-filter: blur(18px);
     box-shadow: 0 10px 30px rgba(6,13,31,.08);
+  }
+
+  .settings-toggle {
+    position: fixed !important;
+    top: calc(var(--nav-height) + 1.2dvh);
+    left: 3.5vw;
+    z-index: 240;
+    transform: translateZ(0);
   }
 
   .settings-nav-list { display: flex; flex-direction: column; gap: .35rem; margin-top: .75rem; }
@@ -618,6 +690,7 @@ const normalizeStore = (store) => {
     rating: Number(store.rating || 4.5),
     reviews: Number(store.reviews || 0),
     whatsapp: store.whatsapp || "",
+    showStockCount: store.showStockCount !== false,
     logo: store.logo || "",
     banner: store.banner || "",
     img: store.banner || store.logo || "https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=700&h=400&fit=crop",
@@ -846,18 +919,18 @@ function CategoryBar({ activeCategory, setActiveCategory, setPage }) {
 function ProductCard({ p, onClick, wishlist, toggleWish }) {
   const [hov, setHov] = useState(false);
   return (
-    <div onClick={()=>onClick(p)} onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
+    <div className="product-card" onClick={()=>onClick(p)} onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
       style={{background:p.sponsored?"#fff8e6":"#fff",borderRadius:"var(--r)",overflow:"hidden",border:`1.5px solid ${p.sponsored?"var(--amber)":"var(--g200)"}`,transition:"all .25s",cursor:"pointer",position:"relative",transform:hov?"translateY(-3px)":"",boxShadow:hov?"var(--shh)":"",animation:"fadeUp .4s ease both"}}>
-      <div style={{position:"relative",aspectRatio:"1/1",overflow:"hidden",background:"var(--g100)"}}>
+      <div data-card-image style={{position:"relative",aspectRatio:"1/1",overflow:"hidden",background:"var(--g100)"}}>
         <img src={p.img} alt={p.name} style={{width:"100%",height:"100%",objectFit:"cover",transition:"transform .35s",transform:hov?"scale(1.05)":""}} />
         {p.sponsored && <span style={{position:"absolute",top:8,left:8,background:"var(--amber)",color:"#7c3e00",fontSize:".63rem",fontWeight:800,padding:".2rem .55rem",borderRadius:5}}>⚡ Sponsored</span>}
         <button onClick={e=>{e.stopPropagation();toggleWish(p.id);}} style={{position:"absolute",top:8,right:8,width:32,height:32,borderRadius:"50%",background:"rgba(255,255,255,.9)",border:"none",display:"flex",alignItems:"center",justifyContent:"center",fontSize:".9rem"}}>
           {wishlist.includes(p.id)?"❤️":"🤍"}
         </button>
       </div>
-      <div style={{padding:".875rem"}}>
-        <div style={{fontWeight:600,fontSize:".875rem",marginBottom:".25rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</div>
-        <div style={{fontFamily:"Syne",fontWeight:700,fontSize:"1rem",color:"var(--navy)",marginBottom:".4rem"}}>{fmt(p.price)}</div>
+      <div data-card-body style={{padding:".875rem"}}>
+        <div data-card-title style={{fontWeight:600,fontSize:".875rem",marginBottom:".25rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</div>
+        <div data-card-price style={{fontFamily:"Syne",fontWeight:700,fontSize:"1rem",color:"var(--navy)",marginBottom:".4rem"}}>{fmt(p.price)}</div>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <span style={{fontSize:".75rem",color:"var(--muted)"}}>{p.store} {p.verified&&<span style={{color:"var(--blue)"}}>✓</span>}</span>
           <span style={{fontSize:".72rem",color:"var(--muted)",background:"var(--g100)",padding:".15rem .5rem",borderRadius:4}}>📍{p.location}</span>
@@ -924,7 +997,7 @@ function Section({ title, badge, link, onLink, children }) {
 // ── PROMO BANNER ──
 function PromoBanner({ setPage, user }) {
   const [activePlan,setActivePlan] = useState(0);
-  const plans = [{p:"Weekly",price:"₦5,000",sub:"/wk"},{p:"Monthly",price:"₦15,000",sub:"/mo"},{p:"Premium",price:"₦35,000",sub:"/mo"}];
+  const plans = [{p:"Biweekly",price:"₦10,000",sub:"/2w"},{p:"Monthly",price:"₦18,000",sub:"/mo"},{p:"Premium",price:"₦35,000",sub:"/mo"}];
   const goToBusinessOnboarding = () => setPage(user ? "onboarding" : "signin");
   return (
     <div className="grid-promo" style={{background:"var(--navy)",borderRadius:20,overflow:"hidden",display:"grid",gridTemplateColumns:"1fr 1fr",margin:"3rem 0",position:"relative"}}>
@@ -1056,9 +1129,23 @@ function SearchPage({ searchQ, activeCategory, setSelectedProduct, setSelectedBu
   const [sponsoredOnly,setSponsoredOnly] = useState(false);
   const [tab,setTab] = useState("products");
   const [sort,setSort] = useState("relevance");
-  const [openFilters,setOpenFilters] = useState({location:true,price:true,type:true,rating:true,visibility:true});
-  const [mobileFiltersOpen,setMobileFiltersOpen] = useState(false);
-  const toggle = (k) => setOpenFilters(f=>({...f,[k]:!f[k]}));
+  const [activeMobileFilter,setActiveMobileFilter] = useState("");
+
+  const resetFilters = () => {
+    setPriceMin("");
+    setPriceMax("");
+    setLocation("all");
+    setTypeFilter("all");
+    setRatingFilter(0);
+    setSponsoredOnly(false);
+    setActiveMobileFilter("");
+  };
+
+  useEffect(() => {
+    const closeMenusOnScroll = () => setActiveMobileFilter("");
+    window.addEventListener('scroll', closeMenusOnScroll, { passive: true });
+    return () => window.removeEventListener('scroll', closeMenusOnScroll);
+  }, []);
 
   const filteredProducts = products.filter(p=>{
     const q=searchQ.toLowerCase();
@@ -1087,41 +1174,32 @@ function SearchPage({ searchQ, activeCategory, setSelectedProduct, setSelectedBu
   });
 
   return (
-    <div className="search-layout" style={{maxWidth:1280,margin:"0 auto",padding:"1.25rem",display:"grid",gridTemplateColumns:"260px 1fr",gap:"2rem",alignItems:"start"}}>
-      <aside style={{background:"#fff",borderRadius:"var(--r)",border:"1px solid var(--g200)",padding:"1.5rem",position:"sticky",top:140,animation:"fadeIn .4s ease both"}}>
+    <div className="search-layout" style={{maxWidth:1280,margin:"0 auto",padding:"clamp(.75rem,3.5vw,1.25rem)",display:"grid",gridTemplateColumns:"minmax(14rem,20%) minmax(0,1fr)",gap:"clamp(.9rem,2.5vw,2rem)",alignItems:"start"}}>
+      <aside className="search-filters-column" style={{background:"#fff",borderRadius:"var(--r)",border:"1px solid var(--g200)",padding:"1.2rem",position:"sticky",top:140,animation:"fadeIn .4s ease both"}}>
         <div style={{fontFamily:"Syne",fontWeight:700,fontSize:"1rem",marginBottom:"1.5rem",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           Filters
-          <button onClick={()=>{setPriceMin("");setPriceMax("");setLocation("all");setTypeFilter("all");setRatingFilter(0);setSponsoredOnly(false);}} style={{background:"none",border:"none",color:"var(--blue)",fontSize:".78rem",fontWeight:600,cursor:"pointer"}}>Clear all</button>
+          <button onClick={resetFilters} style={{background:"none",border:"none",color:"var(--blue)",fontSize:".78rem",fontWeight:600,cursor:"pointer"}}>Clear all</button>
         </div>
 
-        {/* Location */}
         <div style={{borderTop:"1px solid var(--g200)",paddingTop:"1rem",marginBottom:"1rem"}}>
-          <button onClick={()=>toggle("location")} style={{background:"none",border:"none",width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",marginBottom:openFilters.location?".75rem":0}}>
-            <span style={{fontWeight:700,fontSize:".82rem"}}>Location</span><span style={{color:"var(--muted)",fontSize:".8rem"}}>{openFilters.location?"▲":"▼"}</span>
-          </button>
-          {openFilters.location && <select value={location} onChange={e=>setLocation(e.target.value)} style={{width:"100%",padding:".6rem .75rem",borderRadius:8,border:"1px solid var(--g200)",fontSize:".85rem",outline:"none",color:"var(--text)"}}>
+          <div style={{fontWeight:700,fontSize:".82rem",marginBottom:".6rem"}}>Location</div>
+          <select value={location} onChange={e=>setLocation(e.target.value)} style={{width:"100%",padding:".6rem .75rem",borderRadius:8,border:"1px solid var(--g200)",fontSize:".85rem",outline:"none",color:"var(--text)"}}>
             <option value="all">All Areas</option>
             {LOCATIONS.map(l=><option key={l}>{l}</option>)}
-          </select>}
+          </select>
         </div>
 
-        {/* Price */}
         <div style={{borderTop:"1px solid var(--g200)",paddingTop:"1rem",marginBottom:"1rem"}}>
-          <button onClick={()=>toggle("price")} style={{background:"none",border:"none",width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",marginBottom:openFilters.price?".75rem":0}}>
-            <span style={{fontWeight:700,fontSize:".82rem"}}>Price Range (₦)</span><span style={{color:"var(--muted)",fontSize:".8rem"}}>{openFilters.price?"▲":"▼"}</span>
-          </button>
-          {openFilters.price && <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem",width:"100%"}}>
+          <div style={{fontWeight:700,fontSize:".82rem",marginBottom:".6rem"}}>Price Range (₦)</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem",width:"100%"}}>
             <input value={priceMin} onChange={e=>setPriceMin(e.target.value)} placeholder="Min" type="number" style={{width:"100%",minWidth:0,padding:".6rem .5rem",borderRadius:8,border:"1px solid var(--g200)",fontSize:".85rem",outline:"none"}} />
             <input value={priceMax} onChange={e=>setPriceMax(e.target.value)} placeholder="Max" type="number" style={{width:"100%",minWidth:0,padding:".6rem .5rem",borderRadius:8,border:"1px solid var(--g200)",fontSize:".85rem",outline:"none"}} />
-          </div>}
+          </div>
         </div>
 
-        {/* Type */}
         <div style={{borderTop:"1px solid var(--g200)",paddingTop:"1rem",marginBottom:"1rem"}}>
-          <button onClick={()=>toggle("type")} style={{background:"none",border:"none",width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",marginBottom:openFilters.type?".75rem":0}}>
-            <span style={{fontWeight:700,fontSize:".82rem"}}>Listing Type</span><span style={{color:"var(--muted)",fontSize:".8rem"}}>{openFilters.type?"▲":"▼"}</span>
-          </button>
-          {openFilters.type && ["all","physical","digital","service"].map(t=>(
+          <div style={{fontWeight:700,fontSize:".82rem",marginBottom:".6rem"}}>Listing Type</div>
+          {["all","physical","digital","service"].map(t=>(
             <label key={t} style={{display:"flex",alignItems:"center",gap:".6rem",marginBottom:".5rem",cursor:"pointer",fontSize:".85rem"}}>
               <input type="radio" name="type" checked={typeFilter===t} onChange={()=>setTypeFilter(t)} style={{accentColor:"var(--blue)"}} />
               {t==="all"?"All Types":t==="physical"?"📦 Physical":t==="digital"?"💾 Digital":"🔧 Service"}
@@ -1129,12 +1207,9 @@ function SearchPage({ searchQ, activeCategory, setSelectedProduct, setSelectedBu
           ))}
         </div>
 
-        {/* Rating */}
         <div style={{borderTop:"1px solid var(--g200)",paddingTop:"1rem",marginBottom:"1rem"}}>
-          <button onClick={()=>toggle("rating")} style={{background:"none",border:"none",width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",marginBottom:openFilters.rating?".75rem":0}}>
-            <span style={{fontWeight:700,fontSize:".82rem"}}>Minimum Rating</span><span style={{color:"var(--muted)",fontSize:".8rem"}}>{openFilters.rating?"▲":"▼"}</span>
-          </button>
-          {openFilters.rating && [0,3,4,4.5].map(r=>(
+          <div style={{fontWeight:700,fontSize:".82rem",marginBottom:".6rem"}}>Minimum Rating</div>
+          {[0,3,4,4.5].map(r=>(
             <label key={r} style={{display:"flex",alignItems:"center",gap:".6rem",marginBottom:".5rem",cursor:"pointer",fontSize:".85rem"}}>
               <input type="radio" name="rating" checked={ratingFilter===r} onChange={()=>setRatingFilter(r)} style={{accentColor:"var(--blue)"}} />
               {r===0?"Any rating":`${r}★ & above`}
@@ -1142,19 +1217,72 @@ function SearchPage({ searchQ, activeCategory, setSelectedProduct, setSelectedBu
           ))}
         </div>
 
-        {/* Sponsored */}
         <div style={{borderTop:"1px solid var(--g200)",paddingTop:"1rem"}}>
-          <button onClick={()=>toggle("visibility")} style={{background:"none",border:"none",width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",marginBottom:openFilters.visibility?".75rem":0}}>
-            <span style={{fontWeight:700,fontSize:".82rem"}}>Visibility</span><span style={{color:"var(--muted)",fontSize:".8rem"}}>{openFilters.visibility?"▲":"▼"}</span>
-          </button>
-          {openFilters.visibility && <label style={{display:"flex",alignItems:"center",gap:".6rem",cursor:"pointer",fontSize:".85rem"}}>
+          <div style={{fontWeight:700,fontSize:".82rem",marginBottom:".6rem"}}>Visibility</div>
+          <label style={{display:"flex",alignItems:"center",gap:".6rem",cursor:"pointer",fontSize:".85rem"}}>
             <input type="checkbox" checked={sponsoredOnly} onChange={e=>setSponsoredOnly(e.target.checked)} style={{accentColor:"var(--amber)"}} />
             ⚡ Sponsored only
-          </label>}
+          </label>
         </div>
       </aside>
 
-      <div>
+      <div className="search-results-pane">
+        <div className="search-filters-bar mob-show" style={{display:"none"}}>
+          <div style={{position:"relative"}}>
+            <button className="search-filter-chip" onClick={()=>setActiveMobileFilter(activeMobileFilter==="location"?"":"location")}>📍 {location==="all"?"Location":location}</button>
+            {activeMobileFilter==="location" && (
+              <div className="search-filter-menu">
+                <select value={location} onChange={e=>{setLocation(e.target.value);setActiveMobileFilter("");}} style={{width:"100%",padding:".58rem .72rem",borderRadius:8,border:"1px solid var(--g200)",fontSize:".84rem",outline:"none"}}>
+                  <option value="all">All Areas</option>
+                  {LOCATIONS.map(l=><option key={l}>{l}</option>)}
+                </select>
+              </div>
+            )}
+          </div>
+
+          <div style={{position:"relative"}}>
+            <button className="search-filter-chip" onClick={()=>setActiveMobileFilter(activeMobileFilter==="price"?"":"price")}>💸 Price</button>
+            {activeMobileFilter==="price" && (
+              <div className="search-filter-menu">
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
+                  <input value={priceMin} onChange={e=>setPriceMin(e.target.value)} placeholder="Min" type="number" style={{width:"100%",minWidth:0,padding:".56rem .5rem",borderRadius:8,border:"1px solid var(--g200)",fontSize:".82rem",outline:"none"}} />
+                  <input value={priceMax} onChange={e=>setPriceMax(e.target.value)} placeholder="Max" type="number" style={{width:"100%",minWidth:0,padding:".56rem .5rem",borderRadius:8,border:"1px solid var(--g200)",fontSize:".82rem",outline:"none"}} />
+                </div>
+                <button onClick={()=>setActiveMobileFilter("")} style={{marginTop:".6rem",width:"100%",border:"none",background:"var(--navy)",color:"#fff",borderRadius:8,padding:".55rem",fontSize:".8rem",fontWeight:700}}>Apply</button>
+              </div>
+            )}
+          </div>
+
+          <div style={{position:"relative"}}>
+            <button className="search-filter-chip" onClick={()=>setActiveMobileFilter(activeMobileFilter==="type"?"":"type")}>🧩 {typeFilter==="all"?"Type":typeFilter}</button>
+            {activeMobileFilter==="type" && (
+              <div className="search-filter-menu" style={{display:"grid",gap:".45rem"}}>
+                {["all","physical","digital","service"].map(t=>(
+                  <button key={t} onClick={()=>{setTypeFilter(t);setActiveMobileFilter("");}} style={{textAlign:"left",border:"1px solid var(--g200)",background:typeFilter===t?"rgba(0,102,255,.08)":"#fff",color:typeFilter===t?"var(--blue)":"var(--g700)",borderRadius:8,padding:".5rem .62rem",fontSize:".82rem",fontWeight:600}}>
+                    {t==="all"?"All Types":t==="physical"?"📦 Physical":t==="digital"?"💾 Digital":"🔧 Service"}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div style={{position:"relative"}}>
+            <button className="search-filter-chip" onClick={()=>setActiveMobileFilter(activeMobileFilter==="rating"?"":"rating")}>⭐ {ratingFilter===0?"Any":`${ratingFilter}+`}</button>
+            {activeMobileFilter==="rating" && (
+              <div className="search-filter-menu" style={{display:"grid",gap:".45rem"}}>
+                {[0,3,4,4.5].map(r=>(
+                  <button key={r} onClick={()=>{setRatingFilter(r);setActiveMobileFilter("");}} style={{textAlign:"left",border:"1px solid var(--g200)",background:ratingFilter===r?"rgba(0,102,255,.08)":"#fff",color:ratingFilter===r?"var(--blue)":"var(--g700)",borderRadius:8,padding:".5rem .62rem",fontSize:".82rem",fontWeight:600}}>
+                    {r===0?"Any rating":`${r}★ & above`}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <button className="search-filter-chip" onClick={()=>setSponsoredOnly(v=>!v)}>{sponsoredOnly?"⚡ Sponsored":"👁️ All"}</button>
+          <button className="search-filter-chip" onClick={resetFilters}>Reset</button>
+        </div>
+
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.5rem",flexWrap:"wrap",gap:"1rem"}}>
           <div>
             <h1 style={{fontFamily:"Syne",fontWeight:700,fontSize:"1.3rem"}}>{searchQ?`Results for "${searchQ}"`:activeCategory!=="all"?CATEGORIES.find(c=>c.id===activeCategory)?.label:"All Listings"}</h1>
@@ -1179,11 +1307,11 @@ function SearchPage({ searchQ, activeCategory, setSelectedProduct, setSelectedBu
 
         {tab==="products" && (filteredProducts.length===0
           ? <div style={{textAlign:"center",padding:"4rem 2rem",color:"var(--muted)"}}><div style={{fontSize:"3rem",marginBottom:"1rem"}}>🔍</div><p style={{fontWeight:600}}>No products match your filters.</p><p style={{fontSize:".85rem",marginTop:".5rem"}}>Try adjusting your filters.</p></div>
-          : <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(200px,100%),1fr))",gap:"1.5rem"}}>{filteredProducts.map(p=><ProductCard key={p.id} p={p} onClick={setSelectedProduct} wishlist={wishlist} toggleWish={toggleWish} />)}</div>
+          : <div className="search-products-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(200px,100%),1fr))",gap:"1.5rem"}}>{filteredProducts.map(p=><ProductCard key={p.id} p={p} onClick={setSelectedProduct} wishlist={wishlist} toggleWish={toggleWish} />)}</div>
         )}
         {tab==="businesses" && (filteredBiz.length===0
           ? <div style={{textAlign:"center",padding:"4rem 2rem",color:"var(--muted)"}}><div style={{fontSize:"3rem",marginBottom:"1rem"}}>🏬</div><p style={{fontWeight:600}}>No businesses match your filters.</p></div>
-          : <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(300px,100%),1fr))",gap:"1.5rem"}}>{filteredBiz.map(b=><BusinessCard key={b.id} b={b} onClick={setSelectedBusiness} />)}</div>
+          : <div className="search-business-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(300px,100%),1fr))",gap:"1.5rem"}}>{filteredBiz.map(b=><BusinessCard key={b.id} b={b} onClick={setSelectedBusiness} />)}</div>
         )}
       </div>
     </div>
@@ -1953,8 +2081,8 @@ function OnboardingPage({ setPage, user, setUser }) {
               <h3 style={{fontFamily:"Syne",fontWeight:800,fontSize:"1.3rem",marginBottom:".5rem"}}>Choose your visibility plan</h3>
               <p style={{color:"var(--muted)",fontSize:".87rem",marginBottom:"1.75rem"}}>Paid listings always appear before free ones. Cancel anytime.</p>
               <div style={{display:"flex",flexDirection:"column",gap:"1rem"}}>
-                {[{id:"weekly",label:"Weekly Spotlight",price:"₦5,000",per:"/week",col:"var(--blue)",perks:["Homepage featured slot","Top of search results","⚡ Sponsored badge","Basic analytics"]},
-                  {id:"monthly",label:"Monthly Growth",price:"₦15,000",per:"/month",col:"var(--navy)",badge:"Most Popular",perks:["Everything in Weekly","Priority placement","WhatsApp lead alerts","Performance report"]},
+                {[{id:"biweekly",label:"Bi-weekly Spotlight",price:"₦10,000",per:"/2 weeks",col:"var(--blue)",perks:["Homepage featured slot","Top of search results","⚡ Sponsored badge","Basic analytics"]},
+                  {id:"monthly",label:"Monthly Growth",price:"₦18,000",per:"/month",col:"var(--navy)",badge:"Most Popular",perks:["Everything in Bi-weekly","Priority placement","WhatsApp lead alerts","Performance report"]},
                   {id:"premium",label:"Premium Boost",price:"₦35,000",per:"/month",col:"var(--amber)",textCol:"#7c3e00",perks:["Everything in Monthly","Top 3 guaranteed","Verified badge","Account manager","Custom banner"]}
                 ].map(pl=>(
                   <div key={pl.id} onClick={()=>upd("plan",pl.id)} style={{border:`2px solid ${biz.plan===pl.id?pl.col:"var(--g200)"}`,borderRadius:14,padding:"1.25rem 1.5rem",cursor:"pointer",background:biz.plan===pl.id?`rgba(0,0,0,.03)`:"#fff",transition:"all .2s",position:"relative"}}>
@@ -1986,7 +2114,7 @@ function OnboardingPage({ setPage, user, setUser }) {
               <h3 style={{fontFamily:"Syne",fontWeight:800,fontSize:"1.3rem",marginBottom:".5rem"}}>Review & Launch</h3>
               <p style={{color:"var(--muted)",fontSize:".87rem",marginBottom:"1.75rem"}}>Here's a summary of your listing before we go live.</p>
               <div style={{display:"flex",flexDirection:"column",gap:".75rem"}}>
-                {[["Business Name",biz.name||"—"],["Type",biz.type],["Category",CATEGORIES.find(c=>c.id===biz.category)?.label||"—"],["Location",biz.location],["Contact",biz.phone||"—"],["First Listing",listing.title||"—"],["Price",listing.price?fmt(parseInt(listing.price)):"—"],["Plan",biz.plan==="free"?"Free Listing":biz.plan==="weekly"?"Weekly — ₦5,000/wk":biz.plan==="monthly"?"Monthly — ₦15,000/mo":"Premium — ₦35,000/mo"]
+                {[["Business Name",biz.name||"—"],["Type",biz.type],["Category",CATEGORIES.find(c=>c.id===biz.category)?.label||"—"],["Location",biz.location],["Contact",biz.phone||"—"],["First Listing",listing.title||"—"],["Price",listing.price?fmt(parseInt(listing.price)):"—"],["Plan",biz.plan==="free"?"Free Listing":biz.plan==="biweekly"?"Bi-weekly — ₦10,000/2w":biz.plan==="monthly"?"Monthly — ₦18,000/mo":"Premium — ₦35,000/mo"]
                 ].map(([k,v])=>(
                   <div key={k} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:".75rem 1rem",background:"var(--g100)",borderRadius:8}}>
                     <span style={{fontSize:".83rem",fontWeight:600,color:"var(--muted)"}}>{k}</span>
@@ -2130,7 +2258,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
   const [chartPeriod, setChartPeriod] = useState("Monthly");
   const [chartToggles, setChartToggles] = useState({ traffic:true, visitors:true, spent:false, contacts:true });
   const [boostTarget, setBoostTarget] = useState("product");
-  const [boostPlan, setBoostPlan] = useState("weekly");
+  const [boostPlan, setBoostPlan] = useState("biweekly");
   const [boostProduct, setBoostProduct] = useState(1);
   const [boostDone, setBoostDone] = useState(false);
   const [boostActionLoading, setBoostActionLoading] = useState(false);
@@ -2331,17 +2459,11 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
   });
 
   const boostPlanOptions = useMemo(() => {
-    const defaultPlans = boostTarget === 'store'
-      ? {
-          biweekly: { amount: 10000, days: 14, label: 'Bi-weekly Spotlight' },
-          monthly: { amount: 18000, days: 30, label: 'Monthly Growth' },
-          premium: { amount: 35000, days: 30, label: 'Premium Presence' },
-        }
-      : {
-          weekly: { amount: 5000, days: 7, label: 'Weekly Spotlight' },
-          monthly: { amount: 15000, days: 30, label: 'Monthly Growth' },
-          premium: { amount: 35000, days: 30, label: 'Premium Presence' },
-        };
+    const defaultPlans = {
+      biweekly: { amount: 10000, days: 14, label: 'Bi-weekly Spotlight' },
+      monthly: { amount: 18000, days: 30, label: 'Monthly Growth' },
+      premium: { amount: 35000, days: 30, label: 'Premium Presence' },
+    };
     const source = Object.keys(boostPlans || {}).length > 0 ? boostPlans : defaultPlans;
     const perksByPlan = boostTarget === 'store'
       ? {
@@ -2350,8 +2472,8 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
           premium: ['Everything in Monthly', 'Verified badge', 'Account manager'],
         }
       : {
-          weekly: ['Homepage featured slot', 'Top of search results', 'Sponsored badge'],
-          monthly: ['Everything in Weekly', 'Priority placement', 'WhatsApp lead alerts'],
+          biweekly: ['Homepage featured slot', 'Top of search results', 'Sponsored badge'],
+          monthly: ['Everything in Bi-weekly', 'Priority placement', 'WhatsApp lead alerts'],
           premium: ['Everything in Monthly', 'Verified badge', 'Account manager'],
         };
 
@@ -2361,7 +2483,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
       amount: Number(plan.amount || 0),
       days: Number(plan.days || 0),
       price: `₦${Number(plan.amount || 0).toLocaleString('en-NG')}`,
-      per: id === 'weekly' ? '/week' : id === 'biweekly' ? '/2 weeks' : '/month',
+      per: id === 'biweekly' ? '/2 weeks' : '/month',
       badge: id === 'monthly' ? 'Most Popular' : undefined,
       perks: perksByPlan[id] || [],
     }));
@@ -3750,7 +3872,7 @@ function App() {
     // Store
     bizName:"", bizCategory:"", bizLocation:"",
     whatsapp:"", bizPhone:"", bizEmail:"",
-    bizDesc:"", logo:"", banner:"", accentColor:"",
+    bizDesc:"", logo:"", banner:"", accentColor:"", showStockCount:true,
     storeCreatedAt:null, storeId:null,
     // Notifications
     emailNotif:true, smsAlert:true, browserNotif:false,
@@ -3804,7 +3926,7 @@ function App() {
   // Load user store data when logged in
   useEffect(() => {
     if (!user?.accessToken) {
-      setVendorSettings(s => ({ ...s, name:"", email:"", phone:"", bizName:"", bizCategory:"", bizLocation:"", whatsapp:"", bizPhone:"", bizEmail:"", bizDesc:"", logo:"", banner:"", storeCreatedAt:null, storeId:null }));
+      setVendorSettings(s => ({ ...s, name:"", email:"", phone:"", bizName:"", bizCategory:"", bizLocation:"", whatsapp:"", bizPhone:"", bizEmail:"", bizDesc:"", logo:"", banner:"", showStockCount:true, storeCreatedAt:null, storeId:null }));
       return;
     }
 
@@ -3830,6 +3952,7 @@ function App() {
             logo: store.logo || "",
             banner: store.banner || "",
             accentColor: store.accentColor || "",
+            showStockCount: store.showStockCount !== false,
             storeCreatedAt: store.createdAt || null,
             storeId: store.id || null,
           }));
@@ -4052,6 +4175,7 @@ function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSetting
       bizDesc: store.bizDesc || "",
       logo: store.logo || "",
       banner: store.banner || "",
+      showStockCount: store.showStockCount !== false,
       storeCreatedAt: store.createdAt || null,
       storeId: store.id || null,
       accentColor: store.accentColor || local.accentColor || "",
@@ -4102,6 +4226,7 @@ function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSetting
         bizPhone: local.bizPhone?.trim() || '',
         whatsapp: local.whatsapp?.trim() || '',
         bizDesc: local.bizDesc?.trim() || '',
+        showStockCount: local.showStockCount !== false,
       };
 
       const trimmedBizEmail = local.bizEmail?.trim() || '';
@@ -4153,11 +4278,19 @@ function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSetting
     }
 
     if (section === 'appearance') {
-      if (vendorSettings.storeId && local.accentColor && local.accentColor !== vendorSettings.accentColor) {
-        const store = await api.updateStore({ accentColor: local.accentColor });
+      const appearancePayload = {
+        showStockCount: local.showStockCount !== false,
+      };
+
+      if (local.accentColor) {
+        appearancePayload.accentColor = local.accentColor;
+      }
+
+      if (vendorSettings.storeId) {
+        const store = await api.updateStore(appearancePayload);
         applyStoreState(store);
       } else {
-        setVendorSettings((current) => ({ ...current, accentColor: local.accentColor }));
+        setVendorSettings((current) => ({ ...current, accentColor: local.accentColor, showStockCount: local.showStockCount !== false }));
       }
     }
 
@@ -4540,7 +4673,7 @@ function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSetting
               </SField>
               <SField label="Show Product Count on Storefront">
                 <div style={{display:"flex",alignItems:"center",gap:"1rem"}}>
-                  <Toggle on={!!local.showProductCount} onChange={()=>upd("showProductCount",!local.showProductCount)} />
+                  <Toggle on={local.showStockCount !== false} onChange={()=>upd("showStockCount",local.showStockCount === false ? true : false)} />
                   <span style={{fontSize:".85rem",color:"var(--muted)"}}>Display "X products available" below your store name</span>
                 </div>
               </SField>
@@ -4591,6 +4724,7 @@ function StorefrontPage({ biz, setPage, vendorSettings, onProductClick, products
   const category = isOwn ? (vendorSettings.bizCategory || "fashion")  : (biz.category || "fashion");
   const verified = isOwn ? true                                        : (biz.verified || false);
   const sponsored= isOwn ? false                                       : (biz.sponsored || false);
+  const showStockCount = isOwn ? (vendorSettings.showStockCount !== false) : (biz?.showStockCount !== false);
   const tags     = isOwn
     ? [CATEGORIES.find(c=>c.id===category)?.label || "Fashion"]
     : (biz.tags || []);
@@ -4680,6 +4814,7 @@ function StorefrontPage({ biz, setPage, vendorSettings, onProductClick, products
             <div style={{display:"flex",gap:".6rem",marginTop:".4rem",flexWrap:"wrap"}}>
               {tags.map(t=><span key={t} style={{background:"rgba(255,255,255,.15)",backdropFilter:"blur(4px)",color:"rgba(255,255,255,.9)",fontSize:".72rem",fontWeight:600,padding:".2rem .6rem",borderRadius:5}}>{t}</span>)}
               <span style={{background:"rgba(255,255,255,.1)",color:"rgba(255,255,255,.7)",fontSize:".72rem",padding:".2rem .6rem",borderRadius:5}}>📍 {location}</span>
+              {showStockCount && <span style={{background:"rgba(255,255,255,.1)",color:"rgba(255,255,255,.7)",fontSize:".72rem",padding:".2rem .6rem",borderRadius:5}}>📦 {sorted.length} available</span>}
             </div>
           </div>
         </div>
@@ -4766,7 +4901,7 @@ function StorefrontPage({ biz, setPage, vendorSettings, onProductClick, products
           <div className="storefront-toolbar" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.25rem",flexWrap:"wrap",gap:"1rem"}}>
             <div>
               <h2 style={{fontFamily:"Syne",fontWeight:800,fontSize:"1.2rem",margin:0}}>Products & Services</h2>
-              <p style={{color:"var(--muted)",fontSize:".8rem",margin:".15rem 0 0"}}>{sorted.length} listing{sorted.length!==1?"s":""}</p>
+              <p style={{color:"var(--muted)",fontSize:".8rem",margin:".15rem 0 0"}}>{showStockCount ? `${sorted.length} listing${sorted.length!==1?"s":""}` : "Listings available"}</p>
             </div>
             {/* Search within store */}
             <div className="storefront-toolbar-search" style={{display:"flex",gap:".6rem",alignItems:"center",flex:1,maxWidth:320}}>
@@ -4805,7 +4940,7 @@ function StorefrontPage({ biz, setPage, vendorSettings, onProductClick, products
 
           {/* Product grid */}
           {sorted.length > 0 ? (
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(220px,100%),1fr))",gap:"1.25rem"}}>
+            <div className="storefront-products-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(220px,100%),1fr))",gap:"1.25rem"}}>
               {sorted.map(p=>(
                 <div key={p.id} style={{background:"#fff",borderRadius:14,overflow:"hidden",border:"1px solid var(--g200)",transition:"all .25s",cursor:"pointer"}}
                   onClick={()=>{
@@ -4826,7 +4961,7 @@ function StorefrontPage({ biz, setPage, vendorSettings, onProductClick, products
                   }}
                   onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-3px)";e.currentTarget.style.boxShadow="0 8px 28px rgba(6,13,31,.1)";}}
                   onMouseLeave={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="";}}>
-                  <div style={{position:"relative",aspectRatio:"1/1",overflow:"hidden",background:"var(--g100)"}}>
+                  <div data-card-image style={{position:"relative",aspectRatio:"1/1",overflow:"hidden",background:"var(--g100)"}}>
                     <img src={p.img} alt={p.name} style={{width:"100%",height:"100%",objectFit:"cover",transition:"transform .4s"}}
                       onMouseEnter={e=>e.currentTarget.style.transform="scale(1.04)"}
                       onMouseLeave={e=>e.currentTarget.style.transform=""} />
@@ -4834,7 +4969,7 @@ function StorefrontPage({ biz, setPage, vendorSettings, onProductClick, products
                       {p.type==="physical"?"📦 Physical":p.type==="digital"?"💾 Digital":"🔧 Service"}
                     </span>
                   </div>
-                  <div style={{padding:"1rem"}}>
+                  <div data-card-body style={{padding:"1rem"}}>
                     <h4 style={{fontWeight:700,fontSize:".9rem",margin:"0 0 .35rem",lineHeight:1.3}}>{p.name}</h4>
                     <p style={{fontSize:".75rem",color:"var(--muted)",marginBottom:".75rem",lineHeight:1.5,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{p.desc}</p>
                     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -5064,12 +5199,12 @@ function PricingPage({ setPage }) {
   const [billing, setBilling] = useState("monthly");
   const plans = [
     {id:"free",name:"Free Listing",price:0,per:"forever",color:"var(--g700)",bg:"#fff",perks:["1 business profile","Up to 5 product listings","Standard search placement","WhatsApp contact button","Basic analytics"]},
-    {id:"weekly",name:"Weekly Spotlight",price:5000,per:"/week",color:"var(--blue)",bg:"rgba(0,102,255,.04)",badge:"Get Started",perks:["Everything in Free","Homepage featured placement","Up to 20 listings","Priority search ranking","WhatsApp lead alerts","Weekly performance report"]},
-    {id:"monthly",name:"Monthly Growth",price:15000,per:"/month",color:"var(--navy)",bg:"var(--navy)",badge:"Most Popular",popular:true,perks:["Everything in Weekly","Unlimited listings","Top homepage placement","Verified badge eligibility","Advanced analytics dashboard","Dedicated account support","2x WhatsApp lead alerts"]},
+    {id:"biweekly",name:"Bi-weekly Spotlight",price:10000,per:"/2 weeks",color:"var(--blue)",bg:"rgba(0,102,255,.04)",badge:"Get Started",perks:["Everything in Free","Homepage featured placement","Up to 20 listings","Priority search ranking","WhatsApp lead alerts","Bi-weekly performance report"]},
+    {id:"monthly",name:"Monthly Growth",price:18000,per:"/month",color:"var(--navy)",bg:"var(--navy)",badge:"Most Popular",popular:true,perks:["Everything in Bi-weekly","Unlimited listings","Top homepage placement","Verified badge eligibility","Advanced analytics dashboard","Dedicated account support","2x WhatsApp lead alerts"]},
     {id:"premium",name:"Premium Presence",price:35000,per:"/month",color:"#7c3e00",bg:"rgba(245,158,11,.06)",badge:"Best Value",perks:["Everything in Monthly","Category page pinned placement","Custom storefront banner","Priority verification","Monthly strategy call","Featured in LBC newsletter","Early access to new features"]},
   ];
   const faqs = [
-    {q:"Can I cancel anytime?",a:"Yes. All paid plans are prepaid for their period (weekly or monthly) and you can choose not to renew at any time. There are no long-term contracts."},
+    {q:"Can I cancel anytime?",a:"Yes. All paid plans are prepaid for their period (bi-weekly or monthly) and you can choose not to renew at any time. There are no long-term contracts."},
     {q:"Is the free listing really free?",a:"Yes, permanently. You can list your business, add up to 5 products, and receive WhatsApp contacts at no cost. Paid plans simply boost your visibility."},
     {q:"How do I pay?",a:"We accept bank transfer, card payment, and USSD via Paystack. All payments are processed securely in Naira."},
     {q:"When does my boost take effect?",a:"Sponsored placement is activated immediately after payment confirmation — usually within minutes."},
@@ -5196,7 +5331,7 @@ function FAQPage({ setPage }) {
       {q:"How do I get the Verified badge?",a:"After listing, go to your dashboard and request verification. Our team typically reviews within 24 hours. We may request a CAC document or social proof."},
       {q:"Can I edit my listing after publishing?",a:"Yes. From your dashboard, go to My Listings, click the ⋯ menu on any listing, and select Edit."},
       {q:"How does the boost work?",a:"A boost elevates your listing or storefront to appear first in search results and on the homepage for the duration of your plan. Payment is processed instantly and placement goes live within minutes."},
-      {q:"Can I have multiple listings?",a:"Free accounts support up to 5 listings. Paid plans allow 20 (Weekly) or unlimited listings (Monthly/Premium)."},
+      {q:"Can I have multiple listings?",a:"Free accounts support up to 5 listings. Paid plans allow 20 (Bi-weekly) or unlimited listings (Monthly/Premium)."},
     ]},
     {title:"Payments & Plans", faqs:[
       {q:"What payment methods are accepted?",a:"We accept Mastercard, Visa, bank transfer, and USSD via Paystack. All payments are in Nigerian Naira."},
@@ -5409,7 +5544,7 @@ function ReportPage({ setPage }) {
 // ════════════════════════════════════════════════════════════
 function AdvertisePage({ setPage }) {
   const options = [
-    {icon:"⚡",title:"Sponsored Listings",body:"Put your products and services at the top of relevant search results and on the LBC homepage. Starting from ₦5,000/week.",cta:"View Plans",action:()=>setPage("pricing")},
+    {icon:"⚡",title:"Sponsored Listings",body:"Put your products and services at the top of relevant search results and on the LBC homepage. Starting from ₦10,000/2 weeks.",cta:"View Plans",action:()=>setPage("pricing")},
     {icon:"🏷️",title:"Category Takeover",body:"Own an entire category page — your logo, banner, and listings pinned at the top. Great for launches and seasonal campaigns.",cta:"Contact Us",action:()=>setPage("contact")},
     {icon:"📰",title:"Newsletter Feature",body:"Get featured in the weekly LBC newsletter, sent to 50,000+ registered buyers across Lagos every Monday morning.",cta:"Contact Us",action:()=>setPage("contact")},
     {icon:"🤝",title:"Brand Partnerships",body:"For larger brands looking to reach Lagos consumers. Custom packages including homepage takeovers, blog content, and campaign support.",cta:"Talk to Us",action:()=>setPage("contact")},
