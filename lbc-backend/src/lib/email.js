@@ -10,11 +10,15 @@ const mailFrom = process.env.EMAIL_FROM || mailUser;
 
 const hasMailConfig = Boolean(mailHost && mailPort && mailUser && mailPass && mailFrom);
 
+if (!hasMailConfig) {
+  console.warn('[EMAIL CONFIG WARNING] Email is not fully configured. Set EMAIL_HOST, EMAIL_USER, EMAIL_PASS, and EMAIL_FROM.');
+}
+
 const transporter = hasMailConfig
   ? nodemailer.createTransport({
       host: mailHost,
       port: mailPort,
-      secure: String(mailPort) === '465',
+      secure: mailPort === 465,
       connectionTimeout: 15000,
       greetingTimeout: 10000,
       socketTimeout: 20000,
@@ -24,6 +28,17 @@ const transporter = hasMailConfig
       },
     })
   : null;
+
+// Verify transporter connection in development
+if (transporter && process.env.NODE_ENV !== 'production') {
+  transporter.verify((err, success) => {
+    if (err) {
+      console.error('[EMAIL SMTP ERROR] Connection failed:', err.message);
+    } else if (success) {
+      console.log('[EMAIL SMTP OK] Ready for messages');
+    }
+  });
+}
 
 const sendEmail = async ({ to, subject, html }) => {
   if (!transporter) {
