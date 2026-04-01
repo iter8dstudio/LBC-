@@ -2886,7 +2886,53 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
   const [editListing, setEditListing] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [editStep, setEditStep] = useState(1);
+  const [editMainImageFile, setEditMainImageFile] = useState(null);
+  const [editGalleryFiles, setEditGalleryFiles] = useState([null, null, null, null]);
+  const editMainImageInputRef = useRef(null);
+  const editGalleryInputRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
   const updEdit = (k,v) => setEditListing(l=>({...l,[k]:v}));
+
+  const handleEditMainImageSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    const maxSize = 5 * 1024 * 1024;
+    
+    if (!validTypes.includes(file.type)) {
+      alert('Please upload a JPG, PNG, or WEBP image');
+      return;
+    }
+    
+    if (file.size > maxSize) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+    
+    setEditMainImageFile(file);
+  };
+  
+  const handleEditGalleryImageSelect = (index, e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    const maxSize = 5 * 1024 * 1024;
+    
+    if (!validTypes.includes(file.type)) {
+      alert('Please upload a JPG, PNG, or WEBP image');
+      return;
+    }
+    
+    if (file.size > maxSize) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+    
+    const newFiles = [...editGalleryFiles];
+    newFiles[index] = file;
+    setEditGalleryFiles(newFiles);
+  };
 
   const doUnpublish = async (id) => {
     try {
@@ -2929,9 +2975,31 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
         location: editListing.location,
         stock: Number(editListing.stock) || 1,
       });
+      
+      // Upload main image if selected
+      if (editMainImageFile) {
+        try {
+          await api.uploadListingImages(editListing.id, [editMainImageFile]);
+        } catch (imgErr) {
+          console.error('Main image upload failed:', imgErr.message);
+        }
+      }
+      
+      // Upload gallery images if selected
+      const galleryImagesToUpload = editGalleryFiles.filter(f => f !== null);
+      if (galleryImagesToUpload.length > 0) {
+        try {
+          await api.uploadListingImages(editListing.id, galleryImagesToUpload);
+        } catch (imgErr) {
+          console.error('Gallery image upload failed:', imgErr.message);
+        }
+      }
+      
       setListings(ls => ls.map(l => l.id===editListing.id ? { ...l, ...mapListingToUi(updated) } : l));
       setEditListing(null);
       setEditStep(1);
+      setEditMainImageFile(null);
+      setEditGalleryFiles([null, null, null, null]);
     } catch (err) {
       setListingActionError(err.message || "Failed to save changes.");
     }
@@ -3507,14 +3575,14 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
 
             {/* ── EDIT MODAL ── */}
             {editListing && (
-              <div style={{position:"fixed",inset:0,background:"rgba(6,13,31,.55)",zIndex:900,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem",overflowY:"auto"}} onClick={()=>{setEditListing(null);setEditStep(1);}}>
+              <div style={{position:"fixed",inset:0,background:"rgba(6,13,31,.55)",zIndex:900,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem",overflowY:"auto"}} onClick={()=>{setEditListing(null);setEditStep(1);setEditMainImageFile(null);setEditGalleryFiles([null,null,null,null]);}}>
                 <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:20,padding:"2rem",maxWidth:560,width:"100%",boxShadow:"0 24px 64px rgba(0,0,0,.25)",animation:"scaleIn .25s ease both",margin:"auto"}}>
                   {/* Header */}
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.5rem"}}>
                     <h3 style={{fontFamily:"Syne",fontWeight:800,fontSize:"1.1rem"}}>
                       {editStep===1?"✏️ Edit Details":editStep===2?"🖼️ Edit Media":"✅ Save Changes"}
                     </h3>
-                    <button onClick={()=>{setEditListing(null);setEditStep(1);}} style={{background:"var(--g100)",border:"none",borderRadius:8,padding:".4rem .75rem",cursor:"pointer",fontWeight:700,color:"var(--muted)",fontSize:".85rem"}}>✕</button>
+                    <button onClick={()=>{setEditListing(null);setEditStep(1);setEditMainImageFile(null);setEditGalleryFiles([null,null,null,null]);}} style={{background:"var(--g100)",border:"none",borderRadius:8,padding:".4rem .75rem",cursor:"pointer",fontWeight:700,color:"var(--muted)",fontSize:".85rem"}}>✕</button>
                   </div>
 
                   {/* Step indicator */}
@@ -3583,27 +3651,63 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
                       {/* Current image preview */}
                       <div>
                         <label style={{display:"block",fontSize:".82rem",fontWeight:700,color:"var(--g700)",marginBottom:".6rem"}}>Current Main Image</label>
-                        <div style={{display:"flex",gap:"1rem",alignItems:"center",background:"var(--g100)",borderRadius:10,padding:"1rem"}}>
+                        <div 
+                          onClick={()=>editMainImageInputRef.current?.click()}
+                          style={{display:"flex",gap:"1rem",alignItems:"center",background:"var(--g100)",borderRadius:10,padding:"1rem",cursor:"pointer",transition:"all .2s",border:"2px solid transparent"}}
+                          onMouseEnter={e=>{e.currentTarget.style.background="rgba(0,102,255,.05)";e.currentTarget.style.borderColor="var(--blue)"}}
+                          onMouseLeave={e=>{e.currentTarget.style.background="var(--g100)";e.currentTarget.style.borderColor="transparent"}}>
                           <img src={editListing.img} style={{width:64,height:64,borderRadius:8,objectFit:"cover",flexShrink:0}} />
                           <div>
                             <p style={{fontSize:".82rem",fontWeight:600,marginBottom:".25rem"}}>Current image</p>
-                            <button style={{fontSize:".75rem",color:"var(--blue)",background:"none",border:"none",cursor:"pointer",fontWeight:600,padding:0}}>🔄 Replace image</button>
+                            <button onClick={(e)=>{e.stopPropagation();editMainImageInputRef.current?.click();}} style={{fontSize:".75rem",color:"var(--blue)",background:"none",border:"none",cursor:"pointer",fontWeight:600,padding:0}}>🔄 Replace image</button>
                           </div>
                         </div>
+                        <input 
+                          ref={editMainImageInputRef}
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          onChange={handleEditMainImageSelect}
+                          style={{display:"none"}}
+                        />
+                        {editMainImageFile && (
+                          <div style={{fontSize:".75rem",color:"var(--green)",fontWeight:600,marginTop:".5rem"}}>✓ Main image ready to upload: {editMainImageFile.name}</div>
+                        )}
                       </div>
                       {/* Gallery */}
                       {editListing.type !== "service" && (
                         <div>
-                          <label style={{display:"block",fontSize:".82rem",fontWeight:700,color:"var(--g700)",marginBottom:".5rem"}}>Gallery Images</label>
+                          <label style={{display:"block",fontSize:".82rem",fontWeight:700,color:"var(--g700)",marginBottom:".5rem"}}>Gallery Images (up to 4)</label>
                           <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:".6rem"}}>
-                            {[1,2,3,4].map(i=>(
-                              <div key={i} style={{border:"2px dashed var(--g300)",borderRadius:8,aspectRatio:"1/1",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",background:"var(--g100)",color:"var(--muted)",fontSize:".7rem",gap:".2rem"}}
-                                onMouseEnter={e=>e.currentTarget.style.borderColor="var(--blue)"}
-                                onMouseLeave={e=>e.currentTarget.style.borderColor="var(--g300)"}>
-                                <span style={{fontSize:"1.1rem"}}>+</span><span>Img {i}</span>
+                            {[0,1,2,3].map(i=>(
+                              <div key={i}>
+                                <div 
+                                  onClick={()=>editGalleryInputRefs[i].current?.click()}
+                                  style={{border:editGalleryFiles[i]?"2px solid var(--green)":"2px dashed var(--g300)",borderRadius:8,aspectRatio:"1/1",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",background:editGalleryFiles[i]?"rgba(34,197,94,.04)":"var(--g100)",color:"var(--muted)",fontSize:".7rem",gap:".2rem",transition:"all .2s",position:"relative"}}
+                                  onMouseEnter={e=>!editGalleryFiles[i]&&(e.currentTarget.style.borderColor="var(--blue)",e.currentTarget.style.background="rgba(0,102,255,.05)")}
+                                  onMouseLeave={e=>!editGalleryFiles[i]&&(e.currentTarget.style.borderColor="var(--g300)",e.currentTarget.style.background="var(--g100)")}>
+                                  {editGalleryFiles[i] ? (
+                                    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:".15rem",flexShrink:0,textAlign:"center"}}>
+                                      <span style={{fontSize:".9rem"}}>✓</span>
+                                      <span style={{color:"var(--text)",fontSize:".6rem"}}>Ready</span>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <span style={{fontSize:"1.1rem"}}>+</span>
+                                      <span>Img {i+1}</span>
+                                    </>
+                                  )}
+                                </div>
+                                <input 
+                                  ref={editGalleryInputRefs[i]}
+                                  type="file"
+                                  accept="image/jpeg,image/png,image/webp"
+                                  onChange={(e)=>handleEditGalleryImageSelect(i, e)}
+                                  style={{display:"none"}}
+                                />
                               </div>
                             ))}
                           </div>
+                          <p style={{fontSize:".7rem",color:"var(--muted)",marginTop:".4rem"}}>Click any slot to add an image. You can add up to 4 gallery images.</p>
                         </div>
                       )}
                     </div>
