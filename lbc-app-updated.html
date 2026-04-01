@@ -1979,6 +1979,7 @@ function OnboardingPage({ setPage, user, setUser }) {
   const [listingImagePreview, setListingImagePreview] = useState(null);
   const [done,setDone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [planCheckoutLoading, setPlanCheckoutLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const fileInputRef = React.useRef(null);
   const upd = (k,v) => setBiz(b=>({...b,[k]:v}));
@@ -2088,6 +2089,63 @@ function OnboardingPage({ setPage, user, setUser }) {
       setSubmitError(err.message || 'Failed to launch your business.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const ensureOnboardingStore = async () => {
+    try {
+      await api.createStore({
+        bizName: biz.name,
+        category: biz.category,
+        location: biz.location,
+        ...(biz.phone ? { bizPhone: biz.phone } : {}),
+        ...(biz.email ? { bizEmail: biz.email } : {}),
+        ...(biz.whatsapp ? { whatsapp: biz.whatsapp } : {}),
+        ...(biz.desc ? { bizDesc: biz.desc } : {}),
+      });
+    } catch (err) {
+      if (!String(err.message || '').toLowerCase().includes('already have a store')) {
+        throw err;
+      }
+    }
+  };
+
+  const handlePlanContinue = async () => {
+    setSubmitError("");
+
+    if (biz.plan === 'free') {
+      setStep(5);
+      return;
+    }
+
+    if (!user?.accessToken) {
+      setSubmitError("Please sign in first to continue.");
+      return;
+    }
+
+    if (!biz.name || !biz.category || !biz.location) {
+      setSubmitError("Business name, category, and location are required before payment.");
+      return;
+    }
+
+    setPlanCheckoutLoading(true);
+    try {
+      api.setTokens(user.accessToken, user.refreshToken);
+      await ensureOnboardingStore();
+
+      const initiated = await api.initiateBoost({
+        target: 'store',
+        plan: biz.plan,
+      });
+
+      if (!initiated?.authorizationUrl) {
+        throw new Error('Failed to initialize checkout. Please try again.');
+      }
+
+      window.location.href = initiated.authorizationUrl;
+    } catch (err) {
+      setSubmitError(err.message || 'Failed to initialize payment. Please try again.');
+      setPlanCheckoutLoading(false);
     }
   };
 
@@ -2320,9 +2378,25 @@ function OnboardingPage({ setPage, user, setUser }) {
             <button onClick={()=>step>1?setStep(s=>s-1):setPage("home")} style={{background:"var(--g100)",border:"1px solid var(--g200)",padding:".75rem 1.5rem",borderRadius:10,fontWeight:600,fontSize:".88rem",cursor:"pointer",color:"var(--g700)"}}>
               {step===1?"← Cancel":"← Back"}
             </button>
-            <button onClick={()=>step<5?setStep(s=>s+1):launchBusiness()} disabled={submitting}
-              style={{background:submitting?"var(--g300)":"var(--blue)",color:submitting?"var(--muted)":"#fff",border:"none",padding:".75rem 2rem",borderRadius:10,fontWeight:700,fontSize:".9rem",cursor:submitting?"not-allowed":"pointer"}}>
-              {step===5 ? (submitting ? "Launching…" : "🚀 Launch My Business") : "Continue →"}
+            <button
+              onClick={() => {
+                if (step === 4) {
+                  handlePlanContinue();
+                  return;
+                }
+                if (step < 5) {
+                  setStep((s) => s + 1);
+                  return;
+                }
+                launchBusiness();
+              }}
+              disabled={submitting || planCheckoutLoading}
+              style={{background:(submitting || planCheckoutLoading)?"var(--g300)":"var(--blue)",color:(submitting || planCheckoutLoading)?"var(--muted)":"#fff",border:"none",padding:".75rem 2rem",borderRadius:10,fontWeight:700,fontSize:".9rem",cursor:(submitting || planCheckoutLoading)?"not-allowed":"pointer"}}>
+              {step===5
+                ? (submitting ? "Launching…" : "🚀 Launch My Business")
+                : step===4
+                  ? (planCheckoutLoading ? "Redirecting to Paystack…" : (biz.plan === 'free' ? "Continue →" : "Pay with Paystack →"))
+                  : "Continue →"}
             </button>
           </div>
           {submitError && <div style={{marginTop:"1rem",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,padding:".75rem 1rem",color:"var(--red)",fontSize:".83rem",fontWeight:600}}>⚠️ {submitError}</div>}
