@@ -117,6 +117,8 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
 .storefront-side-column { display:flex; flex-direction:column; gap:1rem; align-self:start; }
 .settings-toggle { transform-origin:center; transition:transform .22s var(--spring), background .22s ease, color .22s ease, border-color .22s ease; }
 .settings-toggle:hover { transform:translateY(-1px) scale(1.03); }
+.settings-toggle-icon { display:inline-flex; align-items:center; justify-content:center; line-height:1; font-size:1rem; }
+.settings-toggle-label { display:none; }
 .settings-sidebar { transition:width .32s var(--spring), box-shadow .24s ease, border-color .24s ease, background .24s ease; }
 .settings-sidebar.is-collapsed .settings-sidebar-item { justify-content:center; }
 .settings-sidebar.is-collapsed .settings-sidebar-label,
@@ -1973,11 +1975,46 @@ function OnboardingPage({ setPage, user, setUser }) {
   const [step,setStep] = useState(1);
   const [biz,setBiz] = useState({name:"",type:"physical",category:"fashion",location:"Lekki Phase 1",phone:"",email:"",whatsapp:"",desc:"",plan:"monthly"});
   const [listing,setListing] = useState({title:"",price:"",listingType:"physical",listingDesc:""});
+  const [listingImageFile, setListingImageFile] = useState(null);
+  const [listingImagePreview, setListingImagePreview] = useState(null);
   const [done,setDone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const fileInputRef = React.useRef(null);
   const upd = (k,v) => setBiz(b=>({...b,[k]:v}));
   const updL = (k,v) => setListing(l=>({...l,[k]:v}));
+  
+  const handleListingImageClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+  
+  const handleListingImageSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    const maxSize = 5 * 1024 * 1024;
+    
+    if (!validTypes.includes(file.type)) {
+      alert('Please upload a JPG, PNG, or WEBP image');
+      return;
+    }
+    
+    if (file.size > maxSize) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+    
+    setListingImageFile(file);
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setListingImagePreview(event.target?.result);
+    };
+    reader.readAsDataURL(file);
+  };
   const steps = ["Business Type","Business Info","Listing Details","Choose Plan","Review & Launch"];
   const inp = (label,key,obj,fn,type="text",placeholder="") => (
     <div>
@@ -2022,7 +2059,7 @@ function OnboardingPage({ setPage, user, setUser }) {
       }
 
       if (listing.title && listing.price) {
-        await api.createListing({
+        const newListing = await api.createListing({
           title: listing.title,
           price: Number(listing.price),
           type: listing.listingType,
@@ -2031,6 +2068,18 @@ function OnboardingPage({ setPage, user, setUser }) {
           ...(listing.listingDesc ? { description: listing.listingDesc } : {}),
           status: biz.plan === 'free' ? 'draft' : 'live',
         });
+        
+        // Upload image if selected
+        if (listingImageFile && newListing?.id) {
+          try {
+            const formData = new FormData();
+            formData.append('images', listingImageFile);
+            await api.uploadListingImages(newListing.id, [listingImageFile]);
+          } catch (imgErr) {
+            console.error('Image upload failed:', imgErr.message);
+            // Don't fail the entire flow if image upload fails
+          }
+        }
       }
 
       setDone(true);
@@ -2171,11 +2220,34 @@ function OnboardingPage({ setPage, user, setUser }) {
                 </div>
                 <div>
                   <label style={{display:"block",fontSize:".82rem",fontWeight:700,color:"var(--g700)",marginBottom:".4rem"}}>Product Image</label>
-                  <div style={{border:"2px dashed var(--g300)",borderRadius:12,padding:"2rem",textAlign:"center",cursor:"pointer",background:"var(--g100)",color:"var(--muted)"}}>
-                    <div style={{fontSize:"2rem",marginBottom:".5rem"}}>📸</div>
-                    <p style={{fontSize:".85rem",fontWeight:600}}>Click to upload image</p>
-                    <p style={{fontSize:".75rem",marginTop:".25rem"}}>JPG, PNG or WEBP (max 5MB)</p>
+                  <div 
+                    onClick={handleListingImageClick}
+                    onMouseEnter={e => !listingImagePreview && (e.currentTarget.style.background = "rgba(0,102,255,.05)", e.currentTarget.style.borderColor = "var(--blue)")}
+                    onMouseLeave={e => !listingImagePreview && (e.currentTarget.style.background = "var(--g100)", e.currentTarget.style.borderColor = "var(--g300)")}
+                    style={{border:listingImagePreview?"2px solid var(--green)":"2px dashed var(--g300)",borderRadius:12,padding:"2rem",textAlign:"center",cursor:"pointer",background:listingImagePreview?"rgba(34,197,94,.04)":"var(--g100)",color:"var(--muted)",transition:"all .2s",position:"relative",minHeight:"150px",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                    {listingImagePreview ? (
+                      <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:".75rem",width:"100%"}}>
+                        <img src={listingImagePreview} style={{maxWidth:"100%",maxHeight:"120px",borderRadius:8,objectFit:"contain"}} alt="Preview" />
+                        <div>
+                          <p style={{fontSize:".85rem",fontWeight:600,color:"var(--text)"}}>✓ Image ready to upload</p>
+                          <p style={{fontSize:".75rem",color:"var(--muted)",marginTop:".25rem"}}>Click to change image</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <div style={{fontSize:"2rem",marginBottom:".5rem"}}>📸</div>
+                        <p style={{fontSize:".85rem",fontWeight:600}}>Click to upload image</p>
+                        <p style={{fontSize:".75rem",marginTop:".25rem"}}>JPG, PNG or WEBP (max 5MB)</p>
+                      </div>
+                    )}
                   </div>
+                  <input 
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleListingImageSelect}
+                    style={{display:"none"}}
+                  />
                 </div>
               </div>
               {/* Skip banner */}
@@ -4544,7 +4616,7 @@ function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSetting
             aria-label={sidebarCollapsed ? 'Expand settings navigation' : 'Collapse settings navigation'}
             style={{width:40,height:40,borderRadius:12,border:"1px solid var(--g200)",background:sidebarCollapsed?"var(--navy)":"rgba(0,102,255,.08)",color:sidebarCollapsed?"#fff":"var(--blue)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1rem",fontWeight:800,boxShadow:"0 10px 24px rgba(6,13,31,.08)"}}
           >
-            <span>⚙</span>
+            <span className="settings-toggle-icon">⚙</span>
             <span className="settings-toggle-label">Settings</span>
           </button>
         </div>
