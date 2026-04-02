@@ -198,13 +198,13 @@ const determineApiUrl = () => {
 
 **IMMEDIATELY rotate these credentials:**
 ```
-❌ Database Password: FernandoPho44
-❌ Cloudinary API Key: 265865655897788
-❌ Cloudinary Secret: KdKbfH6RRY_LqYhLorlH_38JuUo
-❌ Paystack Public: pk_test_5474d2178833c08491769ff593423a696e94feac
-❌ Paystack Secret: sk_test_b7ec433b9810f5f77d48dd8ced9887591274dd16
-❌ Email Password: admin123
-❌ JWT Secrets: a9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4
+❌ Database Password: [REDACTED - rotate immediately]
+❌ Cloudinary API Key: [REDACTED - rotate immediately]
+❌ Cloudinary Secret: [REDACTED - rotate immediately]
+❌ Paystack Public: [REDACTED - rotate immediately]
+❌ Paystack Secret: [REDACTED - rotate immediately]
+❌ Email Password: [REDACTED - rotate immediately]
+❌ JWT Secrets: [REDACTED - too short, regenerate]
 ```
 
 ### Action Steps:

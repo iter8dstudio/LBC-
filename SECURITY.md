@@ -25,13 +25,13 @@ Your credentials have been exposed in version control history. **ROTATE IMMEDIAT
 
 ### Exposed Credentials (if pushed to public repo):
 ```
-❌ Old Database Password: FernandoPho44
-❌ Old Cloudinary API Key: 265865655897788
-❌ Old Cloudinary Secret: KdKbfH6RRY_LqYhLorlH_38JuUo
-❌ Old Paystack Public Key: pk_test_5474d2178833c08491769ff593423a696e94feac
-❌ Old Paystack Secret Key: sk_test_b7ec433b9810f5f77d48dd8ced9887591274dd16
-❌ Old Email Password: admin123
-❌ Old JWT Secrets: a9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4 (too short)
+❌ Old Database Password: [REDACTED - rotate immediately]
+❌ Old Cloudinary API Key: [REDACTED - rotate immediately]
+❌ Old Cloudinary Secret: [REDACTED - rotate immediately]
+❌ Old Paystack Public Key: [REDACTED - rotate immediately]
+❌ Old Paystack Secret Key: [REDACTED - rotate immediately]
+❌ Old Email Password: [REDACTED - rotate immediately]
+❌ Old JWT Secrets: [REDACTED - too short, regenerate]
 ```
 
 ### Action Items:

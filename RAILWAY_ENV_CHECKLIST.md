@@ -109,13 +109,13 @@
 **Purpose**: Payment collection and webhook verification
 
 - [ ] **PAYSTACK_PUBLIC_KEY**
-  - Current: `pk_test_5474d2178833c08491769ff593423a696e94feac` (Test key)
+  - Current: `[REDACTED]` (was test key — replace with production key)
   - **Action**: Replace with production public key (`pk_live_...`)
   - Location: Paystack Dashboard → API Keys & Webhooks
   - Note: Test vs. Live distinction is critical
 
 - [ ] **PAYSTACK_SECRET_KEY**
-  - Current: `sk_test_b7ec433b9810f5f77d48dd8ced9887591274dd16` (Test key)
+  - Current: `[REDACTED]` (was test key — replace with production key)
   - **Action**: Replace with production secret key (`sk_live_...`)
   - **⚠️ NEVER commit this!**
   - Sensitivity: 🔐 HIGHLY SENSITIVE

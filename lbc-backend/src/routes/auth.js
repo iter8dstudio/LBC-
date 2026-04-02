@@ -18,9 +18,10 @@ router.post('/register',         validate(registerSchema), ctrl.register);
 router.post('/verify-email',     validate(verifyEmailSchema), ctrl.verifyEmail);
 router.post('/resend-otp',       validate(resendOtpSchema), ctrl.resendEmailOtp);
 
-// ⚠️ DEVELOPMENT ONLY - This endpoint returns sensitive OTP data
-// It's protected in the controller but should be removed in production
-router.get('/dev/email-otp',     ctrl.getDevEmailOtp);
+// ⚠️ DEVELOPMENT ONLY — not registered in production
+if (process.env.NODE_ENV !== 'production') {
+  router.get('/dev/email-otp', ctrl.getDevEmailOtp);
+}
 
 router.post('/login',            validate(loginSchema), ctrl.login);
 router.post('/refresh',          validate(refreshSchema), ctrl.refresh);

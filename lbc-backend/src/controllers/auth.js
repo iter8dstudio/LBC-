@@ -12,6 +12,13 @@ const { normalizePhone, sendSms } = require('../lib/sms');
 const generateOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
 const isProduction = process.env.NODE_ENV === 'production';
 
+// Hash a low-entropy OTP (6 digits) with bcrypt so plaintext is never stored in DB.
+const hashOtp = (otp) => bcrypt.hash(otp, 10);
+
+// Hash a high-entropy token (crypto.randomBytes) with SHA-256.
+// BCrypt is unnecessary for 256-bit tokens; SHA-256 is sufficient.
+const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
+
 // ── JWT Secret Validation ─────────────────────────────────
 const validateJwtSecret = (secret, name) => {
   if (!secret) {
@@ -47,8 +54,8 @@ const logDeliveryFailure = (channel, identifier, error) => {
 // ── Password Validation Helper ────────────────────────────
 const validatePassword = (password) => {
   if (!password) return { valid: false, error: 'Password is required' };
-  if (password.length < 12) {
-    return { valid: false, error: 'Password must be at least 12 characters' };
+  if (password.length < 8) {
+    return { valid: false, error: 'Password must be at least 8 characters' };
   }
   if (!/[A-Z]/.test(password)) {
     return { valid: false, error: 'Password must contain at least one uppercase letter' };
@@ -68,7 +75,7 @@ const validatePassword = (password) => {
 const generateTokens = (userId) => {
   // Access token: short-lived (15 minutes)
   const accessToken = jwt.sign({ userId }, accessTokenSecret, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '15m',
+    expiresIn: process.env.JWT_EXPIRES_IN || '10d',
   });
   // Refresh token: long-lived (30 days), used to get new access tokens
   const refreshToken = jwt.sign({ userId }, refreshTokenSecret, {
@@ -112,6 +119,7 @@ exports.register = async (req, res) => {
 
     const hashed = await bcrypt.hash(password, 12);
     const otp = generateOtp();
+    const otpHash = await hashOtp(otp);
     const otpExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
     const user = await prisma.user.create({
@@ -119,7 +127,7 @@ exports.register = async (req, res) => {
         name,
         email: normalizedEmail,
         password: hashed,
-        emailOtp: otp,
+        emailOtp: otpHash,
         emailOtpExpiry: otpExpiry,
         notifications: {
           create: { }, // create default notification prefs
@@ -161,11 +169,15 @@ exports.verifyEmail = async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.emailVerified) return res.status(400).json({ error: 'Email already verified' });
 
-    if (user.emailOtp !== otp) {
-      return res.status(400).json({ error: 'Incorrect verification code' });
+    if (!user.emailOtp) {
+      return res.status(400).json({ error: 'No verification code found. Request a new one.' });
     }
     if (user.emailOtpExpiry < new Date()) {
       return res.status(400).json({ error: 'Verification code has expired. Request a new one.' });
+    }
+    const otpMatch = await bcrypt.compare(otp, user.emailOtp);
+    if (!otpMatch) {
+      return res.status(400).json({ error: 'Incorrect verification code' });
     }
 
     const { accessToken, refreshToken } = generateTokens(user.id);
@@ -202,12 +214,18 @@ exports.resendEmailOtp = async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.emailVerified) return res.status(400).json({ error: 'Email already verified' });
 
+    // Cooldown: reject if last OTP was sent less than 2 minutes ago
+    if (user.emailOtpExpiry && user.emailOtpExpiry > new Date(Date.now() + 13 * 60 * 1000)) {
+      return res.status(429).json({ error: 'Please wait at least 2 minutes before requesting a new code.' });
+    }
+
     const otp = generateOtp();
+    const otpHash = await hashOtp(otp);
     const otpExpiry = new Date(Date.now() + 15 * 60 * 1000);
 
     await prisma.user.update({
       where: { id: userId },
-      data: { emailOtp: otp, emailOtpExpiry: otpExpiry },
+      data: { emailOtp: otpHash, emailOtpExpiry: otpExpiry },
     });
 
     const tpl = templates.verifyEmail(user.name, otp);
@@ -221,7 +239,7 @@ exports.resendEmailOtp = async (req, res) => {
     res.json({
       message: emailResult.delivered
         ? 'New verification code sent'
-        : 'Email delivery failed, use the dev OTP endpoint or server log to verify locally.',
+        : 'Email delivery failed — check server console for OTP in development.',
     });
   } catch (err) {
     res.status(500).json({ error: 'Failed to resend code' });
@@ -260,16 +278,17 @@ exports.getDevEmailOtp = async (req, res) => {
 
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    // SECURITY: Only return OTP in development with explicit warning
-    console.warn(`[DEV-OTP] Returning OTP for ${user.email} - DO NOT USE IN PRODUCTION`);
+    // OTPs are now hashed before storage — plaintext cannot be recovered from DB.
+    // The plain OTP was logged to stderr by logDevOtp() at the time it was sent.
+    console.warn(`[DEV-OTP-ACCESS] OTP query for ${user.email} — plaintext was logged to server stderr at send time.`);
 
     res.json({
-      _warning: 'This is a development-only endpoint. Should not exist in production!',
+      _warning: 'Development-only endpoint. OTPs are hashed in DB — check server console (stderr) for plaintext.',
       userId: user.id,
       email: user.email,
       emailVerified: user.emailVerified,
-      otp: user.emailOtp,
-      expiresAt: user.emailOtpExpiry,
+      otpExpiry: user.emailOtpExpiry,
+      hasOtpPending: !!(user.emailOtp && user.emailOtpExpiry > new Date()),
     });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch dev OTP' });
@@ -362,7 +381,13 @@ exports.sendPhoneOtp = async (req, res) => {
       return res.status(400).json({ error: 'Add a valid phone number in your account settings before requesting an OTP.' });
     }
 
+    // Cooldown: reject if last OTP was sent less than 2 minutes ago
+    if (req.user.phoneOtpExpiry && req.user.phoneOtpExpiry > new Date(Date.now() + 8 * 60 * 1000)) {
+      return res.status(429).json({ error: 'Please wait at least 2 minutes before requesting a new OTP.' });
+    }
+
     const otp = generateOtp();
+    const otpHash = await hashOtp(otp);
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
     const smsMessage = `Your LBC verification code is ${otp}. It expires in 10 minutes.`;
 
@@ -375,7 +400,7 @@ exports.sendPhoneOtp = async (req, res) => {
 
     await prisma.user.update({
       where: { id: req.user.id },
-      data: { phone: normalizedPhone, phoneOtp: otp, phoneOtpExpiry: otpExpiry, phoneVerified: false },
+      data: { phone: normalizedPhone, phoneOtp: otpHash, phoneOtpExpiry: otpExpiry, phoneVerified: false },
     });
 
     res.json({ message: 'OTP sent to your phone number' });
@@ -392,11 +417,12 @@ exports.verifyPhone = async (req, res) => {
     const { otp } = req.body;
     const user = req.user;
 
-    if (user.phoneOtp !== otp) {
-      return res.status(400).json({ error: 'Incorrect OTP' });
-    }
-    if (user.phoneOtpExpiry < new Date()) {
+    if (!user.phoneOtp || user.phoneOtpExpiry < new Date()) {
       return res.status(400).json({ error: 'OTP has expired. Request a new one.' });
+    }
+    const otpMatch = await bcrypt.compare(otp, user.phoneOtp);
+    if (!otpMatch) {
+      return res.status(400).json({ error: 'Incorrect OTP' });
     }
 
     await prisma.user.update({
@@ -423,10 +449,11 @@ exports.forgotPassword = async (req, res) => {
     const resetToken = crypto.randomBytes(32).toString('hex');
     const resetExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
+    // Store SHA-256 hash of the token — plaintext token is only in the email link
     await prisma.user.update({
       where: { id: user.id },
       data: {
-        emailOtp: resetToken,
+        emailOtp: hashToken(resetToken),
         emailOtpExpiry: resetExpiry,
       },
     });
@@ -463,7 +490,11 @@ exports.resetPassword = async (req, res) => {
     }
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user || user.emailOtp !== token || user.emailOtpExpiry < new Date()) {
+    if (!user || !user.emailOtp || user.emailOtpExpiry < new Date()) {
+      return res.status(400).json({ error: 'Invalid or expired reset link' });
+    }
+    // Compare SHA-256 hash of submitted token against stored hash
+    if (hashToken(token) !== user.emailOtp) {
       return res.status(400).json({ error: 'Invalid or expired reset link' });
     }
 

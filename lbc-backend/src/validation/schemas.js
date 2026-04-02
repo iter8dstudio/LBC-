@@ -5,7 +5,7 @@ const nonEmptyString = (field) => z.string({ required_error: `${field} is requir
 const registerSchema = z.object({
   name: nonEmptyString('name').max(100, 'name is too long'),
   email: z.string().trim().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters').max(128, 'Password is too long'),
+  password: z.string().min(8, 'Password must be at least 8 characters').max(128, 'Password is too long'),
 });
 
 const verifyEmailSchema = z.object({
@@ -37,7 +37,7 @@ const forgotPasswordSchema = z.object({
 const resetPasswordSchema = z.object({
   userId: nonEmptyString('userId'),
   token: nonEmptyString('token'),
-  password: z.string().min(6, 'Password must be at least 6 characters').max(128, 'Password is too long'),
+  password: z.string().min(8, 'Password must be at least 8 characters').max(128, 'Password is too long'),
 });
 
 const createStoreSchema = z.object({
@@ -117,7 +117,7 @@ const updateMeSchema = z.object({
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'currentPassword is required'),
-  newPassword: z.string().min(6, 'newPassword must be at least 6 characters').max(128, 'newPassword is too long'),
+  newPassword: z.string().min(8, 'newPassword must be at least 8 characters').max(128, 'newPassword is too long'),
 });
 
 const updateNotificationsSchema = z.object({

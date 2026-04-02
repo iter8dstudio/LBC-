@@ -6,8 +6,8 @@ const { normalizePhone } = require('../lib/sms');
 // ── Password Validation Helper ────────────────────────────
 const validatePassword = (password) => {
   if (!password) return { valid: false, error: 'Password is required' };
-  if (password.length < 12) {
-    return { valid: false, error: 'Password must be at least 12 characters' };
+  if (password.length < 8) {
+    return { valid: false, error: 'Password must be at least 8 characters' };
   }
   if (!/[A-Z]/.test(password)) {
     return { valid: false, error: 'Password must contain at least one uppercase letter' };

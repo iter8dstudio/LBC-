@@ -11,6 +11,10 @@ const { getPaystackSecretKey } = require('./lib/paystack');
 
 const app = express();
 
+// Trust Railway's reverse proxy so X-Forwarded-For is used for real client IPs.
+// '1' = trust one proxy hop. Required for express-rate-limit to work correctly on Railway.
+app.set('trust proxy', 1);
+
 // ── SECURITY ──────────────────────────────────────────────
 app.use(helmet());
 
@@ -46,8 +50,8 @@ app.use('/api/boosts/webhook', express.raw({ type: 'application/json' }), (req, 
 });
 
 // ── BODY PARSING ──────────────────────────────────────────
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(sanitizeRequest);
 
 // ── SECRET HEALTH CHECKS ─────────────────────────────────
