@@ -12,11 +12,8 @@ const { normalizePhone, sendSms } = require('../lib/sms');
 const generateOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
 const isProduction = process.env.NODE_ENV === 'production';
 
-// Hash a low-entropy OTP (6 digits) with bcrypt so plaintext is never stored in DB.
-const hashOtp = (otp) => bcrypt.hash(otp, 10);
-
 // Hash a high-entropy token (crypto.randomBytes) with SHA-256.
-// BCrypt is unnecessary for 256-bit tokens; SHA-256 is sufficient.
+// Used only for password reset tokens — NOT for 6-digit OTPs.
 const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
 
 // ── JWT Secret Validation ─────────────────────────────────
@@ -119,7 +116,6 @@ exports.register = async (req, res) => {
 
     const hashed = await bcrypt.hash(password, 12);
     const otp = generateOtp();
-    const otpHash = await hashOtp(otp);
     const otpExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
     const user = await prisma.user.create({
@@ -127,7 +123,7 @@ exports.register = async (req, res) => {
         name,
         email: normalizedEmail,
         password: hashed,
-        emailOtp: otpHash,
+        emailOtp: otp,
         emailOtpExpiry: otpExpiry,
         notifications: {
           create: { }, // create default notification prefs
@@ -146,7 +142,7 @@ exports.register = async (req, res) => {
     res.status(201).json({
       message: emailResult.delivered
         ? 'Account created. Check your email for a 6-digit verification code.'
-        : 'Account created. Email delivery failed, use the dev OTP endpoint or server log to verify locally.',
+        : 'Account created. Email delivery is not configured — use GET /api/auth/dev/email-otp?email=' + normalizedEmail + ' to retrieve your OTP in development.',
       userId: user.id,
     });
   } catch (err) {
@@ -175,8 +171,7 @@ exports.verifyEmail = async (req, res) => {
     if (user.emailOtpExpiry < new Date()) {
       return res.status(400).json({ error: 'Verification code has expired. Request a new one.' });
     }
-    const otpMatch = await bcrypt.compare(otp, user.emailOtp);
-    if (!otpMatch) {
+    if (user.emailOtp !== otp) {
       return res.status(400).json({ error: 'Incorrect verification code' });
     }
 
@@ -220,12 +215,11 @@ exports.resendEmailOtp = async (req, res) => {
     }
 
     const otp = generateOtp();
-    const otpHash = await hashOtp(otp);
     const otpExpiry = new Date(Date.now() + 15 * 60 * 1000);
 
     await prisma.user.update({
       where: { id: userId },
-      data: { emailOtp: otpHash, emailOtpExpiry: otpExpiry },
+      data: { emailOtp: otp, emailOtpExpiry: otpExpiry },
     });
 
     const tpl = templates.verifyEmail(user.name, otp);
@@ -239,7 +233,7 @@ exports.resendEmailOtp = async (req, res) => {
     res.json({
       message: emailResult.delivered
         ? 'New verification code sent'
-        : 'Email delivery failed — check server console for OTP in development.',
+        : 'Email delivery is not configured — use GET /api/auth/dev/email-otp?email=' + user.email + ' to retrieve your OTP in development.',
     });
   } catch (err) {
     res.status(500).json({ error: 'Failed to resend code' });
@@ -278,17 +272,14 @@ exports.getDevEmailOtp = async (req, res) => {
 
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    // OTPs are now hashed before storage — plaintext cannot be recovered from DB.
-    // The plain OTP was logged to stderr by logDevOtp() at the time it was sent.
-    console.warn(`[DEV-OTP-ACCESS] OTP query for ${user.email} — plaintext was logged to server stderr at send time.`);
-
     res.json({
-      _warning: 'Development-only endpoint. OTPs are hashed in DB — check server console (stderr) for plaintext.',
+      _warning: 'Development-only endpoint. Never expose in production.',
       userId: user.id,
       email: user.email,
       emailVerified: user.emailVerified,
-      otpExpiry: user.emailOtpExpiry,
-      hasOtpPending: !!(user.emailOtp && user.emailOtpExpiry > new Date()),
+      otp: user.emailOtp,
+      expiresAt: user.emailOtpExpiry,
+      isExpired: user.emailOtpExpiry ? user.emailOtpExpiry < new Date() : true,
     });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch dev OTP' });
@@ -387,7 +378,6 @@ exports.sendPhoneOtp = async (req, res) => {
     }
 
     const otp = generateOtp();
-    const otpHash = await hashOtp(otp);
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
     const smsMessage = `Your LBC verification code is ${otp}. It expires in 10 minutes.`;
 
@@ -400,7 +390,7 @@ exports.sendPhoneOtp = async (req, res) => {
 
     await prisma.user.update({
       where: { id: req.user.id },
-      data: { phone: normalizedPhone, phoneOtp: otpHash, phoneOtpExpiry: otpExpiry, phoneVerified: false },
+      data: { phone: normalizedPhone, phoneOtp: otp, phoneOtpExpiry: otpExpiry, phoneVerified: false },
     });
 
     res.json({ message: 'OTP sent to your phone number' });
@@ -420,8 +410,7 @@ exports.verifyPhone = async (req, res) => {
     if (!user.phoneOtp || user.phoneOtpExpiry < new Date()) {
       return res.status(400).json({ error: 'OTP has expired. Request a new one.' });
     }
-    const otpMatch = await bcrypt.compare(otp, user.phoneOtp);
-    if (!otpMatch) {
+    if (user.phoneOtp !== otp) {
       return res.status(400).json({ error: 'Incorrect OTP' });
     }
 
