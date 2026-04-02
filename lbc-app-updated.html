@@ -305,16 +305,59 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
   }
 
   /* Settings */
-  .settings-layout { flex-direction: column !important; }
-  .settings-sidebar { width: 100% !important; height: auto !important; position: static !important;
-    flex-direction: row !important; overflow-x: auto !important; padding: .5rem !important;
-    border-right: none !important; border-bottom: 1px solid var(--g200) !important; flex-shrink: 0 !important; }
-  .settings-sidebar-item { flex-shrink: 0 !important; white-space: nowrap !important;
-    border-left: none !important; border-bottom: 3px solid transparent !important; }
-  .settings-sidebar-item.active { border-left: none !important; border-bottom-color: var(--blue) !important; }
+  .settings-layout { flex-direction: column !important; min-width: 0 !important; }
+  .settings-sidebar {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    position: static !important;
+    overflow: hidden !important;
+    padding: .45rem .6rem !important;
+    border-right: none !important;
+    border-bottom: 1px solid rgba(226,232,240,.9) !important;
+    flex-shrink: 0 !important;
+    box-shadow: none !important;
+  }
+  .settings-sidebar-head { display: none !important; }
+  .settings-nav-list {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: .5rem !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+  }
+  .settings-nav-list::-webkit-scrollbar { display: none; }
+  .settings-sidebar.is-collapsed .settings-nav-list { display: flex !important; }
+  .settings-sidebar-item {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: max-content !important;
+    white-space: nowrap !important;
+    border: 1px solid rgba(226,232,240,.95) !important;
+    border-left: 1px solid rgba(226,232,240,.95) !important;
+    border-bottom: 1px solid rgba(226,232,240,.95) !important;
+    border-radius: 999px !important;
+    padding: .58rem .85rem !important;
+    background: rgba(255,255,255,.92) !important;
+  }
+  .settings-sidebar-item.active {
+    border-left: 1px solid rgba(0,102,255,.25) !important;
+    border-bottom-color: rgba(0,102,255,.25) !important;
+    background: rgba(0,102,255,.08) !important;
+  }
   .settings-user-card { display: none !important; }
   .settings-back-btn { display: none !important; }
-  .settings-main { padding: 1.25rem !important; }
+  .settings-main { padding: 1rem !important; overflow-x: hidden !important; }
+  .settings-main > * { min-width: 0 !important; }
   .settings-grid-2 { grid-template-columns: 1fr !important; }
 
   /* Footer pages */
@@ -359,6 +402,19 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
 
   .search-products-grid .product-card [data-card-price] {
     font-size: .82rem !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .settings-sidebar {
+    padding: .35rem .45rem !important;
+  }
+  .settings-sidebar-item {
+    padding: .5rem .72rem !important;
+    font-size: .78rem !important;
+  }
+  .settings-main {
+    padding: .9rem .75rem 1.25rem !important;
   }
 }
 
@@ -494,44 +550,37 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
     width: 100% !important;
     height: auto !important;
     min-height: 0 !important;
-    padding: .75rem !important;
+    padding: .45rem .6rem !important;
     position: sticky !important;
     top: 64px !important;
     z-index: 260 !important;
     border-right: none !important;
-    border-bottom: 1px solid var(--g200) !important;
-    background: rgba(255,255,255,.92) !important;
+    border-bottom: 1px solid rgba(226,232,240,.9) !important;
+    background: rgba(255,255,255,.96) !important;
     -webkit-backdrop-filter: blur(18px);
     backdrop-filter: blur(18px);
-    box-shadow: 0 10px 30px rgba(6,13,31,.08);
+    box-shadow: 0 6px 18px rgba(6,13,31,.04);
+    overflow: hidden !important;
   }
 
   .settings-toggle {
-    position: fixed !important;
-    top: calc(var(--nav-height) + .5rem);
-    left: 50%;
-    z-index: 360;
-    transform: translateX(-50%) translateZ(0);
-    width: auto !important;
-    min-width: 7.25rem;
-    padding: 0 .8rem;
-    gap: .4rem;
-    justify-content: center !important;
-    background: var(--navy) !important;
-    color: #fff !important;
-    border-color: rgba(6,13,31,.2) !important;
-    box-shadow: 0 12px 28px rgba(6,13,31,.24) !important;
+    display: none !important;
   }
 
   .settings-toggle-label {
-    display: inline !important;
-    font-size: .76rem;
-    font-weight: 700;
-    white-space: nowrap;
+    display: none !important;
   }
 
-  .settings-nav-list { display: flex; flex-direction: column; gap: .35rem; margin-top: .75rem; }
-  .settings-sidebar.is-collapsed .settings-nav-list { display: none !important; }
+  .settings-nav-list {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: .45rem !important;
+    margin-top: 0 !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scrollbar-width: none;
+  }
+  .settings-sidebar.is-collapsed .settings-nav-list { display: flex !important; }
   .settings-main { width: 100% !important; max-width: none !important; padding: 1rem !important; }
   .settings-user-card { border-bottom: none !important; padding: 0 !important; margin: 0 !important; }
   .settings-section-head { margin-bottom: 1.25rem !important; }
@@ -4131,7 +4180,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
 
         {/* ── BOOSTS ── */}
         {tab==="boosts" && (
-          <div style={{padding:"2rem 2.5rem"}}>
+          <div style={{padding:"2rem 2.25rem 2rem 1.35rem"}}>
             <div style={{marginBottom:"2rem"}}>
               <h1 style={{fontFamily:"Syne",fontWeight:800,fontSize:"1.4rem",marginBottom:".25rem"}}>Boosts</h1>
               <p style={{color:"var(--muted)",fontSize:".85rem"}}>Promote a product or your entire storefront to appear first in search and on the homepage.</p>
@@ -4145,7 +4194,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
                 <button onClick={()=>{setBoostDone(false);setTab("overview");}} style={{background:"var(--blue)",color:"#fff",border:"none",padding:".875rem 2rem",borderRadius:10,fontWeight:700,fontSize:".9rem",cursor:"pointer"}}>Back to Dashboard</button>
               </div>
             ) : (
-              <div className="pdp-grid" style={{display:"grid",gridTemplateColumns:"1fr 320px",gap:"1.5rem"}}>
+              <div className="pdp-grid" style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) 320px",gap:"1.2rem",alignItems:"start"}}>
                 <div>
                   {/* What to boost */}
                   <div style={{background:"#fff",border:"1px solid var(--g200)",borderRadius:"var(--r)",padding:"1.5rem",marginBottom:"1.25rem"}}>
@@ -4645,6 +4694,7 @@ function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSetting
   const [mediaUploading, setMediaUploading] = useState({ logo:false, banner:false });
   const logoInputRef = useRef(null);
   const bannerInputRef = useRef(null);
+  const navItemRefs = useRef({});
   const upd = (k,v) => setLocal(l=>({...l,[k]:v}));
 
   useEffect(() => {
@@ -4656,7 +4706,7 @@ function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSetting
       const compact = window.innerWidth <= 768;
       setIsCompactViewport(compact);
       if (compact) {
-        setSidebarCollapsed(true);
+        setSidebarCollapsed(false);
       }
     };
 
@@ -4664,6 +4714,12 @@ function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSetting
     window.addEventListener('resize', handleResize, { passive: true });
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    if (!isCompactViewport) return;
+    const activeTab = navItemRefs.current[activeSection];
+    activeTab?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  }, [activeSection, isCompactViewport]);
 
   const markSaved = (section) => {
     setSaved(s=>({...s,[section]:true}));
@@ -4905,23 +4961,26 @@ function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSetting
     {id:"appearance", icon:"🎨", label:"Appearance"},
   ];
 
-  const toggleSidebar = () => setSidebarCollapsed((current) => !current);
+  const toggleSidebar = () => {
+    if (isCompactViewport) return;
+    setSidebarCollapsed((current) => !current);
+  };
   const selectSection = (sectionId) => {
     setActiveSection(sectionId);
     if (isCompactViewport) {
-      setSidebarCollapsed(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   const sidebarWidth = isCompactViewport ? '100%' : (sidebarCollapsed ? 84 : 220);
-  const showSidebarLabels = !sidebarCollapsed;
+  const showSidebarLabels = isCompactViewport ? true : !sidebarCollapsed;
 
   return (
     <div className="settings-layout app-shell" style={{display:"flex",minHeight:"calc(100vh - 64px)",background:"var(--offwhite)"}}>
 
       {/* ── LEFT NAV ── */}
-      <aside className={`settings-sidebar ${sidebarCollapsed ? "is-collapsed" : "is-expanded"}`} style={{width:sidebarWidth,background:"#fff",borderRight:"1px solid var(--g200)",padding:isCompactViewport?".75rem":"1.25rem 0",flexShrink:0,position:"sticky",top:64,height:isCompactViewport?"auto":"calc(100vh - 64px)",minHeight:isCompactViewport?"auto":"calc(100vh - 64px)"}}>
-        <div style={{padding:isCompactViewport?0:"0 1rem .9rem",marginBottom:isCompactViewport?0:".15rem",display:"flex",alignItems:"center",justifyContent:showSidebarLabels?"space-between":"center",gap:".75rem"}}>
+      <aside className={`settings-sidebar ${!isCompactViewport && sidebarCollapsed ? "is-collapsed" : "is-expanded"}`} style={{width:sidebarWidth,background:"#fff",borderRight:"1px solid var(--g200)",padding:isCompactViewport?".75rem":"1.25rem 0",flexShrink:0,position:"sticky",top:64,height:isCompactViewport?"auto":"calc(100vh - 64px)",minHeight:isCompactViewport?"auto":"calc(100vh - 64px)"}}>
+        <div className="settings-sidebar-head" style={{padding:isCompactViewport?0:"0 1rem .9rem",marginBottom:isCompactViewport?0:".15rem",display:"flex",alignItems:"center",justifyContent:showSidebarLabels?"space-between":"center",gap:".75rem"}}>
           {showSidebarLabels && (
             <div>
               <div style={{fontFamily:"Syne",fontWeight:800,fontSize:".92rem",color:"var(--navy)"}}>Settings</div>
@@ -4957,9 +5016,9 @@ function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSetting
         {/* Nav items */}
         <div className="settings-nav-list">
         {SECTIONS.map(s=>(
-          <button key={s.id} onClick={()=>selectSection(s.id)}
+          <button key={s.id} ref={(el)=>{ navItemRefs.current[s.id] = el; }} onClick={()=>selectSection(s.id)}
             className={`settings-sidebar-item${activeSection===s.id?" active":""}`}
-            style={{display:"flex",alignItems:"center",gap:".65rem",width:"100%",padding:sidebarCollapsed&&!isCompactViewport?".85rem":".75rem 1.25rem",border:"none",background:activeSection===s.id?"rgba(0,102,255,.07)":"transparent",color:activeSection===s.id?"var(--blue)":"var(--g700)",fontWeight:activeSection===s.id?700:500,fontSize:".85rem",cursor:"pointer",textAlign:"left",borderLeft:isCompactViewport?"none":activeSection===s.id?"3px solid var(--blue)":"3px solid transparent",borderRadius:isCompactViewport?12:0,transition:"all .2s",fontFamily:"Manrope"}}>
+            style={{display:"flex",alignItems:"center",gap:".65rem",width:isCompactViewport?"auto":"100%",padding:sidebarCollapsed&&!isCompactViewport?".85rem":".75rem 1.25rem",border:"none",background:activeSection===s.id?"rgba(0,102,255,.07)":"transparent",color:activeSection===s.id?"var(--blue)":"var(--g700)",fontWeight:activeSection===s.id?700:500,fontSize:".85rem",cursor:"pointer",textAlign:"left",borderLeft:isCompactViewport?"none":activeSection===s.id?"3px solid var(--blue)":"3px solid transparent",borderRadius:isCompactViewport?999:0,transition:"all .2s",fontFamily:"Manrope"}}>
             <span>{s.icon}</span>
             {showSidebarLabels && <span className="settings-sidebar-label">{s.label}</span>}
             {saved[s.id]&&<span className="settings-saved-dot" style={{width:8,height:8,borderRadius:"50%",background:"#22c55e",flexShrink:0}} />}
@@ -5033,7 +5092,7 @@ function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSetting
                 <SField label="Business Name" required>
                   <SInput value={local.bizName} onChange={e=>upd("bizName",e.target.value)} placeholder="e.g. Glam Hair Co" />
                 </SField>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1rem"}}>
+                <div className="settings-grid-2" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1rem"}}>
                   <SField label="Category" required>
                     <select value={local.bizCategory} onChange={e=>upd("bizCategory",e.target.value)} style={{width:"100%",padding:".75rem 1rem",borderRadius:8,border:"1px solid var(--g200)",fontSize:".9rem",outline:"none",color:"var(--text)"}}>
                       {CATEGORIES.filter(c=>c.id!=="all").map(c=><option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
@@ -5088,7 +5147,7 @@ function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSetting
 
             {/* Brand Media */}
             <SSection title="Brand Media" subtitle="Logo and banner shown on your public storefront" icon="🖼️" onSave={()=>saveSection("store")} saved={saved.store}>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1.25rem"}}>
+              <div className="settings-grid-2" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1.25rem"}}>
                 {/* Logo */}
                 <div>
                   <label style={{display:"block",fontSize:".82rem",fontWeight:700,color:"var(--g700)",marginBottom:".6rem"}}>Store Logo</label>
