@@ -173,59 +173,53 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
   .search-filters-bar {
     display: flex !important;
     align-items: center;
-    gap: .45rem;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    overflow-y: visible;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-    position: fixed !important;
-    top: calc(var(--nav-height) + .35rem);
-    z-index: 320;
-    background: rgba(248,250,252,.95);
+    justify-content: space-between;
+    gap: .65rem;
+    position: sticky !important;
+    top: calc(var(--nav-height) + .4rem);
+    z-index: 180;
+    background: rgba(248,250,252,.96);
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
-    padding: .45rem 0 .6rem;
-    margin-bottom: .75rem;
+    border: 1px solid rgba(226,232,240,.95);
+    border-radius: 999px;
+    padding: .45rem .55rem;
+    margin-bottom: .9rem;
+    box-shadow: 0 10px 30px rgba(6,13,31,.08);
   }
-  .search-filter-group {
-    position: relative;
-    flex: 0 0 auto;
-    min-width: max-content;
-    max-width: none;
-  }
-  .search-filters-bar::-webkit-scrollbar { display:none; }
-  .search-filter-chip {
-    display: flex;
+  .search-mobile-filter-button {
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid var(--g200);
-    background: #fff;
-    color: var(--g700);
+    gap: .45rem;
+    border: none;
+    background: var(--navy);
+    color: #fff;
     border-radius: 999px;
-    padding: .42rem .8rem;
-    font-size: .76rem;
-    font-weight: 700;
+    padding: .58rem .95rem;
+    font-size: .8rem;
+    font-weight: 800;
     white-space: nowrap;
     flex-shrink: 0;
-    width: auto;
-    min-width: max-content;
   }
-  .search-filters-bar > .search-filter-chip {
-    flex: 0 0 auto;
+  .search-mobile-filter-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.2rem;
+    height: 1.2rem;
+    border-radius: 999px;
+    background: var(--amber);
+    color: #7c3e00;
+    font-size: .7rem;
+    font-weight: 900;
+    padding: 0 .35rem;
   }
-  .search-filter-menu {
-    position: absolute;
-    top: calc(100% + .45rem);
-    left: 0;
-    width: 100%;
-    max-width: 100%;
-    background: #fff;
-    border: 1px solid var(--g200);
-    border-radius: .75rem;
-    box-shadow: 0 16px 40px rgba(6,13,31,.14);
-    padding: .8rem;
-    z-index: 620;
+  .search-mobile-filter-meta {
+    font-size: .74rem;
+    font-weight: 700;
+    color: var(--muted);
+    text-align: right;
   }
   .search-products-grid,
   .storefront-products-grid {
@@ -246,9 +240,49 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
   .product-card [data-card-price] {
     font-size: .88rem !important;
   }
-  .search-filters-panel { display: none; position: fixed; inset: 0; z-index: 300;
-    background: #fff; overflow-y: auto; padding: 1.5rem; animation: fadeIn .2s ease; }
-  .search-filters-panel.open { display: block !important; }
+  .search-filters-panel {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1180;
+    background: rgba(6,13,31,.45);
+    overflow-y: auto;
+    padding: .85rem;
+    animation: fadeIn .2s ease;
+  }
+  .search-filters-panel.open {
+    display: flex !important;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .search-filters-sheet {
+    width: min(100%, 420px);
+    margin-top: calc(var(--nav-height) + .35rem);
+    background: #fff;
+    border-radius: 18px;
+    border: 1px solid var(--g200);
+    box-shadow: 0 20px 50px rgba(6,13,31,.18);
+    padding: 1rem;
+    max-height: calc(100vh - var(--nav-height) - 1.5rem);
+    overflow-y: auto;
+  }
+  .search-filter-section {
+    border-top: 1px solid var(--g200);
+    padding-top: .95rem;
+    margin-top: .95rem;
+  }
+  .search-filter-section:first-of-type {
+    border-top: none;
+    padding-top: 0;
+    margin-top: 0;
+  }
+  .search-filter-actions {
+    display: flex;
+    gap: .75rem;
+    margin-top: 1rem;
+    padding-top: .9rem;
+    border-top: 1px solid var(--g200);
+  }
 
   /* Product detail */
   .pdp-grid { grid-template-columns: 1fr !important; gap: 1.5rem !important; }
@@ -325,6 +359,58 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
 
   .search-products-grid .product-card [data-card-price] {
     font-size: .82rem !important;
+  }
+}
+
+@media (max-width: 340px) {
+  .nav-pad { padding: 0 .65rem !important; gap: .5rem !important; }
+  .hero-section,
+  .home-main,
+  .dash-main,
+  .settings-main,
+  .onboard-pad,
+  .pad-mobile {
+    padding: .9rem !important;
+  }
+  .hero-title {
+    font-size: 1.45rem !important;
+    line-height: 1.15 !important;
+  }
+  .hero-stats {
+    gap: .75rem !important;
+  }
+  .grid-footer,
+  .home-products-grid,
+  .search-products-grid,
+  .search-business-grid,
+  .storefront-products-grid,
+  .dash-stats-grid,
+  .grid-4 {
+    grid-template-columns: 1fr !important;
+  }
+  .storefront-layout {
+    padding: .9rem .8rem 1.5rem !important;
+  }
+  .storefront-hero-meta {
+    left: .75rem !important;
+    right: .75rem !important;
+    bottom: .75rem !important;
+  }
+  .storefront-hero-meta h1 {
+    font-size: 1.2rem !important;
+  }
+  .fp-cookie-table {
+    grid-template-columns: 1fr !important;
+  }
+  .otp-box {
+    width: 32px !important;
+    height: 40px !important;
+    font-size: 1rem !important;
+  }
+  .phone-otp-box {
+    width: 30px !important;
+    height: 40px !important;
+    font-size: 1rem !important;
   }
 }
 
@@ -791,6 +877,12 @@ const LOCATIONS = [
 
 const fmt = (n) => "₦" + n.toLocaleString();
 const stars = (r) => "★".repeat(Math.floor(r)) + "☆".repeat(5 - Math.floor(r));
+const sanitizePhoneNumber = (value = "") => String(value || "").replace(/[^\d]/g, "");
+const buildWhatsAppHref = (value, message = "") => {
+  const sanitized = sanitizePhoneNumber(value);
+  if (!sanitized) return "#";
+  return `https://wa.me/${sanitized}${message ? `?text=${encodeURIComponent(message)}` : ""}`;
+};
 
 const normalizeStore = (store) => {
   if (!store) return null;
@@ -903,18 +995,18 @@ function NavUserDropdown({ user, setUser, setPage, vendorSettings }) {
   ];
 
   return (
-    <div style={{position:"relative"}} onClick={e=>e.stopPropagation()}>
+    <div style={{position:"relative",zIndex:5,maxWidth:"min(100%, 14rem)"}} onClick={e=>e.stopPropagation()}>
       <button onClick={()=>setDdOpen(o=>!o)}
-        style={{display:"flex",alignItems:"center",gap:".5rem",background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.15)",color:"#fff",padding:".4rem .9rem",borderRadius:8,fontSize:".82rem",fontWeight:600,cursor:"pointer",transition:"background .15s"}}
+        style={{display:"flex",alignItems:"center",gap:".5rem",maxWidth:"100%",background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.15)",color:"#fff",padding:".4rem .9rem",borderRadius:8,fontSize:".82rem",fontWeight:600,cursor:"pointer",transition:"background .15s"}}
         onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,.18)"}
         onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,.1)"}>
         <span style={{width:26,height:26,borderRadius:"50%",background:"var(--blue)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:".72rem",fontWeight:900,flexShrink:0}}>{initial}</span>
-        {displayName.split(" ")[0]}
+        <span style={{maxWidth:"clamp(3.25rem, 18vw, 5.5rem)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{displayName.split(" ")[0]}</span>
         <span style={{fontSize:".6rem",opacity:.6,marginLeft:2,transition:"transform .2s",transform:ddOpen?"rotate(180deg)":"rotate(0deg)"}}>▾</span>
       </button>
 
       {ddOpen && (
-        <div style={{position:"absolute",right:0,top:"calc(100% + 8px)",background:"#fff",border:"1px solid var(--g200)",borderRadius:14,boxShadow:"0 12px 40px rgba(6,13,31,.2)",minWidth:200,zIndex:1300,overflow:"hidden",animation:"fadeUp .15s ease both"}}>
+        <div style={{position:"absolute",right:0,top:"calc(100% + 8px)",background:"#fff",border:"1px solid var(--g200)",borderRadius:14,boxShadow:"0 12px 40px rgba(6,13,31,.2)",width:"min(240px, calc(100vw - 1rem))",minWidth:0,zIndex:1300,overflow:"hidden",animation:"fadeUp .15s ease both"}}>
           {/* User header */}
           <div style={{padding:"1rem 1.1rem .85rem",borderBottom:"1px solid var(--g100)",background:"var(--offwhite)"}}>
             <div style={{display:"flex",alignItems:"center",gap:".65rem"}}>
@@ -955,7 +1047,8 @@ function NavUserDropdown({ user, setUser, setPage, vendorSettings }) {
 function Navbar({ page, setPage, searchQ, setSearchQ, activeCategory, setActiveCategory, cart, user, setUser, vendorSettings }) {
   const doSearch = (e) => { e.preventDefault(); if (searchQ.trim()) setPage("search"); };
   const isDash = ["dashboard","settings","storefront"].includes(page);
-  const goToBusinessOnboarding = () => setPage(user ? "onboarding" : "signin");
+  const hasVendorStorefront = user?.role === "VENDOR" && Boolean(vendorSettings?.storeId || user?.store?.id);
+  const goToBusinessOnboarding = () => setPage(hasVendorStorefront ? "dashboard" : (user ? "onboarding" : "signin"));
   return (
     <nav className="nav-pad" style={{position:"sticky",top:0,zIndex:1200,background:"var(--navy)",borderBottom:"1px solid rgba(255,255,255,.07)",padding:"0 2rem",height:64,display:"flex",alignItems:"center",gap:"1rem",animation:"slideDown .4s ease both"}}>
       {/* Logo */}
@@ -976,7 +1069,7 @@ function Navbar({ page, setPage, searchQ, setSearchQ, activeCategory, setActiveC
 
       {/* Page label */}
       {isDash && (
-        <div style={{flex:1}}>
+        <div className="hide-mobile-label" style={{flex:1}}>
           <span style={{color:"rgba(255,255,255,.35)",fontSize:".85rem"}}>
             {page==="dashboard"?"Vendor Dashboard":page==="settings"?"Account Settings":"My Storefront"}
           </span>
@@ -985,7 +1078,7 @@ function Navbar({ page, setPage, searchQ, setSearchQ, activeCategory, setActiveC
 
       <div style={{display:"flex",alignItems:"center",gap:"1rem",marginLeft:"auto"}}>
         {page==="dashboard" && (
-          <button onClick={()=>setPage("home")} style={{background:"transparent",border:"none",color:"rgba(255,255,255,.5)",fontSize:".82rem",fontWeight:500,cursor:"pointer"}}>
+          <button className="hide-mobile-label" onClick={()=>setPage("home")} style={{background:"transparent",border:"none",color:"rgba(255,255,255,.5)",fontSize:".82rem",fontWeight:500,cursor:"pointer"}}>
             ← Marketplace
           </button>
         )}
@@ -1003,7 +1096,7 @@ function Navbar({ page, setPage, searchQ, setSearchQ, activeCategory, setActiveC
 
         {!isDash && (
           <button onClick={goToBusinessOnboarding} className="nav-list-btn" style={{background:"var(--blue)",color:"#fff",border:"none",padding:".55rem 1.2rem",borderRadius:8,fontSize:".82rem",fontWeight:700,cursor:"pointer"}}>
-            List Your Business
+            {hasVendorStorefront ? "Dashboard" : "List Your Business"}
           </button>
         )}
 
@@ -1062,6 +1155,8 @@ function ProductCard({ p, onClick, wishlist, toggleWish }) {
 // ── BUSINESS CARD ──
 function BusinessCard({ b, onClick }) {
   const [hov, setHov] = useState(false);
+  const waHref = buildWhatsAppHref(b.whatsapp, `Hi, I'd like to know more about ${b.name} on LBC.`);
+  const hasWa = waHref !== "#";
   return (
     <div onClick={()=>onClick(b)} onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
       style={{borderRadius:16,overflow:"hidden",position:"relative",cursor:"pointer",border:`1.5px solid ${b.sponsored?"var(--amber)":"var(--g200)"}`,transition:"all .25s",transform:hov?"translateY(-4px)":"",boxShadow:hov?"var(--shh)":"var(--sh)",animation:"fadeUp .4s ease both",background:"#fff"}}>
@@ -1086,10 +1181,16 @@ function BusinessCard({ b, onClick }) {
           <div style={{fontSize:".78rem",color:"var(--muted)"}}>
             {"★".repeat(Math.round(b.rating))}<span style={{marginLeft:".3rem"}}>({b.reviews})</span>
           </div>
-          <a href={`https://wa.me/${b.whatsapp}`} target="_blank" rel="noreferrer" onClick={e=>e.stopPropagation()}
-            style={{background:"#25D366",color:"#fff",border:"none",borderRadius:8,padding:".45rem .85rem",fontSize:".78rem",fontWeight:700,display:"flex",alignItems:"center",gap:".35rem",textDecoration:"none",whiteSpace:"nowrap",flexShrink:0}}>
-            💬 WhatsApp
-          </a>
+          {hasWa ? (
+            <a href={waHref} target={window.innerWidth <= 768 ? "_self" : "_blank"} rel="noopener noreferrer" onClick={e=>e.stopPropagation()}
+              style={{background:"#25D366",color:"#fff",border:"none",borderRadius:8,padding:".45rem .85rem",fontSize:".78rem",fontWeight:700,display:"flex",alignItems:"center",gap:".35rem",textDecoration:"none",whiteSpace:"nowrap",flexShrink:0}}>
+              💬 WhatsApp
+            </a>
+          ) : (
+            <span style={{background:"var(--g100)",color:"var(--muted)",borderRadius:8,padding:".45rem .85rem",fontSize:".75rem",fontWeight:700,whiteSpace:"nowrap",flexShrink:0}}>
+              💬 Unavailable
+            </span>
+          )}
         </div>
       </div>
     </div>
@@ -1113,10 +1214,10 @@ function Section({ title, badge, link, onLink, children }) {
 }
 
 // ── PROMO BANNER ──
-function PromoBanner({ setPage, user }) {
+function PromoBanner({ setPage, user, hasVendorStorefront }) {
   const [activePlan,setActivePlan] = useState(0);
   const plans = [{p:"Biweekly",price:"₦10,000",sub:"/2w"},{p:"Monthly",price:"₦18,000",sub:"/mo"},{p:"Premium",price:"₦35,000",sub:"/mo"}];
-  const goToBusinessOnboarding = () => setPage(user ? "onboarding" : "signin");
+  const goToBusinessOnboarding = () => setPage(hasVendorStorefront ? "dashboard" : (user ? "onboarding" : "signin"));
   return (
     <div className="grid-promo" style={{background:"var(--navy)",borderRadius:20,overflow:"hidden",display:"grid",gridTemplateColumns:"1fr 1fr",margin:"3rem 0",position:"relative"}}>
       <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse 60% 80% at 0% 50%,rgba(0,102,255,.2) 0%,transparent 60%)"}} />
@@ -1132,7 +1233,7 @@ function PromoBanner({ setPage, user }) {
             </div>
           ))}
         </div>
-        <button onClick={goToBusinessOnboarding} style={{background:"var(--amber)",color:"#7c3e00",border:"none",padding:".85rem 2rem",borderRadius:10,fontWeight:800,fontSize:".9rem",cursor:"pointer"}}>⚡ List Your Business →</button>
+        <button onClick={goToBusinessOnboarding} style={{background:"var(--amber)",color:"#7c3e00",border:"none",padding:".85rem 2rem",borderRadius:10,fontWeight:800,fontSize:".9rem",cursor:"pointer"}}>{hasVendorStorefront ? "📊 Dashboard →" : "⚡ List Your Business →"}</button>
       </div>
       <div style={{padding:"2.5rem",display:"flex",flexDirection:"column",justifyContent:"center",gap:".75rem",position:"relative",zIndex:2}}>
         {[["👁️","0,102,255","Homepage Impressions","+18,400 this week"],["💬","245,158,11","WhatsApp Leads","342 leads last month"],["✓","34,197,94","Verified Badge","Builds buyer trust instantly"]].map(([icon,rgb,label,val])=>(
@@ -1150,7 +1251,7 @@ function PromoBanner({ setPage, user }) {
 }
 
 // ── HOME PAGE ──
-function HomePage({ setPage, searchQ, setSearchQ, activeCategory, setActiveCategory, wishlist, toggleWish, setSelectedProduct, setSelectedBusiness, user, products = [], businesses = [] }) {
+function HomePage({ setPage, searchQ, setSearchQ, activeCategory, setActiveCategory, wishlist, toggleWish, setSelectedProduct, setSelectedBusiness, user, hasVendorStorefront, products = [], businesses = [] }) {
   const [heroLocation,setHeroLocation] = useState("Lekki Phase 1"); // default
   const [heroCat,setHeroCat] = useState("all");
   const [heroQ,setHeroQ] = useState("");
@@ -1173,14 +1274,14 @@ function HomePage({ setPage, searchQ, setSearchQ, activeCategory, setActiveCateg
   
   return (
     <div>
-      <section style={{background:"var(--navy)",position:"relative",overflow:"hidden",padding:"6rem 2rem 4rem",textAlign:"center"}}>
+      <section className="hero-section" style={{background:"var(--navy)",position:"relative",overflow:"hidden",padding:"6rem 2rem 4rem",textAlign:"center"}}>
         <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse 80% 60% at 50% 120%,rgba(0,102,255,.25) 0%,transparent 70%),radial-gradient(ellipse 40% 40% at 80% 20%,rgba(245,158,11,.12) 0%,transparent 60%)"}} />
         <div style={{position:"absolute",inset:0,backgroundImage:"linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px)",backgroundSize:"40px 40px"}} />
         <div style={{position:"relative",zIndex:2,maxWidth:680,margin:"0 auto",animation:"fadeUp .6s ease both"}}>
           <div style={{display:"inline-flex",alignItems:"center",gap:".4rem",background:"rgba(0,102,255,.15)",border:"1px solid rgba(0,102,255,.35)",borderRadius:100,padding:".35rem 1rem",fontSize:".78rem",color:"rgba(255,255,255,.8)",marginBottom:"1.75rem",fontWeight:500}}>
             📍 Serving Lekki, Ajah, VI & Ikoyi
           </div>
-          <h1 style={{fontFamily:"Syne",fontSize:"clamp(2.4rem,5vw,3.75rem)",fontWeight:800,color:"#fff",lineHeight:1.1,letterSpacing:"-.03em",marginBottom:"1rem"}}>
+          <h1 className="hero-title" style={{fontFamily:"Syne",fontSize:"clamp(2.4rem,5vw,3.75rem)",fontWeight:800,color:"#fff",lineHeight:1.1,letterSpacing:"-.03em",marginBottom:"1rem"}}>
             Discover the <span style={{color:"var(--blue)"}}>Best</span> of<br/><span style={{color:"var(--amber)"}}>Lagos</span> — Near You
           </h1>
           <p style={{color:"rgba(255,255,255,.5)",fontSize:"1rem",marginBottom:"2.5rem"}}>Shop local products, book services & find trusted businesses</p>
@@ -1195,7 +1296,7 @@ function HomePage({ setPage, searchQ, setSearchQ, activeCategory, setActiveCateg
             <select value={heroCat} onChange={e=>setHeroCat(e.target.value)} style={{border:"none",borderLeft:"1px solid var(--g200)",outline:"none",fontSize:".85rem",color:"var(--g700)",padding:"0 1rem",background:"transparent",fontWeight:500}}>
               {CATEGORIES.map(c=><option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
             </select>
-            <button type="submit" style={{background:"var(--blue)",color:"#fff",border:"none",padding:".75rem 1.75rem",borderRadius:10,fontWeight:700,fontSize:".9rem",display:"flex",alignItems:"center",gap:".5rem",whiteSpace:"nowrap"}}>🔍 Search</button>
+            <button type="submit" className="hero-search-btn" style={{background:"var(--blue)",color:"#fff",border:"none",padding:".75rem 1.75rem",borderRadius:10,fontWeight:700,fontSize:".9rem",display:"flex",alignItems:"center",gap:".5rem",whiteSpace:"nowrap"}}>🔍 Search</button>
           </form>
           <div style={{display:"flex",gap:".6rem",justifyContent:"center",flexWrap:"wrap"}}>
             {["Hair & Wigs","Smartphones","Restaurants","Tailoring","Car Services"].map(t=>(
@@ -1205,7 +1306,7 @@ function HomePage({ setPage, searchQ, setSearchQ, activeCategory, setActiveCateg
             ))}
           </div>
         </div>
-        <div style={{position:"relative",zIndex:2,display:"flex",justifyContent:"center",gap:"3rem",marginTop:"3rem",paddingTop:"2.5rem",borderTop:"1px solid rgba(255,255,255,.07)"}}>
+        <div className="hero-stats" style={{position:"relative",zIndex:2,display:"flex",justifyContent:"center",gap:"3rem",marginTop:"3rem",paddingTop:"2.5rem",borderTop:"1px solid rgba(255,255,255,.07)"}}>
           {stats.map(([n,l])=>(
             <div key={l} style={{textAlign:"center"}}>
               <div style={{fontFamily:"Syne",fontSize:"1.6rem",fontWeight:700,color:"var(--blue)"}}>{n}</div>
@@ -1225,7 +1326,7 @@ function HomePage({ setPage, searchQ, setSearchQ, activeCategory, setActiveCateg
             {sponsoredBiz.map(b=><BusinessCard key={b.id} b={b} onClick={setSelectedBusiness} />)}
           </div>
         </Section>
-        <PromoBanner setPage={setPage} user={user} />
+        <PromoBanner setPage={setPage} user={user} hasVendorStorefront={hasVendorStorefront} />
         <Section title="New Listings Near You" link="Browse all" onLink={()=>setPage("search")}>
           <div className="home-products-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(200px,100%),1fr))",gap:"1.5rem"}}>
             {recent.map(p=><ProductCard key={p.id} p={p} onClick={setSelectedProduct} wishlist={wishlist} toggleWish={toggleWish} />)}
@@ -1247,7 +1348,17 @@ function SearchPage({ searchQ, activeCategory, setSelectedProduct, setSelectedBu
   const [sponsoredOnly,setSponsoredOnly] = useState(false);
   const [tab,setTab] = useState("products");
   const [sort,setSort] = useState("relevance");
-  const [activeMobileFilter,setActiveMobileFilter] = useState("");
+  const [showMobileFilters,setShowMobileFilters] = useState(false);
+  const isMobile = useIsMobile();
+
+  const activeFilterCount = [
+    priceMin !== "",
+    priceMax !== "",
+    location !== "all",
+    typeFilter !== "all",
+    ratingFilter > 0,
+    sponsoredOnly,
+  ].filter(Boolean).length;
 
   const resetFilters = () => {
     setPriceMin("");
@@ -1256,14 +1367,17 @@ function SearchPage({ searchQ, activeCategory, setSelectedProduct, setSelectedBu
     setTypeFilter("all");
     setRatingFilter(0);
     setSponsoredOnly(false);
-    setActiveMobileFilter("");
+    setShowMobileFilters(false);
   };
 
   useEffect(() => {
-    const closeMenusOnScroll = () => setActiveMobileFilter("");
-    window.addEventListener('scroll', closeMenusOnScroll, { passive: true });
-    return () => window.removeEventListener('scroll', closeMenusOnScroll);
-  }, []);
+    if (!isMobile || !showMobileFilters) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isMobile, showMobileFilters]);
 
   const filteredProducts = products.filter(p=>{
     const q=searchQ.toLowerCase();
@@ -1290,6 +1404,8 @@ function SearchPage({ searchQ, activeCategory, setSelectedProduct, setSelectedBu
     const matchLoc=location==="all"||b.location.toLowerCase().includes(location.toLowerCase());
     return matchQ&&matchCat&&matchLoc;
   });
+
+  const resultsSummary = `${filteredProducts.length} products · ${filteredBiz.length} businesses`;
 
   return (
     <div className="search-layout" style={{maxWidth:1280,margin:"0 auto",padding:"clamp(.75rem,3.5vw,1.25rem)",display:"grid",gridTemplateColumns:"minmax(14rem,20%) minmax(0,1fr)",gap:"clamp(.9rem,2.5vw,2rem)",alignItems:"start"}}>
@@ -1346,65 +1462,84 @@ function SearchPage({ searchQ, activeCategory, setSelectedProduct, setSelectedBu
 
       <div className="search-results-pane">
         <div className="search-filters-bar mob-show" style={{display:"none"}}>
-          <div className="search-filter-group" style={{position:"relative"}}>
-            <button className="search-filter-chip" onClick={()=>setActiveMobileFilter(activeMobileFilter==="location"?"":"location")}>📍 {location==="all"?"Location":location}</button>
-            {activeMobileFilter==="location" && (
-              <div className="search-filter-menu">
-                <select value={location} onChange={e=>{setLocation(e.target.value);setActiveMobileFilter("");}} style={{width:"100%",padding:".58rem .72rem",borderRadius:8,border:"1px solid var(--g200)",fontSize:".84rem",outline:"none"}}>
-                  <option value="all">All Areas</option>
-                  {LOCATIONS.map(l=><option key={l}>{l}</option>)}
-                </select>
-              </div>
-            )}
-          </div>
+          <button className="search-mobile-filter-button" onClick={()=>setShowMobileFilters(true)}>
+            <span>☰ Filters</span>
+            {activeFilterCount > 0 && <span className="search-mobile-filter-pill">{activeFilterCount}</span>}
+          </button>
+          <span className="search-mobile-filter-meta">{activeFilterCount > 0 ? `${activeFilterCount} active` : "All results"}</span>
+        </div>
 
-          <div className="search-filter-group" style={{position:"relative"}}>
-            <button className="search-filter-chip" onClick={()=>setActiveMobileFilter(activeMobileFilter==="price"?"":"price")}>💸 Price</button>
-            {activeMobileFilter==="price" && (
-              <div className="search-filter-menu">
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
-                  <input value={priceMin} onChange={e=>setPriceMin(e.target.value)} placeholder="Min" type="number" style={{width:"100%",minWidth:0,padding:".56rem .5rem",borderRadius:8,border:"1px solid var(--g200)",fontSize:".82rem",outline:"none"}} />
-                  <input value={priceMax} onChange={e=>setPriceMax(e.target.value)} placeholder="Max" type="number" style={{width:"100%",minWidth:0,padding:".56rem .5rem",borderRadius:8,border:"1px solid var(--g200)",fontSize:".82rem",outline:"none"}} />
-                </div>
-                <button onClick={()=>setActiveMobileFilter("")} style={{marginTop:".6rem",width:"100%",border:"none",background:"var(--navy)",color:"#fff",borderRadius:8,padding:".55rem",fontSize:".8rem",fontWeight:700}}>Apply</button>
+        <div className={`search-filters-panel ${showMobileFilters ? "open" : ""}`} onClick={()=>setShowMobileFilters(false)} aria-hidden={!showMobileFilters}>
+          <div className="search-filters-sheet" onClick={e=>e.stopPropagation()}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:"1rem",marginBottom:"1rem"}}>
+              <div>
+                <div style={{fontFamily:"Syne",fontWeight:700,fontSize:"1.05rem",color:"var(--navy)"}}>Filter results</div>
+                <p style={{fontSize:".82rem",color:"var(--muted)",marginTop:".2rem"}}>{resultsSummary}</p>
               </div>
-            )}
-          </div>
+              <button onClick={()=>setShowMobileFilters(false)} style={{background:"var(--g100)",border:"1px solid var(--g200)",borderRadius:999,padding:".42rem .7rem",fontWeight:700,fontSize:".8rem",cursor:"pointer"}}>
+                ✕
+              </button>
+            </div>
 
-          <div className="search-filter-group" style={{position:"relative"}}>
-            <button className="search-filter-chip" onClick={()=>setActiveMobileFilter(activeMobileFilter==="type"?"":"type")}>🧩 {typeFilter==="all"?"Type":typeFilter}</button>
-            {activeMobileFilter==="type" && (
-              <div className="search-filter-menu" style={{display:"grid",gap:".45rem"}}>
+            <div className="search-filter-section">
+              <div style={{fontWeight:700,fontSize:".82rem",marginBottom:".6rem"}}>Location</div>
+              <select value={location} onChange={e=>setLocation(e.target.value)} style={{width:"100%",padding:".6rem .75rem",borderRadius:8,border:"1px solid var(--g200)",fontSize:".85rem",outline:"none",color:"var(--text)"}}>
+                <option value="all">All Areas</option>
+                {LOCATIONS.map(l=><option key={l}>{l}</option>)}
+              </select>
+            </div>
+
+            <div className="search-filter-section">
+              <div style={{fontWeight:700,fontSize:".82rem",marginBottom:".6rem"}}>Price Range (₦)</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
+                <input value={priceMin} onChange={e=>setPriceMin(e.target.value)} placeholder="Min" type="number" style={{width:"100%",minWidth:0,padding:".58rem .6rem",borderRadius:8,border:"1px solid var(--g200)",fontSize:".82rem",outline:"none"}} />
+                <input value={priceMax} onChange={e=>setPriceMax(e.target.value)} placeholder="Max" type="number" style={{width:"100%",minWidth:0,padding:".58rem .6rem",borderRadius:8,border:"1px solid var(--g200)",fontSize:".82rem",outline:"none"}} />
+              </div>
+            </div>
+
+            <div className="search-filter-section">
+              <div style={{fontWeight:700,fontSize:".82rem",marginBottom:".6rem"}}>Listing Type</div>
+              <div style={{display:"grid",gap:".5rem"}}>
                 {["all","physical","digital","service"].map(t=>(
-                  <button key={t} onClick={()=>{setTypeFilter(t);setActiveMobileFilter("");}} style={{textAlign:"left",border:"1px solid var(--g200)",background:typeFilter===t?"rgba(0,102,255,.08)":"#fff",color:typeFilter===t?"var(--blue)":"var(--g700)",borderRadius:8,padding:".5rem .62rem",fontSize:".82rem",fontWeight:600}}>
+                  <label key={t} style={{display:"flex",alignItems:"center",gap:".6rem",cursor:"pointer",fontSize:".85rem"}}>
+                    <input type="radio" name="type-mobile" checked={typeFilter===t} onChange={()=>setTypeFilter(t)} style={{accentColor:"var(--blue)"}} />
                     {t==="all"?"All Types":t==="physical"?"📦 Physical":t==="digital"?"💾 Digital":"🔧 Service"}
-                  </button>
+                  </label>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
 
-          <div className="search-filter-group" style={{position:"relative"}}>
-            <button className="search-filter-chip" onClick={()=>setActiveMobileFilter(activeMobileFilter==="rating"?"":"rating")}>⭐ {ratingFilter===0?"Any":`${ratingFilter}+`}</button>
-            {activeMobileFilter==="rating" && (
-              <div className="search-filter-menu" style={{display:"grid",gap:".45rem"}}>
+            <div className="search-filter-section">
+              <div style={{fontWeight:700,fontSize:".82rem",marginBottom:".6rem"}}>Minimum Rating</div>
+              <div style={{display:"grid",gap:".5rem"}}>
                 {[0,3,4,4.5].map(r=>(
-                  <button key={r} onClick={()=>{setRatingFilter(r);setActiveMobileFilter("");}} style={{textAlign:"left",border:"1px solid var(--g200)",background:ratingFilter===r?"rgba(0,102,255,.08)":"#fff",color:ratingFilter===r?"var(--blue)":"var(--g700)",borderRadius:8,padding:".5rem .62rem",fontSize:".82rem",fontWeight:600}}>
+                  <label key={r} style={{display:"flex",alignItems:"center",gap:".6rem",cursor:"pointer",fontSize:".85rem"}}>
+                    <input type="radio" name="rating-mobile" checked={ratingFilter===r} onChange={()=>setRatingFilter(r)} style={{accentColor:"var(--blue)"}} />
                     {r===0?"Any rating":`${r}★ & above`}
-                  </button>
+                  </label>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
 
-          <button className="search-filter-chip" onClick={()=>setSponsoredOnly(v=>!v)}>{sponsoredOnly?"⚡ Sponsored":"👁️ All"}</button>
-          <button className="search-filter-chip" onClick={resetFilters}>Reset</button>
+            <div className="search-filter-section">
+              <div style={{fontWeight:700,fontSize:".82rem",marginBottom:".6rem"}}>Visibility</div>
+              <label style={{display:"flex",alignItems:"center",gap:".6rem",cursor:"pointer",fontSize:".85rem"}}>
+                <input type="checkbox" checked={sponsoredOnly} onChange={e=>setSponsoredOnly(e.target.checked)} style={{accentColor:"var(--amber)"}} />
+                ⚡ Sponsored only
+              </label>
+            </div>
+
+            <div className="search-filter-actions">
+              <button onClick={resetFilters} style={{flex:1,background:"#fff",border:"1px solid var(--g200)",color:"var(--g700)",borderRadius:10,padding:".75rem",fontWeight:700,fontSize:".85rem",cursor:"pointer"}}>Reset</button>
+              <button onClick={()=>setShowMobileFilters(false)} style={{flex:1,background:"var(--navy)",border:"none",color:"#fff",borderRadius:10,padding:".75rem",fontWeight:800,fontSize:".85rem",cursor:"pointer"}}>Show results</button>
+            </div>
+          </div>
         </div>
 
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.5rem",flexWrap:"wrap",gap:"1rem"}}>
           <div>
             <h1 style={{fontFamily:"Syne",fontWeight:700,fontSize:"1.3rem"}}>{searchQ?`Results for "${searchQ}"`:activeCategory!=="all"?CATEGORIES.find(c=>c.id===activeCategory)?.label:"All Listings"}</h1>
-            <p style={{fontSize:".82rem",color:"var(--muted)",marginTop:".25rem"}}>{filteredProducts.length} products · {filteredBiz.length} businesses</p>
+            <p style={{fontSize:".82rem",color:"var(--muted)",marginTop:".25rem"}}>{resultsSummary}</p>
           </div>
           <div style={{display:"flex",gap:".75rem",alignItems:"center"}}>
             <div style={{display:"flex",background:"var(--g100)",borderRadius:8,overflow:"hidden"}}>
@@ -1550,12 +1685,12 @@ function ProductDetailPage({ product, setPage, setSelectedBusiness, setSelectedP
           {/* TWO BUTTONS ONLY */}
           {(()=>{
             const waNum = vendorSettings?.whatsapp || vendorBiz?.whatsapp || "";
-            const hasWa = waNum && waNum.trim().length > 5;
-            const waHref = hasWa ? `https://wa.me/${waNum.replace(/[^0-9]/g,"")}?text=Hi, I saw your listing for *${product.name}* on LBC. Is it still available?` : "#";
+            const hasWa = sanitizePhoneNumber(waNum).length > 5;
+            const waHref = buildWhatsAppHref(waNum, `Hi, I saw your listing for ${product.name} on LBC. Is it still available?`);
             return (
               <div style={{display:"flex",flexDirection:"column",gap:".75rem"}}>
                 {hasWa ? (
-                  <a href={waHref} target="_blank" rel="noreferrer"
+                  <a href={waHref} target={window.innerWidth <= 768 ? "_self" : "_blank"} rel="noopener noreferrer"
                     style={{display:"flex",alignItems:"center",justifyContent:"center",gap:".6rem",background:"#25D366",color:"#fff",border:"none",padding:"1rem",borderRadius:12,fontWeight:800,fontSize:"1rem",textDecoration:"none",boxShadow:"0 4px 16px rgba(37,211,102,.3)",transition:"all .2s"}}
                     onMouseEnter={e=>{e.currentTarget.style.background="#20bb5a";e.currentTarget.style.transform="translateY(-1px)";}}
                     onMouseLeave={e=>{e.currentTarget.style.background="#25D366";e.currentTarget.style.transform="";}}>
@@ -1628,7 +1763,7 @@ function ProductDetailPage({ product, setPage, setSelectedBusiness, setSelectedP
                   <div style={{display:"flex",gap:".5rem",flexWrap:"wrap",marginBottom:".875rem"}}>
                     {b.tags.map(t=><span key={t} style={{fontSize:".7rem",background:"var(--g100)",color:"var(--g700)",padding:".2rem .55rem",borderRadius:4,fontWeight:500}}>{t}</span>)}
                   </div>
-                  <a href={`https://wa.me/${b.whatsapp}`} target="_blank" rel="noreferrer" onClick={e=>e.stopPropagation()}
+                  <a href={buildWhatsAppHref(b.whatsapp, `Hi, I'm interested in ${b.name} on LBC.`)} target={window.innerWidth <= 768 ? "_self" : "_blank"} rel="noopener noreferrer" onClick={e=>{e.stopPropagation(); if (!sanitizePhoneNumber(b.whatsapp)) e.preventDefault();}}
                     style={{display:"flex",alignItems:"center",justifyContent:"center",gap:".4rem",background:"#25D366",color:"#fff",borderRadius:8,padding:".6rem",fontWeight:700,fontSize:".82rem",textDecoration:"none"}}>
                     💬 WhatsApp
                   </a>
@@ -1645,8 +1780,10 @@ function ProductDetailPage({ product, setPage, setSelectedBusiness, setSelectedP
 // ── BUSINESS DETAIL ──
 function BusinessDetailPage({ business, setPage, setSelectedProduct, wishlist, toggleWish, products = [] }) {
   const bizItems = products.filter(p=>p.storeId===business.id);
+  const waHref = buildWhatsAppHref(business.whatsapp, `Hi, I'd like to know more about ${business.name} on LBC.`);
+  const hasWa = waHref !== "#";
   return (
-    <div style={{maxWidth:1280,margin:"0 auto",padding:"2rem"}}>
+    <div className="pad-mobile" style={{maxWidth:1280,margin:"0 auto",padding:"2rem"}}>
       <button onClick={()=>setPage("search")} style={{background:"none",border:"none",color:"var(--blue)",fontWeight:600,fontSize:".85rem",cursor:"pointer",marginBottom:"1.5rem"}}>← Back to results</button>
       <div style={{borderRadius:"var(--r)",overflow:"hidden",position:"relative",height:280,marginBottom:"2rem",animation:"scaleIn .4s ease both"}}>
         <img src={business.img} alt={business.name} style={{width:"100%",height:"100%",objectFit:"cover"}} />
@@ -1660,7 +1797,7 @@ function BusinessDetailPage({ business, setPage, setSelectedProduct, wishlist, t
           </div>
         </div>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 280px",gap:"2rem",alignItems:"start"}}>
+      <div className="fp-2col" style={{display:"grid",gridTemplateColumns:"1fr 280px",gap:"2rem",alignItems:"start"}}>
         <div>
           <p style={{fontSize:".95rem",lineHeight:1.75,color:"var(--g700)",marginBottom:"2rem"}}>{business.desc}</p>
           {bizItems.length>0&&(<>
@@ -1670,13 +1807,17 @@ function BusinessDetailPage({ business, setPage, setSelectedProduct, wishlist, t
             </div>
           </>)}
         </div>
-        <div style={{background:"#fff",border:"1px solid var(--g200)",borderRadius:"var(--r)",padding:"1.5rem",position:"sticky",top:140}}>
+        <div className="storefront-sidebar" style={{background:"#fff",border:"1px solid var(--g200)",borderRadius:"var(--r)",padding:"1.5rem",position:"sticky",top:140}}>
           <h3 style={{fontFamily:"Syne",fontWeight:700,marginBottom:"1.25rem"}}>Contact Business</h3>
           <div style={{fontSize:".85rem",color:"var(--muted)",marginBottom:"1.25rem",display:"flex",flexDirection:"column",gap:".6rem"}}>
             <span>📍 {business.location}</span>
             <span>⭐ {business.rating} ({business.reviews} reviews)</span>
           </div>
-          <a href={`https://wa.me/${business.whatsapp}`} target="_blank" rel="noreferrer" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:".5rem",background:"#25D366",color:"#fff",borderRadius:10,padding:".875rem",fontWeight:700,fontSize:".9rem",textDecoration:"none",marginBottom:".75rem"}}>💬 Chat on WhatsApp</a>
+          {hasWa ? (
+            <a href={waHref} target={window.innerWidth <= 768 ? "_self" : "_blank"} rel="noopener noreferrer" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:".5rem",background:"#25D366",color:"#fff",borderRadius:10,padding:".875rem",fontWeight:700,fontSize:".9rem",textDecoration:"none",marginBottom:".75rem"}}>💬 Chat on WhatsApp</a>
+          ) : (
+            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:".5rem",background:"var(--g100)",color:"var(--muted)",borderRadius:10,padding:".875rem",fontWeight:700,fontSize:".88rem",marginBottom:".75rem"}}>💬 WhatsApp Unavailable</div>
+          )}
         </div>
       </div>
     </div>
@@ -2411,14 +2552,14 @@ function CartPage({ cart, setCart, setPage }) {
   const total = cart.reduce((s,p)=>s+p.price,0);
   const remove = (idx) => setCart(c=>c.filter((_,i)=>i!==idx));
   if(cart.length===0) return (
-    <div style={{textAlign:"center",padding:"6rem 2rem"}}>
+    <div className="pad-mobile" style={{textAlign:"center",padding:"6rem 2rem"}}>
       <div style={{fontSize:"4rem",marginBottom:"1rem"}}>🛒</div>
       <h2 style={{fontFamily:"Syne",fontWeight:800,marginBottom:"1rem"}}>Your cart is empty</h2>
       <button onClick={()=>setPage("search")} style={{background:"var(--blue)",color:"#fff",border:"none",padding:".875rem 2rem",borderRadius:10,fontWeight:700,cursor:"pointer"}}>Browse Listings</button>
     </div>
   );
   return (
-    <div style={{maxWidth:800,margin:"0 auto",padding:"2rem"}}>
+    <div className="pad-mobile" style={{maxWidth:800,margin:"0 auto",padding:"2rem"}}>
       <h1 style={{fontFamily:"Syne",fontWeight:800,fontSize:"1.5rem",marginBottom:"2rem"}}>Your Cart ({cart.length})</h1>
       <div style={{display:"flex",flexDirection:"column",gap:"1rem",marginBottom:"2rem"}}>
         {cart.map((p,i)=>(
@@ -3105,23 +3246,23 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
     <div className="dash-layout app-shell" style={{display:"flex",minHeight:"calc(100vh - 64px)",background:"var(--offwhite)"}}>
 
       {/* ── MOBILE TOP BAR ── */}
-      <div className="mob-show-flex" style={{display:"none",position:"sticky",top:64,zIndex:250,background:"var(--navy)",alignItems:"center",justifyContent:"space-between",padding:".75rem 1rem",borderBottom:"1px solid rgba(255,255,255,.08)"}}>
+      <div className="mob-show-flex dash-mobile-topbar" style={{display:"none",position:"sticky",top:64,zIndex:90,background:"var(--navy)",alignItems:"center",justifyContent:"space-between",padding:".65rem .85rem",borderBottom:"1px solid rgba(255,255,255,.08)",pointerEvents:"none"}}>
         {/* Hamburger */}
         <button onClick={()=>setDrawerOpen(true)}
-          style={{display:"flex",flexDirection:"column",gap:5,background:"none",border:"none",cursor:"pointer",padding:".3rem",flexShrink:0}}>
+          style={{display:"flex",flexDirection:"column",gap:5,background:"none",border:"none",cursor:"pointer",padding:".3rem",flexShrink:0,pointerEvents:"auto"}}>
           <span style={{display:"block",width:22,height:2,background:"#fff",borderRadius:2,transition:"all .2s"}} />
           <span style={{display:"block",width:22,height:2,background:"#fff",borderRadius:2,transition:"all .2s"}} />
           <span style={{display:"block",width:16,height:2,background:"rgba(255,255,255,.5)",borderRadius:2,transition:"all .2s"}} />
         </button>
 
         {/* Current tab label */}
-        <span style={{color:"#fff",fontFamily:"Syne",fontWeight:700,fontSize:".9rem"}}>
-          {tab==="overview"?"Dashboard":tab==="listings"?"My Listings":tab==="analytics"?"Analytics":"Boosts"}
+        <span style={{color:"#fff",fontFamily:"Syne",fontWeight:700,fontSize:".88rem"}}>
+          {tab==="overview"?"Overview":tab==="listings"?"My Listings":tab==="analytics"?"Analytics":"Boosts"}
         </span>
 
         {/* Profile avatar */}
         <button onClick={()=>setPage("settings")}
-          style={{width:34,height:34,borderRadius:"50%",background:"var(--blue)",border:"2px solid rgba(255,255,255,.2)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:900,fontSize:".85rem",cursor:"pointer",flexShrink:0}}>
+          style={{width:34,height:34,borderRadius:"50%",background:"var(--blue)",border:"2px solid rgba(255,255,255,.2)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:900,fontSize:".85rem",cursor:"pointer",flexShrink:0,pointerEvents:"auto"}}>
           {(vendorSettings?.name||user?.name||"V")[0].toUpperCase()}
         </button>
       </div>
@@ -4252,6 +4393,7 @@ function App() {
   const showCatBar = ["home","search"].includes(page);
   const footerPages = ["about","howitworks","pricing","blog","faq","contact","report","advertise","privacy","userterms","cookies","refund"];
   const isDash = ["dashboard","settings"].includes(page);
+  const hasVendorStorefront = user?.role === "VENDOR" && Boolean(vendorSettings?.storeId || user?.store?.id);
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
   }, [page]);
@@ -4378,7 +4520,7 @@ function App() {
     <div>
       <Navbar page={page} setPage={setPage} searchQ={searchQ} setSearchQ={setSearchQ} activeCategory={activeCategory} setActiveCategory={setActiveCategory} cart={cart} user={user} setUser={setUser} vendorSettings={vendorSettings} />
       {showCatBar && <CategoryBar activeCategory={activeCategory} setActiveCategory={setActiveCategory} setPage={setPage} />}
-      {page==="home" && <HomePage setPage={setPage} searchQ={searchQ} setSearchQ={setSearchQ} activeCategory={activeCategory} setActiveCategory={setActiveCategory} wishlist={wishlist} toggleWish={toggleWish} setSelectedProduct={setSelectedProduct} setSelectedBusiness={setSelectedBusiness} user={user} products={marketProducts} businesses={marketBusinesses} />}
+      {page==="home" && <HomePage setPage={setPage} searchQ={searchQ} setSearchQ={setSearchQ} activeCategory={activeCategory} setActiveCategory={setActiveCategory} wishlist={wishlist} toggleWish={toggleWish} setSelectedProduct={setSelectedProduct} setSelectedBusiness={setSelectedBusiness} user={user} hasVendorStorefront={hasVendorStorefront} products={marketProducts} businesses={marketBusinesses} />}
       {page==="search" && <SearchPage searchQ={searchQ} activeCategory={activeCategory} setSelectedProduct={setSelectedProduct} setSelectedBusiness={setSelectedBusiness} wishlist={wishlist} toggleWish={toggleWish} products={marketProducts} businesses={marketBusinesses} />}
       {page==="product" && selectedProduct && <ProductDetailPage product={selectedProduct} setPage={setPage} setSelectedBusiness={setSelectedBusiness} setSelectedProduct={setSelectedProduct} vendorSettings={vendorSettings} products={marketProducts} businesses={marketBusinesses} />}
       {page==="storefront" && <StorefrontPage biz={storefrontBiz} setPage={setPage} vendorSettings={vendorSettings} onProductClick={setSelectedProduct} products={marketProducts} businesses={marketBusinesses} />}
@@ -4921,7 +5063,7 @@ function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSetting
                       <div style={{marginTop:".6rem",display:"flex",alignItems:"center",gap:".5rem",fontSize:".78rem",color:"#15803d",fontWeight:600}}>
                         <span>✓</span>
                         <span>WhatsApp button will be active on all your listings</span>
-                        <a href={`https://wa.me/${local.whatsapp.replace(/[^0-9]/g,"")}`} target="_blank" rel="noreferrer" style={{marginLeft:"auto",color:"#25D366",fontWeight:700,textDecoration:"none",fontSize:".75rem"}}>Test link ↗</a>
+                        <a href={buildWhatsAppHref(local.whatsapp)} target={window.innerWidth <= 768 ? "_self" : "_blank"} rel="noopener noreferrer" style={{marginLeft:"auto",color:"#25D366",fontWeight:700,textDecoration:"none",fontSize:".75rem"}}>Test link ↗</a>
                       </div>
                     )}
                     {(!local.whatsapp || local.whatsapp.length <= 5) && (
@@ -5087,7 +5229,7 @@ function StorefrontPage({ biz, setPage, vendorSettings, onProductClick, products
   const location = isOwn ? (vendorSettings.bizLocation || "Lagos")    : (biz.location || "Lagos");
   const phone    = isOwn ? (vendorSettings.bizPhone || "")            : (biz?.bizPhone || biz?.phone || "");
   const waNum    = isOwn ? (vendorSettings.whatsapp || "")            : (biz.whatsapp || "");
-  const hasWa    = waNum.trim().length > 5;
+  const hasWa    = sanitizePhoneNumber(waNum).length > 5;
   const category = isOwn ? (vendorSettings.bizCategory || "fashion")  : (biz.category || "fashion");
   const verified = isOwn ? true                                        : (biz.verified || false);
   const sponsored= isOwn ? false                                       : (biz.sponsored || false);
@@ -5098,9 +5240,7 @@ function StorefrontPage({ biz, setPage, vendorSettings, onProductClick, products
   const logoImg = isOwn ? (vendorSettings.logo || "") : (biz?.logo || "");
   const bannerImg = isOwn ? (vendorSettings.banner || "") : (biz?.banner || biz?.img || biz?.logo || "");
   const defaultBanner = "https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=1400&h=500&fit=crop";
-  const waHref = hasWa
-    ? `https://wa.me/${waNum.replace(/[^0-9]/g,"")}?text=Hi, I'd like to know more about your store on LBC!`
-    : "#";
+  const waHref = buildWhatsAppHref(waNum, "Hi, I'd like to know more about your store on LBC!");
 
   // Products: filter live API data by store ID (own store uses vendorSettings.storeId)
   const bizProducts = (isOwn
@@ -5230,7 +5370,7 @@ function StorefrontPage({ biz, setPage, vendorSettings, onProductClick, products
             {/* WhatsApp CTA */}
             <div style={{marginTop:"1.1rem"}}>
               {hasWa ? (
-                <a href={waHref} target="_blank" rel="noreferrer"
+                <a href={waHref} target={window.innerWidth <= 768 ? "_self" : "_blank"} rel="noopener noreferrer"
                   style={{display:"flex",alignItems:"center",justifyContent:"center",gap:".6rem",background:"#25D366",color:"#fff",borderRadius:10,padding:".85rem",fontWeight:800,fontSize:".9rem",textDecoration:"none",transition:"all .2s",boxShadow:"0 4px 12px rgba(37,211,102,.25)"}}
                   onMouseEnter={e=>{e.currentTarget.style.background="#20bb5a";}}
                   onMouseLeave={e=>{e.currentTarget.style.background="#25D366";}}>
@@ -5342,8 +5482,8 @@ function StorefrontPage({ biz, setPage, vendorSettings, onProductClick, products
                     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                       <span style={{fontFamily:"Syne",fontWeight:800,fontSize:"1rem",color:"var(--navy)"}}>{fmt(p.price)}</span>
                       {hasWa ? (
-                        <a href={`https://wa.me/${waNum.replace(/[^0-9]/g,"")}?text=Hi, I'm interested in *${p.name}* from your LBC store. Is it available?`}
-                          target="_blank" rel="noreferrer" onClick={e=>e.stopPropagation()}
+                        <a href={buildWhatsAppHref(waNum, `Hi, I'm interested in ${p.name} from your LBC store. Is it available?`)}
+                          target={window.innerWidth <= 768 ? "_self" : "_blank"} rel="noopener noreferrer" onClick={e=>e.stopPropagation()}
                           style={{background:"#25D366",color:"#fff",borderRadius:7,padding:".38rem .8rem",fontSize:".72rem",fontWeight:700,textDecoration:"none",display:"flex",alignItems:"center",gap:".3rem",flexShrink:0}}>
                           💬 Order
                         </a>
