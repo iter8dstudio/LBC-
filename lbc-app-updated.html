@@ -15,25 +15,37 @@
 const API_BASE_URL_MAP = {
   'localhost': 'http://localhost:8000/api',
   '127.0.0.1': 'http://localhost:8000/api',
-  'lbc.ng': 'https://api.lbc.ng/api',
-  'www.lbc.ng': 'https://api.lbc.ng/api',
+  'lekkibusinessconnect.com': 'https://testlbc-production.up.railway.app/api',
+  'www.lekkibusinessconnect.com': 'https://testlbc-production.up.railway.app/api',
+  'lbc.ng': 'https://testlbc-production.up.railway.app/api',
+  'www.lbc.ng': 'https://testlbc-production.up.railway.app/api',
   'testlbc-production.up.railway.app': 'https://testlbc-production.up.railway.app/api',
 };
 
 const DEFAULT_REMOTE_API_BASE_URL = 'https://testlbc-production.up.railway.app/api';
+const API_BASE_STORAGE_KEY = 'lbc.api.base.v1';
+const WISHLIST_CACHE_KEY = 'lbc.wishlist.ids.v1';
 
-const determineApiUrl = () => {
+const normalizeApiBase = (value = '') => String(value || '').trim().replace(/\/$/, '');
+
+const buildApiBaseCandidates = () => {
   const hostname = window.location.hostname;
-  if (API_BASE_URL_MAP[hostname]) return API_BASE_URL_MAP[hostname];
-  if (hostname === 'localhost' || hostname === '127.0.0.1') return 'http://localhost:8000/api';
+  const configured = normalizeApiBase(window.__LBC_API_BASE_URL);
+  const saved = normalizeApiBase(localStorage.getItem(API_BASE_STORAGE_KEY));
+  const preferred = normalizeApiBase(API_BASE_URL_MAP[hostname]);
 
-  if (hostname.endsWith('netlify.app')) return DEFAULT_REMOTE_API_BASE_URL;
-
-  const configured = window.__LBC_API_BASE_URL;
-  if (configured && typeof configured === 'string') return configured.replace(/\/$/, '');
-
-  return DEFAULT_REMOTE_API_BASE_URL;
+  return Array.from(new Set([
+    preferred,
+    configured,
+    saved,
+    hostname === 'localhost' || hostname === '127.0.0.1' ? 'http://localhost:8000/api' : '',
+    DEFAULT_REMOTE_API_BASE_URL,
+    'https://api.lbc.ng/api',
+  ].filter(Boolean)));
 };
+
+const API_BASE_CANDIDATES = buildApiBaseCandidates();
+const determineApiUrl = () => API_BASE_CANDIDATES[0] || DEFAULT_REMOTE_API_BASE_URL;
 
 const API_CONFIG = {
   dev: { API_BASE_URL: determineApiUrl() },
@@ -78,6 +90,25 @@ const writeMarketplaceCache = (products, businesses) => {
       businesses,
       timestamp: Date.now(),
     }));
+  } catch {
+    // Ignore storage failures.
+  }
+};
+
+const readWishlistCache = () => {
+  try {
+    const raw = localStorage.getItem(WISHLIST_CACHE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeWishlistCache = (wishlistIds = []) => {
+  try {
+    const uniqueIds = Array.from(new Set((wishlistIds || []).filter(Boolean)));
+    localStorage.setItem(WISHLIST_CACHE_KEY, JSON.stringify(uniqueIds));
   } catch {
     // Ignore storage failures.
   }
@@ -595,9 +626,21 @@ const { useState, useEffect, useRef, useMemo, useCallback } = React;
 
 class ApiService {
   constructor() {
-    this.baseURL = API.API_BASE_URL;
+    this.baseCandidates = API_BASE_CANDIDATES.length ? API_BASE_CANDIDATES : [API.API_BASE_URL];
+    this.baseURL = this.baseCandidates[0] || API.API_BASE_URL;
     this.accessToken = localStorage.getItem('accessToken') || null;
     this.refreshToken = localStorage.getItem('refreshToken') || null;
+  }
+
+  setBaseURL(nextBase) {
+    const normalized = normalizeApiBase(nextBase);
+    if (!normalized) return;
+    this.baseURL = normalized;
+    try {
+      localStorage.setItem(API_BASE_STORAGE_KEY, normalized);
+    } catch {
+      // Ignore storage failures.
+    }
   }
 
   setTokens(accessToken, refreshToken) {
@@ -618,8 +661,9 @@ class ApiService {
     localStorage.removeItem('refreshToken');
   }
 
-  async request(endpoint, options = {}, retry = true) {
-    const url = `${this.baseURL}${endpoint}`;
+  async request(endpoint, options = {}, retry = true, candidateIndex = 0) {
+    const candidateBase = this.baseCandidates[candidateIndex] || this.baseURL;
+    const url = `${candidateBase}${endpoint}`;
     const headers = { ...(options.headers || {}) };
     const isFormData = options.body instanceof FormData;
 
@@ -631,7 +675,24 @@ class ApiService {
       headers.Authorization = `Bearer ${this.accessToken}`;
     }
 
-    const response = await fetch(url, { ...options, headers });
+    let response;
+    try {
+      response = await fetch(url, { ...options, headers });
+    } catch (error) {
+      const hasFallback = candidateIndex + 1 < this.baseCandidates.length;
+      const isNetworkError = /failed to fetch|networkerror|load failed/i.test(String(error?.message || ''));
+
+      if (hasFallback && isNetworkError) {
+        return this.request(endpoint, options, retry, candidateIndex + 1);
+      }
+
+      throw error;
+    }
+
+    if (candidateBase !== this.baseURL && response.ok) {
+      this.setBaseURL(candidateBase);
+    }
+
     const text = await response.text();
     const data = text ? (() => {
       try { return JSON.parse(text); } catch { return { message: text }; }
@@ -808,6 +869,22 @@ class ApiService {
 
   async getMe() {
     return this.request('/users/me');
+  }
+
+  async getWishlist() {
+    return this.request('/users/me/wishlist');
+  }
+
+  async addToWishlist(listingId) {
+    return this.request(`/users/me/wishlist/${listingId}`, {
+      method: 'POST',
+    });
+  }
+
+  async removeFromWishlist(listingId) {
+    return this.request(`/users/me/wishlist/${listingId}`, {
+      method: 'DELETE',
+    });
   }
 
   async updateMe(data) {
@@ -2161,7 +2238,7 @@ function AuthPage({ setPage, setUser }) {
 }
 
 // ── ONBOARDING ──
-function OnboardingPage({ setPage, user, setUser }) {
+function OnboardingPage({ setPage, user, setUser, refreshMarketplace }) {
   const [step,setStep] = useState(1);
   const [biz,setBiz] = useState({name:"",type:"physical",category:"fashion",location:"Lekki Phase 1",phone:"",email:"",whatsapp:"",desc:"",plan:"monthly"});
   const [listing,setListing] = useState({title:"",price:"",listingType:"physical",listingDesc:""});
@@ -2273,6 +2350,7 @@ function OnboardingPage({ setPage, user, setUser }) {
         }
       }
 
+      await refreshMarketplace?.();
       setDone(true);
       setUser(u => ({ ...(u || {}), role: 'VENDOR' }));
     } catch (err) {
@@ -2702,7 +2780,7 @@ function LineChart({ datasets, labels }) {
   );
 }
 
-function DashboardPage({ user, setPage, setUser, vendorSettings }) {
+function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketplace }) {
   const [tab, setTab] = useState("overview");
   const [listingStep, setListingStep] = useState(1);
   const [showAddListing, setShowAddListing] = useState(false);
@@ -2806,6 +2884,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
       }
 
       setListings((current) => [{ ...mapListingToUi(finalListing) }, ...current]);
+      await refreshMarketplace?.();
       resetListingComposer();
     } catch (err) {
       setListingActionError(err.message || `Failed to ${status === 'live' ? 'publish' : 'save'} listing.`);
@@ -3206,6 +3285,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
       const nextStatus = current?.status === "live" ? "unpublished" : "live";
       const updated = await api.updateListingStatus(id, nextStatus);
       setListings(ls => ls.map(l => l.id===id ? { ...l, ...mapListingToUi(updated) } : l));
+      await refreshMarketplace?.();
     } catch (err) {
       setListingActionError(err.message || "Failed to update listing status.");
     } finally {
@@ -3218,6 +3298,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
       api.setTokens(user?.accessToken, user?.refreshToken);
       await api.deleteListing(id);
       setListings(ls => ls.filter(l => l.id !== id));
+      await refreshMarketplace?.();
     } catch (err) {
       setListingActionError(err.message || "Failed to delete listing.");
     } finally {
@@ -3260,6 +3341,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings }) {
       }
       
       setListings(ls => ls.map(l => l.id===editListing.id ? { ...l, ...mapListingToUi(updated) } : l));
+      await refreshMarketplace?.();
       setEditListing(null);
       setEditStep(1);
       setEditMainImageFile(null);
@@ -4412,7 +4494,7 @@ function App() {
   const [page,setPage] = useState(() => window.location.pathname === '/boost-success' ? 'boostCallback' : 'home');
   const [searchQ,setSearchQ] = useState("");
   const [activeCategory,setActiveCategory] = useState("all");
-  const [wishlist,setWishlist] = useState([]);
+  const [wishlist,setWishlist] = useState(() => readWishlistCache());
   const [cart,setCart] = useState([]);
   const [user,setUser] = useState(null);
   const [selectedProduct,setSelectedProductState] = useState(null);
@@ -4435,7 +4517,69 @@ function App() {
     waLeads:true, boostExpiry:true, weeklyReport:false,
   });
 
-  const toggleWish = (id) => setWishlist(w=>w.includes(id)?w.filter(x=>x!==id):[...w,id]);
+  const refreshMarketplace = useCallback(async ({ preferCache = false } = {}) => {
+    const cachedMarketplace = readMarketplaceCache();
+
+    if (preferCache && cachedMarketplace) {
+      setMarketProducts(cachedMarketplace.products);
+      setMarketBusinesses(cachedMarketplace.businesses);
+    }
+
+    const [listingsResult, storesResult] = await Promise.allSettled([
+      api.getListings({ limit: 200 }),
+      api.getStores({ limit: 200 }),
+    ]);
+
+    const storePayload = storesResult.status === 'fulfilled' ? getCollection(storesResult.value, 'stores') : [];
+    const listingPayload = listingsResult.status === 'fulfilled' ? getCollection(listingsResult.value, 'listings') : [];
+    const normalizedStores = storePayload.map(normalizeStore).filter(Boolean);
+    const storesById = new Map(normalizedStores.map((store) => [store.id, store]));
+    const normalizedListings = listingPayload.map((listing) => normalizeListing(listing, storesById)).filter(Boolean);
+    const hasFreshMarketplaceResponse = listingsResult.status === 'fulfilled' || storesResult.status === 'fulfilled';
+
+    if (hasFreshMarketplaceResponse) {
+      setMarketBusinesses(normalizedStores);
+      setMarketProducts(normalizedListings);
+      writeMarketplaceCache(normalizedListings, normalizedStores);
+    } else if (!cachedMarketplace) {
+      setMarketBusinesses([]);
+      setMarketProducts([]);
+    }
+
+    return {
+      products: normalizedListings,
+      businesses: normalizedStores,
+    };
+  }, []);
+
+  const toggleWish = useCallback(async (id) => {
+    const isSaved = wishlist.includes(id);
+
+    setWishlist((current) => (
+      isSaved
+        ? current.filter((itemId) => itemId !== id)
+        : Array.from(new Set([...current, id]))
+    ));
+
+    if (!user?.accessToken) return;
+
+    try {
+      api.setTokens(user.accessToken, user.refreshToken);
+      if (isSaved) {
+        await api.removeFromWishlist(id);
+      } else {
+        await api.addToWishlist(id);
+      }
+    } catch (error) {
+      setWishlist((current) => (
+        isSaved
+          ? Array.from(new Set([...current, id]))
+          : current.filter((itemId) => itemId !== id)
+      ));
+      console.warn('Wishlist update failed.', error?.message || error);
+    }
+  }, [wishlist, user?.accessToken, user?.refreshToken]);
+
   const setSelectedProduct = (p) => { setSelectedProductState(p); setPage("product"); };
   const setSelectedBusiness = (b) => { setStorefrontBiz(b); setPage("storefront"); };
   const openStorefront = (biz) => { setStorefrontBiz(biz); setPage("storefront"); };
@@ -4526,44 +4670,50 @@ function App() {
   }, [user?.accessToken, user?.email, user?.name]);
 
   useEffect(() => {
-    let active = true;
-    const cachedMarketplace = readMarketplaceCache();
+    refreshMarketplace({ preferCache: true }).catch((error) => {
+      const cachedMarketplace = readMarketplaceCache();
+      if (!cachedMarketplace) {
+        setMarketBusinesses([]);
+        setMarketProducts([]);
+      }
+      console.warn('Marketplace data load failed.', error?.message || error);
+    });
+  }, [refreshMarketplace]);
 
-    if (cachedMarketplace) {
-      setMarketProducts(cachedMarketplace.products);
-      setMarketBusinesses(cachedMarketplace.businesses);
+  useEffect(() => {
+    writeWishlistCache(wishlist);
+  }, [wishlist]);
+
+  useEffect(() => {
+    let active = true;
+
+    if (!user?.accessToken) {
+      setWishlist(readWishlistCache());
+      return () => { active = false; };
     }
 
-    const loadMarketplaceData = async () => {
+    const loadWishlist = async () => {
       try {
-        const [listingsResult, storesResult] = await Promise.allSettled([
-          api.getListings({ limit: 200 }),
-          api.getStores({ limit: 200 }),
-        ]);
-
-        const storePayload = storesResult.status === 'fulfilled' ? getCollection(storesResult.value, 'stores') : [];
-        const listingPayload = listingsResult.status === 'fulfilled' ? getCollection(listingsResult.value, 'listings') : [];
-        const normalizedStores = storePayload.map(normalizeStore).filter(Boolean);
-        const storesById = new Map(normalizedStores.map((store) => [store.id, store]));
-        const normalizedListings = listingPayload.map((listing) => normalizeListing(listing, storesById)).filter(Boolean);
-
+        api.setTokens(user.accessToken, user.refreshToken);
+        const savedListings = await api.getWishlist();
         if (!active) return;
 
-        setMarketBusinesses(normalizedStores);
-        setMarketProducts(normalizedListings);
-        writeMarketplaceCache(normalizedListings, normalizedStores);
+        const ids = Array.isArray(savedListings)
+          ? savedListings.map((item) => item?.id).filter(Boolean)
+          : [];
+
+        setWishlist(ids);
       } catch (error) {
-        if (!cachedMarketplace && active) {
-          setMarketBusinesses([]);
-          setMarketProducts([]);
+        if (active) {
+          setWishlist(readWishlistCache());
         }
-        console.warn('Marketplace data load failed.', error?.message || error);
+        console.warn('Wishlist load failed.', error?.message || error);
       }
     };
 
-    loadMarketplaceData();
+    loadWishlist();
     return () => { active = false; };
-  }, []);
+  }, [user?.accessToken, user?.refreshToken]);
 
   return (
     <div>
@@ -4574,10 +4724,10 @@ function App() {
       {page==="product" && selectedProduct && <ProductDetailPage product={selectedProduct} setPage={setPage} setSelectedBusiness={setSelectedBusiness} setSelectedProduct={setSelectedProduct} vendorSettings={vendorSettings} products={marketProducts} businesses={marketBusinesses} />}
       {page==="storefront" && <StorefrontPage biz={storefrontBiz} setPage={setPage} vendorSettings={vendorSettings} onProductClick={setSelectedProduct} products={marketProducts} businesses={marketBusinesses} />}
       {page==="signin" && <AuthPage setPage={setPage} setUser={setUser} />}
-      {page==="onboarding" && <OnboardingPage setPage={setPage} user={user} setUser={setUser} />}
+      {page==="onboarding" && <OnboardingPage setPage={setPage} user={user} setUser={setUser} refreshMarketplace={refreshMarketplace} />}
       {page==="cart" && <CartPage cart={cart} setCart={setCart} setPage={setPage} />}
-      {page==="dashboard" && <DashboardPage user={user} setUser={setUser} setPage={setPage} vendorSettings={vendorSettings} />}
-      {page==="settings" && <SettingsPage user={user} setUser={setUser} setPage={setPage} vendorSettings={vendorSettings} setVendorSettings={setVendorSettings} />}
+      {page==="dashboard" && <DashboardPage user={user} setUser={setUser} setPage={setPage} vendorSettings={vendorSettings} refreshMarketplace={refreshMarketplace} />}
+      {page==="settings" && <SettingsPage user={user} setUser={setUser} setPage={setPage} vendorSettings={vendorSettings} setVendorSettings={setVendorSettings} refreshMarketplace={refreshMarketplace} />}
       {page==="boostCallback" && <BoostCallbackPage setPage={setPage} setUser={setUser} />}
       {page==="about" && <AboutPage setPage={setPage} />}
       {page==="howitworks" && <HowItWorksPage setPage={setPage} />}
@@ -4680,7 +4830,7 @@ function SSection({ title, subtitle, icon, children, onSave, saved }) {
 }
 
 // ── SETTINGS PAGE ──
-function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSettings }) {
+function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSettings, refreshMarketplace }) {
   const [local, setLocal] = useState({...vendorSettings, name: vendorSettings.name||user?.name||"", email: vendorSettings.email||user?.email||""});
   const [saved, setSaved] = useState({});
   const [activeSection, setActiveSection] = useState("personal");
@@ -4811,6 +4961,7 @@ function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSetting
       }
 
       applyStoreState(store);
+      await refreshMarketplace?.();
     }
 
     if (section === 'security') {
@@ -4853,6 +5004,7 @@ function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSetting
       if (vendorSettings.storeId) {
         const store = await api.updateStore(appearancePayload);
         applyStoreState(store);
+        await refreshMarketplace?.();
       } else {
         setVendorSettings((current) => ({ ...current, accentColor: local.accentColor, showStockCount: local.showStockCount !== false }));
       }
@@ -4919,6 +5071,7 @@ function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSetting
       const url = response.url || '';
       setLocal((current) => ({ ...current, [field]: url }));
       setVendorSettings((current) => ({ ...current, [field]: url }));
+      await refreshMarketplace?.();
       markSaved('store');
       setSaveNotice(`${kind === 'logo' ? 'Logo' : 'Banner'} uploaded successfully.`);
     } catch (error) {

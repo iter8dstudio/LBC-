@@ -1,6 +1,11 @@
 const DEFAULT_FRONTEND_URL = 'https://lekkibusinessconnect.com';
 
-const normalizeUrl = (value) => (value || '').trim().replace(/\/$/, '');
+const normalizeUrl = (value) => {
+  const trimmed = (value || '').trim().replace(/\/$/, '');
+  if (!trimmed) return '';
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+};
 
 const getFrontendBaseUrl = () => normalizeUrl(
   process.env.FRONTEND_URL_PROD
