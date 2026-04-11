@@ -74,8 +74,8 @@ const checkSecret = (name, value) => {
   }
 };
 
-checkSecret('ACCESS_TOKEN_SECRET', process.env.ACCESS_TOKEN_SECRET || process.env.JWT_SECRET);
-checkSecret('REFRESH_TOKEN_SECRET', process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET);
+checkSecret('ACCESS_TOKEN_SECRET', process.env.ACCESS_TOKEN_SECRET);
+checkSecret('REFRESH_TOKEN_SECRET', process.env.REFRESH_TOKEN_SECRET);
 
 if (process.env.NODE_ENV === 'production' && !getPaystackSecretKey()) {
   throw new Error('PAYSTACK_SECRET_KEY is not set');

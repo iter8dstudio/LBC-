@@ -18,8 +18,10 @@ router.post('/register',         validate(registerSchema), ctrl.register);
 router.post('/verify-email',     validate(verifyEmailSchema), ctrl.verifyEmail);
 router.post('/resend-otp',       validate(resendOtpSchema), ctrl.resendEmailOtp);
 
-// ⚠️ DEVELOPMENT ONLY — not registered in production
-if (process.env.NODE_ENV !== 'production') {
+const enableDevOtpEndpoint =
+  process.env.NODE_ENV !== 'production' && process.env.ENABLE_DEV_OTP_ENDPOINT === 'true';
+
+if (enableDevOtpEndpoint) {
   router.get('/dev/email-otp', ctrl.getDevEmailOtp);
 }
 

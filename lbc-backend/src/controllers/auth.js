@@ -11,6 +11,7 @@ const { normalizePhone, sendSms } = require('../lib/sms');
 
 const generateOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
 const isProduction = process.env.NODE_ENV === 'production';
+const devOtpLoggingEnabled = !isProduction && process.env.ENABLE_DEV_OTP_LOG === 'true';
 
 // Hash a high-entropy token (crypto.randomBytes) with SHA-256.
 // Used only for password reset tokens — NOT for 6-digit OTPs.
@@ -37,10 +38,9 @@ const refreshTokenSecret = validateJwtSecret(
 );
 
 const logDevOtp = (label, user, secret, expiresAt) => {
-  if (isProduction) return;
-  // Only log to stderr in development for debugging, NEVER log to stdout to prevent accidental exposure
+  if (!devOtpLoggingEnabled) return;
   console.error(
-    `[DEV OTP] userId=${user.id} code=${secret} expires=${expiresAt.toISOString()}`
+    `[DEV OTP] ${label} userId=${user.id} code=${secret} expires=${expiresAt.toISOString()}`
   );
 };
 
@@ -142,7 +142,7 @@ exports.register = async (req, res) => {
     res.status(201).json({
       message: emailResult.delivered
         ? 'Account created. Check your email for a 6-digit verification code.'
-        : 'Account created. Email delivery is not configured — use GET /api/auth/dev/email-otp?email=' + normalizedEmail + ' to retrieve your OTP in development.',
+        : 'Account created, but we could not deliver your verification code right now. Please try resending the code shortly.',
       userId: user.id,
     });
   } catch (err) {
@@ -233,7 +233,7 @@ exports.resendEmailOtp = async (req, res) => {
     res.json({
       message: emailResult.delivered
         ? 'New verification code sent'
-        : 'Email delivery is not configured — use GET /api/auth/dev/email-otp?email=' + user.email + ' to retrieve your OTP in development.',
+        : 'We could not deliver the new verification code right now. Please try again shortly.',
     });
   } catch (err) {
     res.status(500).json({ error: 'Failed to resend code' });
@@ -242,6 +242,10 @@ exports.resendEmailOtp = async (req, res) => {
 
 exports.getDevEmailOtp = async (req, res) => {
   try {
+    if (process.env.ENABLE_DEV_OTP_ENDPOINT !== 'true') {
+      return res.status(404).json({ error: 'Route not found' });
+    }
+
     // CRITICAL: This endpoint should NEVER exist in production
     // Even if NODE_ENV is misconfigured, block access with multiple checks
     if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'prod' || !process.env.NODE_ENV) {

@@ -1,6 +1,11 @@
 // src/lib/email.js
 const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const { getFrontendBaseUrl } = require('./frontend');
+
+const resendApiKey = process.env.RESEND_API_KEY?.trim();
+const resendFrom = (process.env.RESEND_FROM_EMAIL || '').trim();
+const resendReplyTo = (process.env.RESEND_REPLY_TO || process.env.EMAIL_FROM || '').trim();
 
 const mailHost = process.env.SMTP_HOST || process.env.EMAIL_HOST;
 const mailPort = parseInt(process.env.SMTP_PORT || process.env.EMAIL_PORT || '587', 10);
@@ -8,10 +13,12 @@ const mailUser = process.env.SMTP_USER || process.env.EMAIL_USER;
 const mailPass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
 const mailFrom = process.env.EMAIL_FROM || mailUser;
 
+const resend = resendApiKey ? new Resend(resendApiKey) : null;
+const hasResendConfig = Boolean(resend && resendFrom);
 const hasMailConfig = Boolean(mailHost && mailPort && mailUser && mailPass && mailFrom);
 
-if (!hasMailConfig) {
-  console.warn('[EMAIL CONFIG WARNING] Email is not fully configured. Set EMAIL_HOST, EMAIL_USER, EMAIL_PASS, and EMAIL_FROM.');
+if (!hasResendConfig && !hasMailConfig) {
+  console.warn('[EMAIL CONFIG WARNING] Email is not fully configured. Set RESEND_API_KEY + RESEND_FROM_EMAIL, or SMTP_* / EMAIL_* values.');
 }
 
 const transporter = hasMailConfig
@@ -29,7 +36,6 @@ const transporter = hasMailConfig
     })
   : null;
 
-// Verify transporter connection in development
 if (transporter && process.env.NODE_ENV !== 'production') {
   transporter.verify((err, success) => {
     if (err) {
@@ -40,20 +46,67 @@ if (transporter && process.env.NODE_ENV !== 'production') {
   });
 }
 
-const sendEmail = async ({ to, subject, html }) => {
+const sendViaResend = async ({ to, subject, html }) => {
+  if (!hasResendConfig) {
+    return { delivered: false, error: 'Resend is not configured.' };
+  }
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: resendFrom,
+      to: Array.isArray(to) ? to : [to],
+      subject,
+      html,
+      ...(resendReplyTo ? { replyTo: resendReplyTo } : {}),
+    });
+
+    if (error) {
+      return { delivered: false, error: error.message || JSON.stringify(error) };
+    }
+
+    return { delivered: true, messageId: data?.id, provider: 'resend' };
+  } catch (err) {
+    return { delivered: false, error: err.message };
+  }
+};
+
+const sendViaSmtp = async ({ to, subject, html }) => {
   if (!transporter) {
-    const error = 'SMTP is not configured. Set EMAIL_HOST/EMAIL_USER/EMAIL_PASS or SMTP_* values.';
-    console.error('Email send failed:', error);
-    return { delivered: false, error };
+    return { delivered: false, error: 'SMTP is not configured.' };
   }
 
   try {
     const info = await transporter.sendMail({ from: mailFrom, to, subject, html });
-    return { delivered: true, messageId: info.messageId };
+    return { delivered: true, messageId: info.messageId, provider: 'smtp' };
   } catch (err) {
-    console.error('Email send failed:', err.message);
     return { delivered: false, error: err.message };
   }
+};
+
+const sendEmail = async ({ to, subject, html }) => {
+  if (hasResendConfig) {
+    const resendResult = await sendViaResend({ to, subject, html });
+    if (resendResult.delivered) {
+      return resendResult;
+    }
+    console.error('[EMAIL RESEND ERROR]', resendResult.error);
+  }
+
+  if (transporter) {
+    const smtpResult = await sendViaSmtp({ to, subject, html });
+    if (smtpResult.delivered) {
+      return smtpResult;
+    }
+    console.error('[EMAIL SMTP ERROR]', smtpResult.error);
+    return smtpResult;
+  }
+
+  const error = hasResendConfig
+    ? 'Resend could not deliver the email and SMTP fallback is not configured.'
+    : 'Email is not configured. Set RESEND_API_KEY + RESEND_FROM_EMAIL or SMTP_* values.';
+
+  console.error('Email send failed:', error);
+  return { delivered: false, error };
 };
 
 const templates = {

@@ -2,7 +2,11 @@
 const jwt = require('jsonwebtoken');
 const prisma = require('../lib/prisma');
 
-const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET || process.env.JWT_SECRET;
+const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET;
+
+if (!accessTokenSecret) {
+  throw new Error('ACCESS_TOKEN_SECRET is not set');
+}
 
 const authMiddleware = async (req, res, next) => {
   try {
