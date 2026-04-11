@@ -1522,6 +1522,12 @@ function SearchPage({ searchQ, activeCategory, setSelectedProduct, setSelectedBu
     };
   }, [isMobile, showMobileFilters]);
 
+  useEffect(() => {
+    if (!isMobile) {
+      setShowMobileFilters(false);
+    }
+  }, [isMobile]);
+
   const filteredProducts = products.filter(p=>{
     const q=searchQ.toLowerCase();
     const matchQ=!q||p.name.toLowerCase().includes(q)||p.store.toLowerCase().includes(q)||p.category.includes(q);
@@ -1604,80 +1610,84 @@ function SearchPage({ searchQ, activeCategory, setSelectedProduct, setSelectedBu
       </aside>
 
       <div className="search-results-pane">
-        <div className="search-filters-bar mob-show" style={{display:"none"}}>
-          <button className="search-mobile-filter-button" onClick={()=>setShowMobileFilters(true)}>
-            <span>☰ Filters</span>
-            {activeFilterCount > 0 && <span className="search-mobile-filter-pill">{activeFilterCount}</span>}
-          </button>
-          <span className="search-mobile-filter-meta">{activeFilterCount > 0 ? `${activeFilterCount} active` : "All results"}</span>
-        </div>
-
-        <div className={`search-filters-panel ${showMobileFilters ? "open" : ""}`} onClick={()=>setShowMobileFilters(false)} aria-hidden={!showMobileFilters}>
-          <div className="search-filters-sheet" onClick={e=>e.stopPropagation()}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:"1rem",marginBottom:"1rem"}}>
-              <div>
-                <div style={{fontFamily:"Syne",fontWeight:700,fontSize:"1.05rem",color:"var(--navy)"}}>Filter results</div>
-                <p style={{fontSize:".82rem",color:"var(--muted)",marginTop:".2rem"}}>{resultsSummary}</p>
-              </div>
-              <button onClick={()=>setShowMobileFilters(false)} style={{background:"var(--g100)",border:"1px solid var(--g200)",borderRadius:999,padding:".42rem .7rem",fontWeight:700,fontSize:".8rem",cursor:"pointer"}}>
-                ✕
+        {isMobile && (
+          <>
+            <div className="search-filters-bar" style={{display:"none"}}>
+              <button className="search-mobile-filter-button" onClick={()=>setShowMobileFilters(true)}>
+                <span>☰ Filters</span>
+                {activeFilterCount > 0 && <span className="search-mobile-filter-pill">{activeFilterCount}</span>}
               </button>
+              <span className="search-mobile-filter-meta">{activeFilterCount > 0 ? `${activeFilterCount} active` : "All results"}</span>
             </div>
 
-            <div className="search-filter-section">
-              <div style={{fontWeight:700,fontSize:".82rem",marginBottom:".6rem"}}>Location</div>
-              <select value={location} onChange={e=>setLocation(e.target.value)} style={{width:"100%",padding:".6rem .75rem",borderRadius:8,border:"1px solid var(--g200)",fontSize:".85rem",outline:"none",color:"var(--text)"}}>
-                <option value="all">All Areas</option>
-                {LOCATIONS.map(l=><option key={l}>{l}</option>)}
-              </select>
-            </div>
+            <div className={`search-filters-panel ${showMobileFilters ? "open" : ""}`} onClick={()=>setShowMobileFilters(false)} aria-hidden={!showMobileFilters}>
+              <div className="search-filters-sheet" onClick={e=>e.stopPropagation()}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:"1rem",marginBottom:"1rem"}}>
+                  <div>
+                    <div style={{fontFamily:"Syne",fontWeight:700,fontSize:"1.05rem",color:"var(--navy)"}}>Filter results</div>
+                    <p style={{fontSize:".82rem",color:"var(--muted)",marginTop:".2rem"}}>{resultsSummary}</p>
+                  </div>
+                  <button onClick={()=>setShowMobileFilters(false)} style={{background:"var(--g100)",border:"1px solid var(--g200)",borderRadius:999,padding:".42rem .7rem",fontWeight:700,fontSize:".8rem",cursor:"pointer"}}>
+                    ✕
+                  </button>
+                </div>
 
-            <div className="search-filter-section">
-              <div style={{fontWeight:700,fontSize:".82rem",marginBottom:".6rem"}}>Price Range (₦)</div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
-                <input value={priceMin} onChange={e=>setPriceMin(e.target.value)} placeholder="Min" type="number" style={{width:"100%",minWidth:0,padding:".58rem .6rem",borderRadius:8,border:"1px solid var(--g200)",fontSize:".82rem",outline:"none"}} />
-                <input value={priceMax} onChange={e=>setPriceMax(e.target.value)} placeholder="Max" type="number" style={{width:"100%",minWidth:0,padding:".58rem .6rem",borderRadius:8,border:"1px solid var(--g200)",fontSize:".82rem",outline:"none"}} />
-              </div>
-            </div>
+                <div className="search-filter-section">
+                  <div style={{fontWeight:700,fontSize:".82rem",marginBottom:".6rem"}}>Location</div>
+                  <select value={location} onChange={e=>setLocation(e.target.value)} style={{width:"100%",padding:".6rem .75rem",borderRadius:8,border:"1px solid var(--g200)",fontSize:".85rem",outline:"none",color:"var(--text)"}}>
+                    <option value="all">All Areas</option>
+                    {LOCATIONS.map(l=><option key={l}>{l}</option>)}
+                  </select>
+                </div>
 
-            <div className="search-filter-section">
-              <div style={{fontWeight:700,fontSize:".82rem",marginBottom:".6rem"}}>Listing Type</div>
-              <div style={{display:"grid",gap:".5rem"}}>
-                {["all","physical","digital","service"].map(t=>(
-                  <label key={t} style={{display:"flex",alignItems:"center",gap:".6rem",cursor:"pointer",fontSize:".85rem"}}>
-                    <input type="radio" name="type-mobile" checked={typeFilter===t} onChange={()=>setTypeFilter(t)} style={{accentColor:"var(--blue)"}} />
-                    {t==="all"?"All Types":t==="physical"?"📦 Physical":t==="digital"?"💾 Digital":"🔧 Service"}
+                <div className="search-filter-section">
+                  <div style={{fontWeight:700,fontSize:".82rem",marginBottom:".6rem"}}>Price Range (₦)</div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".5rem"}}>
+                    <input value={priceMin} onChange={e=>setPriceMin(e.target.value)} placeholder="Min" type="number" style={{width:"100%",minWidth:0,padding:".58rem .6rem",borderRadius:8,border:"1px solid var(--g200)",fontSize:".82rem",outline:"none"}} />
+                    <input value={priceMax} onChange={e=>setPriceMax(e.target.value)} placeholder="Max" type="number" style={{width:"100%",minWidth:0,padding:".58rem .6rem",borderRadius:8,border:"1px solid var(--g200)",fontSize:".82rem",outline:"none"}} />
+                  </div>
+                </div>
+
+                <div className="search-filter-section">
+                  <div style={{fontWeight:700,fontSize:".82rem",marginBottom:".6rem"}}>Listing Type</div>
+                  <div style={{display:"grid",gap:".5rem"}}>
+                    {["all","physical","digital","service"].map(t=>(
+                      <label key={t} style={{display:"flex",alignItems:"center",gap:".6rem",cursor:"pointer",fontSize:".85rem"}}>
+                        <input type="radio" name="type-mobile" checked={typeFilter===t} onChange={()=>setTypeFilter(t)} style={{accentColor:"var(--blue)"}} />
+                        {t==="all"?"All Types":t==="physical"?"📦 Physical":t==="digital"?"💾 Digital":"🔧 Service"}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="search-filter-section">
+                  <div style={{fontWeight:700,fontSize:".82rem",marginBottom:".6rem"}}>Minimum Rating</div>
+                  <div style={{display:"grid",gap:".5rem"}}>
+                    {[0,3,4,4.5].map(r=>(
+                      <label key={r} style={{display:"flex",alignItems:"center",gap:".6rem",cursor:"pointer",fontSize:".85rem"}}>
+                        <input type="radio" name="rating-mobile" checked={ratingFilter===r} onChange={()=>setRatingFilter(r)} style={{accentColor:"var(--blue)"}} />
+                        {r===0?"Any rating":`${r}★ & above`}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="search-filter-section">
+                  <div style={{fontWeight:700,fontSize:".82rem",marginBottom:".6rem"}}>Visibility</div>
+                  <label style={{display:"flex",alignItems:"center",gap:".6rem",cursor:"pointer",fontSize:".85rem"}}>
+                    <input type="checkbox" checked={sponsoredOnly} onChange={e=>setSponsoredOnly(e.target.checked)} style={{accentColor:"var(--amber)"}} />
+                    ⚡ Sponsored only
                   </label>
-                ))}
+                </div>
+
+                <div className="search-filter-actions">
+                  <button onClick={resetFilters} style={{flex:1,background:"#fff",border:"1px solid var(--g200)",color:"var(--g700)",borderRadius:10,padding:".75rem",fontWeight:700,fontSize:".85rem",cursor:"pointer"}}>Reset</button>
+                  <button onClick={()=>setShowMobileFilters(false)} style={{flex:1,background:"var(--navy)",border:"none",color:"#fff",borderRadius:10,padding:".75rem",fontWeight:800,fontSize:".85rem",cursor:"pointer"}}>Show results</button>
+                </div>
               </div>
             </div>
-
-            <div className="search-filter-section">
-              <div style={{fontWeight:700,fontSize:".82rem",marginBottom:".6rem"}}>Minimum Rating</div>
-              <div style={{display:"grid",gap:".5rem"}}>
-                {[0,3,4,4.5].map(r=>(
-                  <label key={r} style={{display:"flex",alignItems:"center",gap:".6rem",cursor:"pointer",fontSize:".85rem"}}>
-                    <input type="radio" name="rating-mobile" checked={ratingFilter===r} onChange={()=>setRatingFilter(r)} style={{accentColor:"var(--blue)"}} />
-                    {r===0?"Any rating":`${r}★ & above`}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className="search-filter-section">
-              <div style={{fontWeight:700,fontSize:".82rem",marginBottom:".6rem"}}>Visibility</div>
-              <label style={{display:"flex",alignItems:"center",gap:".6rem",cursor:"pointer",fontSize:".85rem"}}>
-                <input type="checkbox" checked={sponsoredOnly} onChange={e=>setSponsoredOnly(e.target.checked)} style={{accentColor:"var(--amber)"}} />
-                ⚡ Sponsored only
-              </label>
-            </div>
-
-            <div className="search-filter-actions">
-              <button onClick={resetFilters} style={{flex:1,background:"#fff",border:"1px solid var(--g200)",color:"var(--g700)",borderRadius:10,padding:".75rem",fontWeight:700,fontSize:".85rem",cursor:"pointer"}}>Reset</button>
-              <button onClick={()=>setShowMobileFilters(false)} style={{flex:1,background:"var(--navy)",border:"none",color:"#fff",borderRadius:10,padding:".75rem",fontWeight:800,fontSize:".85rem",cursor:"pointer"}}>Show results</button>
-            </div>
-          </div>
-        </div>
+          </>
+        )}
 
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.5rem",flexWrap:"wrap",gap:"1rem"}}>
           <div>
