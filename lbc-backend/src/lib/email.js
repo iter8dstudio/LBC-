@@ -24,7 +24,7 @@ const parseBooleanEnv = (value) => {
 };
 
 const smtpSecureOverride = parseBooleanEnv(process.env.SMTP_SECURE || process.env.EMAIL_SECURE);
-const smtpPriority = (process.env.EMAIL_PROVIDER_PRIORITY || '').trim().toLowerCase();
+const emailProviderMode = (process.env.EMAIL_PROVIDER_PRIORITY || '').trim().toLowerCase();
 const looksLikeGmailConfig = /gmail\.com$/i.test(mailHost || '') || /@gmail\.com$/i.test(mailUser || '');
 const mailPass = looksLikeGmailConfig ? rawMailPass.replace(/\s+/g, '') : rawMailPass;
 
@@ -98,7 +98,7 @@ const buildSmtpTransportConfigs = () => {
   });
 };
 
-const smtpTransportConfigs = buildSmtpTransportConfigs();
+const smtpTransportConfigs = emailProviderMode === 'resend-only' ? [] : buildSmtpTransportConfigs();
 const smtpTransports = smtpTransportConfigs.map((config) => nodemailer.createTransport(config));
 
 if (smtpTransports.length > 0 && process.env.NODE_ENV !== 'production') {
@@ -179,10 +179,15 @@ const sendViaSmtp = async ({ to, subject, html }) => {
 
 const sendEmail = async ({ to, subject, html }) => {
   const strategies = [];
+  const providerMode = ['resend-only', 'resend-first', 'smtp-only', 'smtp-first'].includes(emailProviderMode)
+    ? emailProviderMode
+    : (hasResendConfig ? 'resend-first' : 'smtp-first');
 
-  const preferSmtpFirst = smtpPriority === 'smtp-first' || (hasMailConfig && looksLikeGmailConfig);
-
-  if (preferSmtpFirst) {
+  if (providerMode === 'resend-only') {
+    if (hasResendConfig) strategies.push({ name: 'resend', fn: sendViaResend });
+  } else if (providerMode === 'smtp-only') {
+    if (smtpTransports.length > 0) strategies.push({ name: 'smtp', fn: sendViaSmtp });
+  } else if (providerMode === 'smtp-first') {
     if (smtpTransports.length > 0) strategies.push({ name: 'smtp', fn: sendViaSmtp });
     if (hasResendConfig) strategies.push({ name: 'resend', fn: sendViaResend });
   } else {
@@ -193,18 +198,18 @@ const sendEmail = async ({ to, subject, html }) => {
   for (const strategy of strategies) {
     const result = await strategy.fn({ to, subject, html });
     if (result.delivered) {
-      return result;
+      return { ...result, mode: providerMode };
     }
 
     console.error(`[EMAIL ${strategy.name.toUpperCase()} ERROR]`, result.error);
   }
 
   const error = hasResendConfig || smtpTransports.length > 0
-    ? 'All configured email providers failed to deliver the message.'
+    ? `All configured email providers failed to deliver the message (mode: ${providerMode}).`
     : 'Email is not configured. Set RESEND_API_KEY + RESEND_FROM_EMAIL or SMTP_* values.';
 
   console.error('Email send failed:', error);
-  return { delivered: false, error };
+  return { delivered: false, error, mode: providerMode };
 };
 
 const templates = {
