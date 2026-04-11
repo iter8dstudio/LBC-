@@ -198,59 +198,20 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
   .grid-footer { grid-template-columns: 1fr 1fr !important; gap: 1.5rem !important; }
 
   /* Search page */
-  .search-layout { grid-template-columns: 1fr !important; }
-  .search-filters-column { display: none !important; }
-  .search-results-pane { width: 100% !important; }
-  .search-filters-bar {
-    display: flex !important;
-    align-items: center;
-    justify-content: space-between;
-    gap: .65rem;
+  .search-layout {
+    grid-template-columns: minmax(13rem, 15rem) minmax(0, 1fr) !important;
+    gap: .9rem !important;
+    align-items: start !important;
+  }
+  .search-filters-column {
+    display: block !important;
     position: sticky !important;
-    top: calc(var(--nav-height) + .4rem);
-    z-index: 180;
-    background: rgba(248,250,252,.96);
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(226,232,240,.95);
-    border-radius: 999px;
-    padding: .45rem .55rem;
-    margin-bottom: .9rem;
-    box-shadow: 0 10px 30px rgba(6,13,31,.08);
+    top: calc(var(--nav-height) + .6rem) !important;
   }
-  .search-mobile-filter-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: .45rem;
-    border: none;
-    background: var(--navy);
-    color: #fff;
-    border-radius: 999px;
-    padding: .58rem .95rem;
-    font-size: .8rem;
-    font-weight: 800;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-  .search-mobile-filter-pill {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 1.2rem;
-    height: 1.2rem;
-    border-radius: 999px;
-    background: var(--amber);
-    color: #7c3e00;
-    font-size: .7rem;
-    font-weight: 900;
-    padding: 0 .35rem;
-  }
-  .search-mobile-filter-meta {
-    font-size: .74rem;
-    font-weight: 700;
-    color: var(--muted);
-    text-align: right;
+  .search-results-pane { width: 100% !important; }
+  .search-filters-bar,
+  .search-filters-panel {
+    display: none !important;
   }
   .search-products-grid,
   .storefront-products-grid {
@@ -408,6 +369,62 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
   .full-width-mobile { width: 100% !important; }
   .pad-mobile { padding: 1.25rem !important; }
   .text-sm-mobile { font-size: .82rem !important; }
+}
+
+@media (max-width: 500px) {
+  .search-layout { grid-template-columns: 1fr !important; }
+  .search-filters-column { display: none !important; }
+  .search-filters-bar {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: .65rem;
+    position: sticky !important;
+    top: calc(var(--nav-height) + .4rem);
+    z-index: 180;
+    background: rgba(248,250,252,.96);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(226,232,240,.95);
+    border-radius: 999px;
+    padding: .45rem .55rem;
+    margin-bottom: .9rem;
+    box-shadow: 0 10px 30px rgba(6,13,31,.08);
+  }
+  .search-mobile-filter-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+    border: none;
+    background: var(--navy);
+    color: #fff;
+    border-radius: 999px;
+    padding: .58rem .95rem;
+    font-size: .8rem;
+    font-weight: 800;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .search-mobile-filter-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.2rem;
+    height: 1.2rem;
+    border-radius: 999px;
+    background: var(--amber);
+    color: #7c3e00;
+    font-size: .7rem;
+    font-weight: 900;
+    padding: 0 .35rem;
+  }
+  .search-mobile-filter-meta {
+    font-size: .74rem;
+    font-weight: 700;
+    color: var(--muted);
+    text-align: right;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1475,7 +1492,7 @@ function SearchPage({ searchQ, activeCategory, setSelectedProduct, setSelectedBu
   const [tab,setTab] = useState("products");
   const [sort,setSort] = useState("relevance");
   const [showMobileFilters,setShowMobileFilters] = useState(false);
-  const isMobile = useIsMobile();
+  const isMobile = useIsMobile(500);
 
   const activeFilterCount = [
     priceMin !== "",
