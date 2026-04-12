@@ -1373,7 +1373,16 @@ const PAGE_PATHS = {
   onboarding: "/list-your-business",
   cart: "/cart",
   dashboard: "/dashboard",
+  dashboardOverview: "/dashboard/overview",
+  dashboardListings: "/dashboard/listings",
+  dashboardAnalytics: "/dashboard/analytics",
+  dashboardBoosts: "/dashboard/boosts",
   settings: "/settings",
+  settingsPersonal: "/settings/profile",
+  settingsStore: "/settings/store",
+  settingsSecurity: "/settings/security",
+  settingsNotifications: "/settings/notifications",
+  settingsAppearance: "/settings/appearance",
   boostCallback: "/boost-success",
   about: "/about",
   howitworks: "/how-it-works",
@@ -1452,6 +1461,16 @@ const buildAppUrl = (page, options = {}) => {
     return `${biz ? `/store/${slug}` : "/store"}${params.toString() ? `?${params.toString()}` : ""}`;
   }
 
+  if (normalizedPage === "dashboard") {
+    const tab = options.tab || "overview";
+    return `/dashboard/${tab}${params.toString() ? `?${params.toString()}` : ""}`;
+  }
+
+  if (normalizedPage === "settings") {
+    const section = options.section || "profile";
+    return `/settings/${section}${params.toString() ? `?${params.toString()}` : ""}`;
+  }
+
   const pathname = PAGE_PATHS[normalizedPage] || "/";
   return `${pathname}${params.toString() ? `?${params.toString()}` : ""}`;
 };
@@ -1467,6 +1486,30 @@ const resolveAppRoute = (locationLike = window.location) => {
 
   if (cleanPath === PAGE_PATHS.boostCallback) {
     return { page: "boostCallback", ...sharedState };
+  }
+
+  // Handle dashboard tabs: /dashboard/overview, /dashboard/listings, etc.
+  if (cleanPath.startsWith("/dashboard/")) {
+    const tab = cleanPath.split("/")[2] || "overview";
+    const validTabs = ["overview", "listings", "analytics", "boosts"];
+    const dashboardTab = validTabs.includes(tab) ? tab : "overview";
+    return { page: "dashboard", tab: dashboardTab, ...sharedState };
+  }
+
+  if (cleanPath === "/dashboard") {
+    return { page: "dashboard", tab: "overview", ...sharedState };
+  }
+
+  // Handle settings sections: /settings/profile, /settings/store, etc.
+  if (cleanPath.startsWith("/settings/")) {
+    const section = cleanPath.split("/")[2] || "profile";
+    const validSections = ["profile", "store", "security", "notifications", "appearance"];
+    const settingsSection = validSections.includes(section) ? section : "profile";
+    return { page: "settings", section: settingsSection, ...sharedState };
+  }
+
+  if (cleanPath === "/settings") {
+    return { page: "settings", section: "profile", ...sharedState };
   }
 
   if (cleanPath === PAGE_PATHS.product || cleanPath.startsWith("/listing/")) {
@@ -3226,8 +3269,9 @@ function LineChart({ datasets, labels }) {
   );
 }
 
-function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketplace }) {
-  const [tab, setTab] = useState("overview");
+function DashboardPage({ dashboardTab, user, setPage, setUser, vendorSettings, refreshMarketplace }) {
+  // Use the dashboardTab prop passed from App instead of local state
+  const tab = dashboardTab || "overview";
   const [listingStep, setListingStep] = useState(1);
   const [showAddListing, setShowAddListing] = useState(false);
   const [newListing, setNewListing] = useState(createEmptyListingDraft);
@@ -3942,7 +3986,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
       {/* ── SIDEBAR ── */}
       <aside className="dash-sidebar" style={{width:200,background:"var(--navy)",display:"flex",flexDirection:"column",padding:"1.5rem 0",flexShrink:0,position:"sticky",top:64,height:"calc(100vh - 64px)"}}>
         {SIDEBAR.map(s=>(
-          <button key={s.id} onClick={()=>setTab(s.id)}
+          <button key={s.id} onClick={()=>setPage("dashboard",{tab:s.id})}
             style={{display:"flex",alignItems:"center",gap:".75rem",padding:".85rem 1.5rem",border:"none",background:tab===s.id?"rgba(255,255,255,.1)":"transparent",color:tab===s.id?"#fff":"rgba(255,255,255,.45)",fontWeight:tab===s.id?700:500,fontSize:".87rem",cursor:"pointer",textAlign:"left",borderLeft:tab===s.id?"3px solid var(--blue)":"3px solid transparent",transition:"all .2s",fontFamily:"Manrope"}}>
             <span style={{fontSize:"1rem",opacity:tab===s.id?1:.6}}>{s.icon}</span>{s.label}
           </button>
@@ -3995,8 +4039,8 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
                 <p style={{color:"var(--muted)",fontSize:".88rem"}}>Here's your store performance at a glance.</p>
               </div>
               <div style={{display:"flex",gap:".6rem",flexWrap:"wrap"}}>
-                <button onClick={()=>{setTab("listings");setShowAddListing(true);}} style={{background:"var(--navy)",color:"#fff",border:"none",padding:".7rem 1.4rem",borderRadius:10,fontWeight:700,fontSize:".85rem",cursor:"pointer",display:"flex",alignItems:"center",gap:".5rem"}}>+ List a Product</button>
-                <button onClick={()=>setTab("boosts")} style={{background:"rgba(245,158,11,.12)",color:"#92600a",border:"1.5px solid var(--amber)",padding:".7rem 1.4rem",borderRadius:10,fontWeight:700,fontSize:".85rem",cursor:"pointer",display:"flex",alignItems:"center",gap:".5rem"}}>⚡ Boost a Product</button>
+                <button onClick={()=>{setPage("dashboard",{tab:"listings"});setShowAddListing(true);}} style={{background:"var(--navy)",color:"#fff",border:"none",padding:".7rem 1.4rem",borderRadius:10,fontWeight:700,fontSize:".85rem",cursor:"pointer",display:"flex",alignItems:"center",gap:".5rem"}}>+ List a Product</button>
+                <button onClick={()=>setPage("dashboard",{tab:"boosts"})} style={{background:"rgba(245,158,11,.12)",color:"#92600a",border:"1.5px solid var(--amber)",padding:".7rem 1.4rem",borderRadius:10,fontWeight:700,fontSize:".85rem",cursor:"pointer",display:"flex",alignItems:"center",gap:".5rem"}}>⚡ Boost a Product</button>
               </div>
             </div>
 
@@ -4122,7 +4166,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
                 <div style={{background:"#fff",border:"1px solid var(--g200)",borderRadius:"var(--r)",padding:"1.25rem"}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1rem"}}>
                     <h3 style={{fontFamily:"Syne",fontWeight:700,fontSize:".95rem"}}>⚡ Active Boosts</h3>
-                    <button onClick={()=>setTab("boosts")} style={{background:"none",border:"none",color:"var(--blue)",fontSize:".75rem",fontWeight:600,cursor:"pointer"}}>View all</button>
+                    <button onClick={()=>setPage("dashboard",{tab:"boosts"})} style={{background:"none",border:"none",color:"var(--blue)",fontSize:".75rem",fontWeight:600,cursor:"pointer"}}>View all</button>
                   </div>
                   {activeBoosts.length === 0 && (
                     <div style={{padding:".5rem 0",fontSize:".8rem",color:"var(--muted)"}}>
@@ -4154,7 +4198,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
                   <div style={{fontSize:".68rem",fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:"rgba(255,255,255,.4)",marginBottom:".5rem"}}>Current Plan</div>
                   <div style={{fontFamily:"Syne",fontSize:"1.1rem",fontWeight:800,color:"var(--amber)",marginBottom:".25rem"}}>{currentBoost ? `⚡ ${(boostPlans[currentBoost.plan]?.label || boostPlanOptions.find((plan) => plan.id === currentBoost.plan)?.label || currentBoost.plan)}` : 'No Active Plan'}</div>
                   <div style={{fontSize:".78rem",color:"rgba(255,255,255,.4)",marginBottom:"1rem"}}>{currentBoost ? `${getDaysLeft(currentBoost.endDate)} day${getDaysLeft(currentBoost.endDate) === 1 ? '' : 's'} remaining` : 'Activate a boost to increase visibility'}</div>
-                  <button onClick={()=>setTab("boosts")} style={{width:"100%",background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.15)",color:"#fff",borderRadius:8,padding:".65rem",fontWeight:700,fontSize:".82rem",cursor:"pointer"}}>Upgrade Plan</button>
+                  <button onClick={()=>setPage("dashboard",{tab:"boosts"})} style={{width:"100%",background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.15)",color:"#fff",borderRadius:8,padding:".65rem",fontWeight:700,fontSize:".82rem",cursor:"pointer"}}>Upgrade Plan</button>
                 </div>
               </div>
             </div>
@@ -4611,7 +4655,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
                       <td style={{padding:".875rem 1rem"}}>
                         {l.sponsored
                           ? <span style={{fontSize:".72rem",fontWeight:700,color:"#92600a",background:"rgba(245,158,11,.1)",padding:".25rem .6rem",borderRadius:100}}>⚡ Boosted</span>
-                          : <button onClick={()=>{setBoostProduct(l.id);setTab("boosts");}} style={{fontSize:".75rem",fontWeight:700,color:"var(--blue)",background:"rgba(0,102,255,.08)",border:"none",padding:".3rem .75rem",borderRadius:100,cursor:"pointer"}}>+ Boost</button>
+                          : <button onClick={()=>{setBoostProduct(l.id);setPage("dashboard",{tab:"boosts"});}} style={{fontSize:".75rem",fontWeight:700,color:"var(--blue)",background:"rgba(0,102,255,.08)",border:"none",padding:".3rem .75rem",borderRadius:100,cursor:"pointer"}}>+ Boost</button>
                         }
                       </td>
                       {/* Actions dropdown */}
@@ -4772,7 +4816,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
                 <div style={{fontSize:"4rem",marginBottom:"1rem"}}>⚡</div>
                 <h2 style={{fontFamily:"Syne",fontWeight:800,fontSize:"1.5rem",marginBottom:".75rem",color:"var(--navy)"}}>Boost Activated!</h2>
                 <p style={{color:"var(--muted)",fontSize:".9rem",marginBottom:"2rem"}}>Your listing will appear as sponsored within the next few minutes.</p>
-                <button onClick={()=>{setBoostDone(false);setTab("overview");}} style={{background:"var(--blue)",color:"#fff",border:"none",padding:".875rem 2rem",borderRadius:10,fontWeight:700,fontSize:".9rem",cursor:"pointer"}}>Back to Dashboard</button>
+                <button onClick={()=>{setBoostDone(false);setPage("dashboard",{tab:"overview"});}} style={{background:"var(--blue)",color:"#fff",border:"none",padding:".875rem 2rem",borderRadius:10,fontWeight:700,fontSize:".9rem",cursor:"pointer"}}>Back to Dashboard</button>
               </div>
             ) : (
               <div className="pdp-grid" style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) 320px",gap:"1.2rem",alignItems:"start"}}>
@@ -4993,6 +5037,8 @@ function Footer({ setPage }) {
 function App() {
   const initialRoute = resolveAppRoute();
   const [page,setPageState] = useState(initialRoute.page);
+  const [dashboardTab, setDashboardTabState] = useState(initialRoute.tab || "overview");
+  const [settingsSection, setSettingsSectionState] = useState(initialRoute.section || "profile");
   const [searchQ,setSearchQ] = useState(initialRoute.searchQ || "");
   const [activeCategory,setActiveCategory] = useState(initialRoute.activeCategory || "all");
   const [wishlist,setWishlist] = useState(() => readWishlistCache());
@@ -5005,6 +5051,8 @@ function App() {
   const [marketBusinesses, setMarketBusinesses] = useState([]);
   const routeStateRef = useRef({
     page: initialRoute.page,
+    tab: initialRoute.tab || "overview",
+    section: initialRoute.section || "profile",
     searchQ: initialRoute.searchQ || "",
     activeCategory: initialRoute.activeCategory || "all",
     selectedProduct: null,
@@ -5021,8 +5069,12 @@ function App() {
     const explicitBiz = Object.prototype.hasOwnProperty.call(options, "biz") ? options.biz : undefined;
     const nextProduct = normalizedPage === "product" ? (options.product ?? routeStateRef.current.selectedProduct ?? null) : null;
     const nextBiz = normalizedPage === "storefront" ? (explicitBiz !== undefined ? explicitBiz : null) : null;
+    const nextTab = normalizedPage === "dashboard" ? (options.tab || routeStateRef.current.tab || "overview") : undefined;
+    const nextSection = normalizedPage === "settings" ? (options.section || routeStateRef.current.section || "profile") : undefined;
     const nextRouteState = {
       page: normalizedPage,
+      tab: nextTab,
+      section: nextSection,
       searchQ: options.searchQ ?? routeStateRef.current.searchQ ?? "",
       activeCategory: options.activeCategory ?? routeStateRef.current.activeCategory ?? "all",
       selectedProduct: nextProduct,
@@ -5035,11 +5087,19 @@ function App() {
     if (normalizedPage === "storefront") {
       setStorefrontBiz(nextBiz);
     }
+    if (nextTab !== undefined) {
+      setDashboardTabState(nextTab);
+    }
+    if (nextSection !== undefined) {
+      setSettingsSectionState(nextSection);
+    }
 
     routeStateRef.current = nextRouteState;
     setPageState(normalizedPage);
 
     const nextUrl = buildAppUrl(normalizedPage, {
+      tab: nextTab,
+      section: nextSection,
       searchQ: nextRouteState.searchQ,
       activeCategory: nextRouteState.activeCategory,
       product: nextRouteState.selectedProduct,
@@ -5363,8 +5423,8 @@ function App() {
       {page==="signin" && <AuthPage setPage={setPage} setUser={setUser} />}
       {page==="onboarding" && <OnboardingPage setPage={setPage} user={user} setUser={setUser} refreshMarketplace={refreshMarketplace} />}
       {page==="cart" && <CartPage cart={cart} setCart={setCart} setPage={setPage} />}
-      {page==="dashboard" && <DashboardPage user={user} setUser={setUser} setPage={setPage} vendorSettings={vendorSettings} refreshMarketplace={refreshMarketplace} />}
-      {page==="settings" && <SettingsPage user={user} setUser={setUser} setPage={setPage} vendorSettings={vendorSettings} setVendorSettings={setVendorSettings} refreshMarketplace={refreshMarketplace} />}
+      {page==="dashboard" && <DashboardPage dashboardTab={dashboardTab} setPage={setPage} user={user} setUser={setUser} vendorSettings={vendorSettings} refreshMarketplace={refreshMarketplace} />}
+      {page==="settings" && <SettingsPage settingsSection={settingsSection} setPage={setPage} user={user} setUser={setUser} vendorSettings={vendorSettings} setVendorSettings={setVendorSettings} refreshMarketplace={refreshMarketplace} />}
       {page==="boostCallback" && <BoostCallbackPage setPage={setPage} setUser={setUser} />}
       {page==="about" && <AboutPage setPage={setPage} />}
       {page==="howitworks" && <HowItWorksPage setPage={setPage} />}
@@ -5467,10 +5527,11 @@ function SSection({ title, subtitle, icon, children, onSave, saved }) {
 }
 
 // ── SETTINGS PAGE ──
-function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSettings, refreshMarketplace }) {
+function SettingsPage({ settingsSection, user, setUser, setPage, vendorSettings, setVendorSettings, refreshMarketplace }) {
+  // Use the settingsSection prop passed from App instead of local state
+  const activeSection = settingsSection || "personal";
   const [local, setLocal] = useState({...vendorSettings, name: vendorSettings.name||user?.name||"", email: vendorSettings.email||user?.email||""});
   const [saved, setSaved] = useState({});
-  const [activeSection, setActiveSection] = useState("personal");
   const [isCompactViewport, setIsCompactViewport] = useState(() => window.innerWidth <= 768);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => window.innerWidth <= 768);
   const [pwForm, setPwForm] = useState({old:"",newp:"",confirm:""});
@@ -5756,7 +5817,7 @@ function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSetting
     setSidebarCollapsed((current) => !current);
   };
   const selectSection = (sectionId) => {
-    setActiveSection(sectionId);
+    setPage("settings", { section: sectionId });
     if (isCompactViewport) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
