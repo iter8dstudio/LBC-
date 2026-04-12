@@ -159,6 +159,18 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
 .settings-sidebar.is-collapsed .settings-back-btn { justify-content:center; }
 .settings-saved-dot { margin-left:auto; }
 .search-layout, .search-layout > * { min-width:0; max-width:100%; }
+.chart-x-lbl { font-size: 8.5px; }
+.dash-period-btns { display:flex; flex-wrap:wrap; gap:.35rem; }
+.dash-period-btn {
+  border:1px solid transparent;
+  border-radius:7px;
+  padding:.34rem .62rem;
+  font-size:clamp(.62rem,2.3vw,.74rem);
+  font-weight:600;
+  line-height:1.1;
+  cursor:pointer;
+  white-space:nowrap;
+}
 .search-results-pane, .dash-main, .dash-content-shell, .storefront-layout, .storefront-toolbar { min-width:0; max-width:100%; }
 .search-products-grid, .search-business-grid, .storefront-products-grid { width:100%; min-width:0; max-width:100%; }
 
@@ -544,6 +556,48 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
   .hero-title { font-size: 1.7rem !important; }
   .otp-box { width: 40px !important; height: 48px !important; font-size: 1.2rem !important; }
   .phone-otp-box { width: 36px !important; height: 44px !important; }
+
+  /* ── Dashboard & Listings ≤480px ── */
+  .dash-main { padding: .875rem .875rem 88px !important; }
+  .dash-stats-grid { gap: .625rem !important; }
+  .dash-chart-toggles {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: .45rem !important;
+  }
+  .dash-overview-panels { gap: .875rem !important; }
+  .dash-analytics-stats { gap: .75rem !important; }
+  .dash-analytics-charts { gap: 1rem !important; }
+  .dash-perf-header {
+    flex-wrap: wrap !important;
+    gap: .6rem !important;
+    align-items: center !important;
+  }
+  .dash-perf-header h3 { font-size: clamp(.82rem, 3.6vw, .92rem) !important; }
+  .dash-period-btns { gap: .25rem !important; }
+  .dash-period-btn {
+    padding: .3rem .5rem !important;
+    font-size: clamp(.58rem, 2.8vw, .68rem) !important;
+  }
+
+  .dash-listings-scroll {
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+  }
+
+  .dash-listings-table {
+    min-width: 940px !important;
+  }
+
+  .dash-listings-table th,
+  .dash-listings-table td,
+  .dash-listings-table th *,
+  .dash-listings-table td * {
+    white-space: nowrap !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+    writing-mode: horizontal-tb !important;
+    text-orientation: mixed !important;
+  }
 }
 
 @media (max-width: 390px) {
@@ -3138,7 +3192,7 @@ function LineChart({ datasets, labels }) {
       {/* X labels */}
       {resolvedLabels.map((l,i)=>{
         const x = PAD + ((resolvedLabels.length <= 1 ? 0 : i/(resolvedLabels.length-1)))*(W-PAD*2);
-        return <text key={i} x={x} y={H-6} textAnchor="middle" fontSize="9" fill="#94a3b8">{l}</text>;
+        return <text key={i} x={x} y={H-6} textAnchor="middle" className="chart-x-lbl" fill="#94a3b8">{l}</text>;
       })}
       {/* Lines */}
       {datasets.map((ds,i)=>(
@@ -3926,9 +3980,8 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
                 <div style={{display:"flex",alignItems:"flex-start",gap:"1rem",flexWrap:"wrap"}}>
                   <div style={{width:40,height:40,borderRadius:10,background:"rgba(245,158,11,.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.25rem",flexShrink:0}}>📱</div>
                   <div style={{flex:1,minWidth:220}}>
-                    <div style={{display:"flex",alignItems:"center",gap:".6rem",marginBottom:".25rem"}}>
-                      <span style={{fontWeight:800,fontSize:".95rem",color:"var(--navy)"}}>Verify your phone number</span>
-                      <span style={{background:"rgba(245,158,11,.15)",color:"#92600a",fontSize:".68rem",fontWeight:800,padding:".15rem .55rem",borderRadius:100}}>REQUIRED</span>
+                    <div style={{marginBottom:".25rem"}}>
+                      <span style={{fontWeight:800,fontSize:".95rem",color:"var(--navy)"}}>Verify your phone number <span style={{color:"#92600a",fontSize:"inherit",fontWeight:700}}>(required)</span></span>
                     </div>
                     <p style={{fontSize:".82rem",color:"var(--muted)",margin:0}}>
                       {phoneOtpSent
@@ -4010,14 +4063,16 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
             <div className="dash-overview-panels" style={{display:"grid",gridTemplateColumns:"1fr 300px",gap:"1.5rem"}}>
               {/* Performance chart */}
               <div style={{background:"#fff",border:"1px solid var(--g200)",borderRadius:"var(--r)",padding:"1.5rem"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.25rem"}}>
+                <div className="dash-perf-header" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.25rem"}}>
                   <h3 style={{fontFamily:"Syne",fontWeight:700,fontSize:"1rem"}}>Performance</h3>
-                  <div style={{display:"flex",background:"var(--g100)",borderRadius:8,overflow:"hidden"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:".5rem"}}>
+                    <div className="dash-period-btns">
                     {["Monthly","Weekly","Daily"].map(p=>(
-                      <button key={p} onClick={()=>setChartPeriod(p)} style={{padding:".4rem .85rem",border:"none",background:chartPeriod===p?"var(--navy)":"transparent",color:chartPeriod===p?"#fff":"var(--muted)",fontSize:".75rem",fontWeight:600,cursor:"pointer"}}>
+                      <button className="dash-period-btn" key={p} onClick={()=>setChartPeriod(p)} style={{background:chartPeriod===p?"var(--navy)":"var(--g100)",color:chartPeriod===p?"#fff":"var(--muted)",borderColor:chartPeriod===p?"var(--navy)":"var(--g200)"}}>
                         {p}
                       </button>
                     ))}
+                    </div>
                   </div>
                 </div>
                 <LineChart datasets={datasets} labels={chartLabels} />
@@ -4082,7 +4137,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
 
         {/* ── LISTINGS ── */}
         {tab==="listings" && (
-          <div style={{padding:"2rem 2.5rem"}}>
+          <div className="dash-main" style={{padding:"2rem 2.25rem 2rem 1.35rem"}}>
             <div className="listing-toolbar-mobile" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"2rem"}}>
               <div>
                 <h1 style={{fontFamily:"Syne",fontWeight:800,fontSize:"1.4rem",marginBottom:".25rem"}}>My Listings</h1>
@@ -4490,7 +4545,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
             )}
 
             {/* Listings table */}
-            <div className="dash-listings-scroll" style={{background:"#fff",border:"1px solid var(--g200)",borderRadius:"var(--r)",overflow:"visible"}} onClick={()=>setOpenMenuId(null)}>
+            <div className="dash-listings-scroll" style={{background:"#fff",border:"1px solid var(--g200)",borderRadius:"var(--r)",overflowX:"auto",overflowY:"visible",position:"relative",zIndex:2}} onClick={()=>setOpenMenuId(null)}>
               <table className="dash-listings-table" style={{width:"100%",borderCollapse:"collapse"}}>
                 <thead>
                   <tr style={{background:"var(--g100)",borderBottom:"1px solid var(--g200)"}}>
@@ -4534,13 +4589,13 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
                         }
                       </td>
                       {/* Actions dropdown */}
-                      <td style={{padding:".875rem 1rem",position:"relative"}}>
+                      <td style={{padding:".875rem 1rem",position:"relative",zIndex:openMenuId===l.id?40:"auto"}}>
                         <button onClick={e=>{e.stopPropagation();setOpenMenuId(openMenuId===l.id?null:l.id);}}
                           style={{background:openMenuId===l.id?"var(--g200)":"var(--g100)",border:"1px solid var(--g200)",borderRadius:8,padding:".35rem .75rem",cursor:"pointer",fontWeight:700,color:"var(--g700)",fontSize:".85rem",transition:"background .15s"}}>
                           ⋯
                         </button>
                         {openMenuId===l.id && (
-                          <div onClick={e=>e.stopPropagation()} style={{position:"absolute",right:"1rem",top:"calc(100% - .25rem)",background:"#fff",border:"1px solid var(--g200)",borderRadius:12,boxShadow:"0 8px 32px rgba(6,13,31,.14)",zIndex:300,minWidth:180,overflow:"hidden",animation:"fadeUp .15s ease both"}}>
+                          <div onClick={e=>e.stopPropagation()} style={{position:"absolute",right:"1rem",top:"calc(100% - .25rem)",background:"#fff",border:"1px solid var(--g200)",borderRadius:12,boxShadow:"0 8px 32px rgba(6,13,31,.14)",zIndex:9999,minWidth:180,overflow:"hidden",animation:"fadeUp .15s ease both"}}>
                             {/* Edit */}
                             <button onClick={()=>{setEditListing({...l});setEditStep(1);setOpenMenuId(null);}}
                               style={{display:"flex",alignItems:"center",gap:".6rem",width:"100%",padding:".75rem 1rem",border:"none",background:"none",cursor:"pointer",fontSize:".85rem",fontWeight:600,color:"var(--text)",textAlign:"left"}}
