@@ -6313,6 +6313,26 @@ function SectionBlock({ title, children }) {
 // ── 1. ABOUT LBC ──
 // ════════════════════════════════════════════════════════════
 function AboutPage({ setPage }) {
+  const formatAboutStatValue = (value) => {
+    const input = String(value ?? "").trim();
+    if (!input) return input;
+
+    const hasPlus = input.endsWith("+");
+    const numericPortion = hasPlus ? input.slice(0, -1) : input;
+    const numericValue = Number(numericPortion.replace(/,/g, ""));
+
+    if (!Number.isFinite(numericValue) || numericValue < 1000) {
+      return input;
+    }
+
+    const compactThousands = numericValue / 1000;
+    const rounded = Number.isInteger(compactThousands)
+      ? String(compactThousands)
+      : compactThousands.toFixed(1).replace(/\.0$/, "");
+
+    return `${rounded}k${hasPlus ? "+" : ""}`;
+  };
+
   const stats = [
     {n:"12,000+",l:"Businesses Listed"},
     {n:"80,000+",l:"Products & Services"},
@@ -6349,7 +6369,7 @@ function AboutPage({ setPage }) {
           <div className="about-stats-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(200px,100%),1fr))",gap:"1.25rem"}}>
             {stats.map(s=>(
               <div key={s.l} className="about-stat-card" style={{background:"#fff",border:"1px solid var(--g200)",borderRadius:16,padding:"1.5rem",textAlign:"center"}}>
-                <div className="about-stat-value" style={{fontFamily:"Syne",fontWeight:900,fontSize:"2rem",color:"var(--blue)",marginBottom:".25rem"}}>{s.n}</div>
+                <div className="about-stat-value" style={{fontFamily:"Syne",fontWeight:900,fontSize:"2rem",color:"var(--blue)",marginBottom:".25rem"}}>{formatAboutStatValue(s.n)}</div>
                 <div className="about-stat-label" style={{fontSize:".82rem",color:"var(--muted)",fontWeight:600}}>{s.l}</div>
               </div>
             ))}
