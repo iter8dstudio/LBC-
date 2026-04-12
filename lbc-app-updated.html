@@ -159,6 +159,7 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
 .settings-sidebar.is-collapsed .settings-back-btn { justify-content:center; }
 .settings-saved-dot { margin-left:auto; }
 .search-layout, .search-layout > * { min-width:0; max-width:100%; }
+.chart-x-lbl { font-size: 8.5px; }
 .search-results-pane, .dash-main, .dash-content-shell, .storefront-layout, .storefront-toolbar { min-width:0; max-width:100%; }
 .search-products-grid, .search-business-grid, .storefront-products-grid { width:100%; min-width:0; max-width:100%; }
 
@@ -544,6 +545,23 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
   .hero-title { font-size: 1.7rem !important; }
   .otp-box { width: 40px !important; height: 48px !important; font-size: 1.2rem !important; }
   .phone-otp-box { width: 36px !important; height: 44px !important; }
+
+  /* ── Dashboard & Listings ≤480px ── */
+  .dash-main { padding: .875rem .875rem 88px !important; }
+  .dash-stats-grid { gap: .625rem !important; }
+  .dash-chart-toggles {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: .45rem !important;
+  }
+  .dash-overview-panels { gap: .875rem !important; }
+  .dash-analytics-stats { gap: .75rem !important; }
+  .dash-analytics-charts { gap: 1rem !important; }
+  .dash-perf-header {
+    flex-wrap: wrap !important;
+    gap: .6rem !important;
+    align-items: center !important;
+  }
+  .dash-perf-header h3 { font-size: .9rem !important; }
 }
 
 @media (max-width: 390px) {
@@ -563,6 +581,15 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
   .search-products-grid .product-card [data-card-price] {
     font-size: .82rem !important;
   }
+}
+
+@media (max-width: 360px) {
+  /* ── Very small screen dashboard refinements ── */
+  .dash-main { padding: .75rem .75rem 88px !important; }
+  .dash-stats-grid { gap: .45rem !important; }
+  .dash-stats-grid > * { padding: .85rem .65rem !important; }
+  .dash-chart-toggles { gap: .3rem !important; }
+  .dash-chart-toggles label { padding: .4rem .5rem !important; }
 }
 
 @media (max-width: 430px) {
@@ -3138,7 +3165,7 @@ function LineChart({ datasets, labels }) {
       {/* X labels */}
       {resolvedLabels.map((l,i)=>{
         const x = PAD + ((resolvedLabels.length <= 1 ? 0 : i/(resolvedLabels.length-1)))*(W-PAD*2);
-        return <text key={i} x={x} y={H-6} textAnchor="middle" fontSize="9" fill="#94a3b8">{l}</text>;
+        return <text key={i} x={x} y={H-6} textAnchor="middle" className="chart-x-lbl" fill="#94a3b8">{l}</text>;
       })}
       {/* Lines */}
       {datasets.map((ds,i)=>(
@@ -4010,7 +4037,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
             <div className="dash-overview-panels" style={{display:"grid",gridTemplateColumns:"1fr 300px",gap:"1.5rem"}}>
               {/* Performance chart */}
               <div style={{background:"#fff",border:"1px solid var(--g200)",borderRadius:"var(--r)",padding:"1.5rem"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.25rem"}}>
+                <div className="dash-perf-header" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.25rem"}}>
                   <h3 style={{fontFamily:"Syne",fontWeight:700,fontSize:"1rem"}}>Performance</h3>
                   <div style={{display:"flex",background:"var(--g100)",borderRadius:8,overflow:"hidden"}}>
                     {["Monthly","Weekly","Daily"].map(p=>(
@@ -4082,7 +4109,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
 
         {/* ── LISTINGS ── */}
         {tab==="listings" && (
-          <div style={{padding:"2rem 2.5rem"}}>
+          <div className="dash-main" style={{padding:"2rem 2.5rem"}}>
             <div className="listing-toolbar-mobile" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"2rem"}}>
               <div>
                 <h1 style={{fontFamily:"Syne",fontWeight:800,fontSize:"1.4rem",marginBottom:".25rem"}}>My Listings</h1>
@@ -4582,7 +4609,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
 
         {/* ── ANALYTICS ── */}
         {tab==="analytics" && (
-          <div style={{padding:"2rem 2.5rem"}}>
+          <div className="dash-main" style={{padding:"2rem 2.5rem"}}>
             <div style={{marginBottom:"2rem"}}>
               <h1 style={{fontFamily:"Syne",fontWeight:800,fontSize:"1.4rem",marginBottom:".25rem"}}>Analytics</h1>
               <p style={{color:"var(--muted)",fontSize:".85rem"}}>Track how your listings and store are performing.</p>
