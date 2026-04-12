@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' http://localhost:8000 http://localhost:5000 https://testlbc-production.up.railway.app https://api.lbc.ng; frame-ancestors 'none'; base-uri 'self';" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' http://localhost:8000 http://localhost:5000 https://testlbc-production.up.railway.app https://api.lbc.ng; frame-ancestors 'none'; base-uri 'self';" />
 <title>LBC — Lekki Business Connect</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -369,6 +369,118 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
   .full-width-mobile { width: 100% !important; }
   .pad-mobile { padding: 1.25rem !important; }
   .text-sm-mobile { font-size: .82rem !important; }
+}
+
+@media (max-width: 550px) {
+  .mobile-fluid-text,
+  .mobile-fluid-text * {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+
+  .mobile-fluid-text h1 {
+    font-size: clamp(1.15rem, 5.2vw, 1.45rem) !important;
+    line-height: 1.18 !important;
+  }
+
+  .mobile-fluid-text h2 {
+    font-size: clamp(1rem, 4.6vw, 1.25rem) !important;
+    line-height: 1.22 !important;
+  }
+
+  .mobile-fluid-text h3 {
+    font-size: clamp(.88rem, 4vw, 1.05rem) !important;
+    line-height: 1.26 !important;
+  }
+
+  .mobile-fluid-text p,
+  .mobile-fluid-text label,
+  .mobile-fluid-text button,
+  .mobile-fluid-text a,
+  .mobile-fluid-text li,
+  .mobile-fluid-text span {
+    font-size: clamp(.68rem, 3.15vw, .84rem) !important;
+    line-height: 1.45 !important;
+    white-space: normal !important;
+  }
+
+  .mobile-fluid-text input,
+  .mobile-fluid-text select,
+  .mobile-fluid-text textarea {
+    font-size: .86rem !important;
+  }
+
+  .about-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: .75rem !important;
+  }
+
+  .about-stat-card {
+    padding: .9rem .65rem !important;
+  }
+
+  .about-stat-value {
+    font-size: clamp(1.05rem, 5vw, 1.45rem) !important;
+  }
+
+  .listing-toolbar-mobile,
+  .listing-composer-header,
+  .listing-gallery-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: .75rem !important;
+  }
+
+  .listing-add-button {
+    width: 100% !important;
+  }
+
+  .listing-composer-card {
+    padding: 1rem !important;
+  }
+
+  .listing-progress-mobile {
+    flex-direction: column !important;
+    gap: .65rem !important;
+  }
+
+  .listing-type-selector {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: .5rem !important;
+  }
+
+  .listing-type-selector > *,
+  .listing-progress-mobile > * {
+    min-width: 0 !important;
+  }
+
+  .listing-two-col {
+    grid-template-columns: 1fr !important;
+    gap: .8rem !important;
+  }
+
+  .listing-main-upload {
+    padding: 1rem !important;
+  }
+
+  .listing-preview-img {
+    width: 120px !important;
+    height: 120px !important;
+  }
+
+  .listing-gallery-grid,
+  .edit-gallery-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: .5rem !important;
+  }
+
+  .listing-upload-slot {
+    font-size: .62rem !important;
+    padding: .35rem !important;
+  }
 }
 
 @media (max-width: 500px) {
@@ -1027,6 +1139,65 @@ const buildWhatsAppHref = (value, message = "") => {
   return `https://wa.me/${sanitized}${message ? `?text=${encodeURIComponent(message)}` : ""}`;
 };
 
+const PAYSTACK_PENDING_STORAGE_KEY = 'lbc.paystack.pending.v1';
+const PAYSTACK_CANCEL_EVENT = 'lbc:paystack-checkout-cancelled';
+
+const hasPaystackReferenceInUrl = (locationLike = window.location) => {
+  const params = new URLSearchParams(locationLike.search || '');
+  return Boolean(params.get('reference') || params.get('trxref'));
+};
+
+const markPendingPaystackCheckout = (context, metadata = {}) => {
+  try {
+    sessionStorage.setItem(PAYSTACK_PENDING_STORAGE_KEY, JSON.stringify({
+      context,
+      metadata,
+      startedAt: Date.now(),
+    }));
+  } catch {
+    // Ignore storage failures.
+  }
+};
+
+const readPendingPaystackCheckout = () => {
+  try {
+    const raw = sessionStorage.getItem(PAYSTACK_PENDING_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+const clearPendingPaystackCheckout = () => {
+  try {
+    sessionStorage.removeItem(PAYSTACK_PENDING_STORAGE_KEY);
+  } catch {
+    // Ignore storage failures.
+  }
+};
+
+const recoverPendingPaystackCheckout = (expectedContext, onCancel) => {
+  const pendingCheckout = readPendingPaystackCheckout();
+  if (!pendingCheckout || pendingCheckout.context !== expectedContext) return false;
+  if (hasPaystackReferenceInUrl()) return false;
+
+  clearPendingPaystackCheckout();
+
+  try {
+    window.dispatchEvent(new CustomEvent(PAYSTACK_CANCEL_EVENT, {
+      detail: {
+        context: expectedContext,
+        ...(pendingCheckout.metadata || {}),
+      },
+    }));
+  } catch {
+    // Ignore event dispatch issues.
+  }
+
+  onCancel?.(pendingCheckout);
+  return true;
+};
+
 const normalizeStore = (store) => {
   if (!store) return null;
   if (store.name && store.id && store.location) return store;
@@ -1114,6 +1285,145 @@ const createEmptyListingDraft = () => ({
   galleryFiles:[],
   galleryPreviews:[],
 });
+
+const PAGE_PATHS = {
+  home: "/",
+  search: "/search",
+  product: "/listing",
+  storefront: "/store",
+  signin: "/signin",
+  onboarding: "/list-your-business",
+  cart: "/cart",
+  dashboard: "/dashboard",
+  settings: "/settings",
+  boostCallback: "/boost-success",
+  about: "/about",
+  howitworks: "/how-it-works",
+  pricing: "/pricing",
+  blog: "/blog",
+  faq: "/faq",
+  contact: "/contact",
+  report: "/report-business",
+  advertise: "/advertise",
+  privacy: "/privacy-policy",
+  userterms: "/user-terms",
+  cookies: "/cookie-policy",
+};
+
+const APP_PAGE_TITLES = {
+  home: "Home",
+  search: "Search",
+  product: "Listing",
+  storefront: "Storefront",
+  signin: "Sign In",
+  onboarding: "List Your Business",
+  cart: "Cart",
+  dashboard: "Dashboard",
+  settings: "Settings",
+  boostCallback: "Boost Confirmation",
+  about: "About",
+  howitworks: "How It Works",
+  pricing: "Pricing",
+  blog: "Blog",
+  faq: "FAQ",
+  contact: "Contact",
+  report: "Report a Business",
+  advertise: "Advertise",
+  privacy: "Privacy Policy",
+  userterms: "User Terms",
+  cookies: "Cookie Policy",
+};
+
+const slugifyRoutePart = (value = "") => {
+  const slug = String(value || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[’']/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return slug || "page";
+};
+
+const buildAppUrl = (page, options = {}) => {
+  const normalizedPage = page === "boosts" ? "dashboard" : (page || "home");
+  const params = new URLSearchParams();
+
+  if (normalizedPage === "search") {
+    if (options.searchQ) params.set("q", options.searchQ);
+    if (options.activeCategory && options.activeCategory !== "all") {
+      params.set("category", options.activeCategory);
+    }
+  }
+
+  if (normalizedPage === "product") {
+    const product = options.product || null;
+    const slug = product ? slugifyRoutePart(product.name) : "listing";
+    if (product?.id != null) params.set("id", String(product.id));
+    if (options.searchQ) params.set("q", options.searchQ);
+    if (options.activeCategory && options.activeCategory !== "all") {
+      params.set("category", options.activeCategory);
+    }
+    return `/listing/${slug}${params.toString() ? `?${params.toString()}` : ""}`;
+  }
+
+  if (normalizedPage === "storefront") {
+    const biz = options.biz || null;
+    const slug = biz?.slug || slugifyRoutePart(biz?.name || "store");
+    if (biz?.id != null) params.set("id", String(biz.id));
+    return `${biz ? `/store/${slug}` : "/store"}${params.toString() ? `?${params.toString()}` : ""}`;
+  }
+
+  const pathname = PAGE_PATHS[normalizedPage] || "/";
+  return `${pathname}${params.toString() ? `?${params.toString()}` : ""}`;
+};
+
+const resolveAppRoute = (locationLike = window.location) => {
+  const pathname = locationLike.pathname || "/";
+  const cleanPath = pathname === "/" ? "/" : pathname.replace(/\/+$/, "");
+  const params = new URLSearchParams(locationLike.search || "");
+  const sharedState = {
+    searchQ: params.get("q") || "",
+    activeCategory: params.get("category") || "all",
+  };
+
+  if (cleanPath === PAGE_PATHS.boostCallback) {
+    return { page: "boostCallback", ...sharedState };
+  }
+
+  if (cleanPath === PAGE_PATHS.product || cleanPath.startsWith("/listing/")) {
+    return {
+      page: "product",
+      productId: params.get("id") || "",
+      productSlug: decodeURIComponent(cleanPath.split("/")[2] || ""),
+      ...sharedState,
+    };
+  }
+
+  if (cleanPath === PAGE_PATHS.storefront || cleanPath.startsWith("/store/")) {
+    return {
+      page: "storefront",
+      businessId: params.get("id") || "",
+      businessSlug: decodeURIComponent(cleanPath.split("/")[2] || ""),
+      ...sharedState,
+    };
+  }
+
+  const matchedPage = Object.entries(PAGE_PATHS).find(([, route]) => route === cleanPath)?.[0] || "home";
+  return { page: matchedPage, ...sharedState };
+};
+
+const findByRouteMatch = (items = [], { id = "", slug = "", nameKey = "name", slugKey = "slug" } = {}) => (
+  items.find((item) => {
+    if (!item) return false;
+    if (id && String(item.id) === String(id)) return true;
+    if (slug) {
+      const itemSlug = item?.[slugKey] || slugifyRoutePart(item?.[nameKey] || "");
+      return itemSlug === slug;
+    }
+    return false;
+  }) || null
+);
 
 // ── NAVBAR ──
 // ── USER DROPDOWN (proper component so hooks work) ──
@@ -2437,12 +2747,43 @@ function OnboardingPage({ setPage, user, setUser, refreshMarketplace }) {
         throw new Error('Failed to initialize checkout. Please try again.');
       }
 
+      markPendingPaystackCheckout('onboarding-plan', {
+        plan: biz.plan,
+        target: 'store',
+      });
       window.location.href = initiated.authorizationUrl;
     } catch (err) {
+      clearPendingPaystackCheckout();
       setSubmitError(err.message || 'Failed to initialize payment. Please try again.');
       setPlanCheckoutLoading(false);
     }
   };
+
+  useEffect(() => {
+    const resetCancelledCheckout = () => {
+      recoverPendingPaystackCheckout('onboarding-plan', () => {
+        setPlanCheckoutLoading(false);
+        setSubmitError('Payment was cancelled or not completed. You can try again or choose another plan.');
+      });
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        resetCancelledCheckout();
+      }
+    };
+
+    resetCancelledCheckout();
+    window.addEventListener('pageshow', resetCancelledCheckout);
+    window.addEventListener('focus', resetCancelledCheckout);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('pageshow', resetCancelledCheckout);
+      window.removeEventListener('focus', resetCancelledCheckout);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   if(done) return (
     <div style={{minHeight:"calc(100vh - 64px)",display:"flex",alignItems:"center",justifyContent:"center",textAlign:"center",padding:"2rem"}}>
@@ -3111,12 +3452,44 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
         throw new Error('Boost payment initialization failed.');
       }
 
+      markPendingPaystackCheckout('dashboard-boost', {
+        plan: selectedBoostPlan.id,
+        target: boostTarget,
+        listingId: boostTarget === 'product' ? String(boostProduct) : '',
+      });
       window.location.href = initiated.authorizationUrl;
     } catch (err) {
+      clearPendingPaystackCheckout();
       setBoostActionError(err.message || 'Failed to initialize boost payment.');
       setBoostActionLoading(false);
     }
   };
+
+  useEffect(() => {
+    const resetCancelledBoostCheckout = () => {
+      recoverPendingPaystackCheckout('dashboard-boost', () => {
+        setBoostActionLoading(false);
+        setBoostActionError('Payment was cancelled or not completed. You can try again or boost something else.');
+      });
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        resetCancelledBoostCheckout();
+      }
+    };
+
+    resetCancelledBoostCheckout();
+    window.addEventListener('pageshow', resetCancelledBoostCheckout);
+    window.addEventListener('focus', resetCancelledBoostCheckout);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('pageshow', resetCancelledBoostCheckout);
+      window.removeEventListener('focus', resetCancelledBoostCheckout);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   useEffect(() => {
     if (!user?.accessToken) return;
@@ -3401,7 +3774,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
   ].map(d=>({...d, active: chartToggles[d.key]}));
 
   return (
-    <div className="dash-layout app-shell" style={{display:"flex",minHeight:"calc(100vh - 64px)",background:"var(--offwhite)"}}>
+    <div className="dash-layout app-shell mobile-fluid-text" style={{display:"flex",minHeight:"calc(100vh - 64px)",background:"var(--offwhite)"}}>
 
       {/* ── MOBILE TOP BAR ── */}
       <div className="mob-show-flex dash-mobile-topbar" style={{display:"none",position:"sticky",top:64,zIndex:90,background:"var(--navy)",alignItems:"center",justifyContent:"space-between",padding:".65rem .85rem",borderBottom:"1px solid rgba(255,255,255,.08)",pointerEvents:"none"}}>
@@ -3710,18 +4083,18 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
         {/* ── LISTINGS ── */}
         {tab==="listings" && (
           <div style={{padding:"2rem 2.5rem"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"2rem"}}>
+            <div className="listing-toolbar-mobile" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"2rem"}}>
               <div>
                 <h1 style={{fontFamily:"Syne",fontWeight:800,fontSize:"1.4rem",marginBottom:".25rem"}}>My Listings</h1>
                 <p style={{color:"var(--muted)",fontSize:".85rem"}}>{listings.length} listings · {listings.filter(l=>l.status==="live").length} live</p>
               </div>
-              <button onClick={()=>setShowAddListing(true)} style={{background:"var(--navy)",color:"#fff",border:"none",padding:".75rem 1.5rem",borderRadius:10,fontWeight:700,fontSize:".85rem",cursor:"pointer"}}>+ List a Product</button>
+              <button className="listing-add-button" onClick={()=>setShowAddListing(true)} style={{background:"var(--navy)",color:"#fff",border:"none",padding:".75rem 1.5rem",borderRadius:10,fontWeight:700,fontSize:".85rem",cursor:"pointer"}}>+ List a Product</button>
             </div>
 
             {/* Add listing modal/form */}
             {showAddListing && (
-              <div style={{background:"#fff",border:"1px solid var(--g200)",borderRadius:16,padding:"2rem",marginBottom:"2rem",boxShadow:"var(--sh)",animation:"fadeUp .3s ease both"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.5rem"}}>
+              <div className="listing-composer-card" style={{background:"#fff",border:"1px solid var(--g200)",borderRadius:16,padding:"2rem",marginBottom:"2rem",boxShadow:"var(--sh)",animation:"fadeUp .3s ease both"}}>
+                <div className="listing-composer-header" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.5rem"}}>
                   <h3 style={{fontFamily:"Syne",fontWeight:800,fontSize:"1.1rem"}}>
                     {listingStep===1?"📦 Product Details":listingStep===2?"🖼️ Media & Gallery":"✅ Review & Publish"}
                   </h3>
@@ -3729,7 +4102,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
                 </div>
 
                 {/* Progress */}
-                <div style={{display:"flex",gap:".5rem",marginBottom:"1.75rem"}}>
+                <div className="listing-progress-mobile" style={{display:"flex",gap:".5rem",marginBottom:"1.75rem"}}>
                   {["Details","Media","Publish"].map((s,i)=>(
                     <div key={s} style={{flex:1,display:"flex",alignItems:"center",gap:".4rem"}}>
                       <div style={{width:24,height:24,borderRadius:"50%",background:listingStep>i?"var(--green)":listingStep===i+1?"var(--blue)":"var(--g200)",color:listingStep>=i+1?"#fff":"var(--muted)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:".7rem",fontWeight:800,flexShrink:0}}>
@@ -3747,7 +4120,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
                     {/* Type selector */}
                     <div>
                       <label style={{display:"block",fontSize:".82rem",fontWeight:700,color:"var(--g700)",marginBottom:".6rem"}}>Listing Type *</label>
-                      <div style={{display:"flex",gap:".75rem"}}>
+                      <div className="listing-type-selector" style={{display:"flex",gap:".75rem"}}>
                         {[{id:"physical",icon:"📦",label:"Physical"},{id:"digital",icon:"💾",label:"Digital"},{id:"service",icon:"🔧",label:"Service"}].map(t=>(
                           <div key={t.id} onClick={()=>updL("type",t.id)} style={{flex:1,border:`2px solid ${newListing.type===t.id?"var(--blue)":"var(--g200)"}`,borderRadius:10,padding:".875rem",textAlign:"center",cursor:"pointer",background:newListing.type===t.id?"rgba(0,102,255,.04)":"#fff",transition:"all .2s"}}>
                             <div style={{fontSize:"1.4rem",marginBottom:".25rem"}}>{t.icon}</div>
@@ -3795,12 +4168,12 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
                     <div>
                       <label style={{display:"block",fontSize:".82rem",fontWeight:700,color:"var(--g700)",marginBottom:".6rem"}}>Main Product Image *</label>
                       <input ref={mainImageInputRef} type="file" accept="image/png,image/jpeg,image/webp" style={{display:"none"}} onChange={handleMainImageSelection} />
-                      <div onClick={()=>mainImageInputRef.current?.click()} style={{border:"2px dashed var(--g300)",borderRadius:12,padding:"2.5rem",textAlign:"center",background:"var(--g100)",cursor:"pointer",color:"var(--muted)",transition:"all .2s"}}
+                      <div className="listing-main-upload" onClick={()=>mainImageInputRef.current?.click()} style={{border:"2px dashed var(--g300)",borderRadius:12,padding:"2.5rem",textAlign:"center",background:"var(--g100)",cursor:"pointer",color:"var(--muted)",transition:"all .2s"}}
                         onMouseEnter={e=>{e.currentTarget.style.borderColor="var(--blue)";e.currentTarget.style.background="rgba(0,102,255,.02)";}}
                         onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--g300)";e.currentTarget.style.background="var(--g100)";}}>
                         {newListing.mainImagePreview ? (
                           <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:".8rem"}}>
-                            <img src={newListing.mainImagePreview} alt="Main listing preview" style={{width:160,height:160,borderRadius:14,objectFit:"cover",boxShadow:"var(--sh)"}} />
+                            <img className="listing-preview-img" src={newListing.mainImagePreview} alt="Main listing preview" style={{width:160,height:160,borderRadius:14,objectFit:"cover",boxShadow:"var(--sh)"}} />
                             <div>
                               <p style={{fontWeight:700,fontSize:".9rem",marginBottom:".25rem",color:"var(--text)"}}>Main image selected</p>
                               <p style={{fontSize:".75rem"}}>Click to replace image</p>
@@ -3819,7 +4192,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
                     {/* Gallery toggle */}
                     {newListing.type !== "service" && (
                       <div>
-                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:".75rem"}}>
+                        <div className="listing-gallery-header" style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:".75rem"}}>
                           <div>
                             <label style={{display:"block",fontSize:".82rem",fontWeight:700,color:"var(--g700)"}}>Product Gallery</label>
                             <p style={{fontSize:".75rem",color:"var(--muted)",marginTop:".15rem"}}>Add multiple angles or variations of your product.</p>
@@ -3832,7 +4205,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
                         {newListing.showGallery && (
                           <>
                             <input ref={galleryInputRef} type="file" accept="image/png,image/jpeg,image/webp" multiple style={{display:"none"}} onChange={handleGallerySelection} />
-                            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:".75rem"}}>
+                            <div className="listing-gallery-grid" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:".75rem"}}>
                               {Array.from({ length: 4 }).map((_, index) => {
                                 const preview = newListing.galleryPreviews[index];
 
@@ -3848,7 +4221,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
                                 }
 
                                 return (
-                                  <div key={index} onClick={()=>galleryInputRef.current?.click()} style={{border:"2px dashed var(--g300)",borderRadius:10,aspectRatio:"1/1",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",background:"var(--g100)",color:"var(--muted)",fontSize:".72rem",gap:".3rem",transition:"all .2s"}}
+                                  <div className="listing-upload-slot" key={index} onClick={()=>galleryInputRef.current?.click()} style={{border:"2px dashed var(--g300)",borderRadius:10,aspectRatio:"1/1",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",background:"var(--g100)",color:"var(--muted)",fontSize:".72rem",gap:".3rem",transition:"all .2s"}}
                                     onMouseEnter={e=>{e.currentTarget.style.borderColor="var(--blue)";}}
                                     onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--g300)";}}>
                                     <span style={{fontSize:"1.25rem"}}>+</span>
@@ -3951,7 +4324,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
               <div style={{position:"fixed",inset:0,background:"rgba(6,13,31,.55)",zIndex:900,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem",overflowY:"auto"}} onClick={()=>{setEditListing(null);setEditStep(1);setEditMainImageFile(null);setEditGalleryFiles([null,null,null,null]);}}>
                 <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:20,padding:"2rem",maxWidth:560,width:"100%",boxShadow:"0 24px 64px rgba(0,0,0,.25)",animation:"scaleIn .25s ease both",margin:"auto"}}>
                   {/* Header */}
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.5rem"}}>
+                  <div className="listing-composer-header" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.5rem"}}>
                     <h3 style={{fontFamily:"Syne",fontWeight:800,fontSize:"1.1rem"}}>
                       {editStep===1?"✏️ Edit Details":editStep===2?"🖼️ Edit Media":"✅ Save Changes"}
                     </h3>
@@ -3959,7 +4332,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
                   </div>
 
                   {/* Step indicator */}
-                  <div style={{display:"flex",gap:".5rem",marginBottom:"1.75rem"}}>
+                  <div className="listing-progress-mobile" style={{display:"flex",gap:".5rem",marginBottom:"1.75rem"}}>
                     {["Details","Media","Save"].map((s,i)=>(
                       <div key={s} style={{flex:1,display:"flex",alignItems:"center",gap:".4rem"}}>
                         <div style={{width:22,height:22,borderRadius:"50%",background:editStep>i?"var(--green)":editStep===i+1?"var(--blue)":"var(--g200)",color:editStep>=i+1?"#fff":"var(--muted)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:".65rem",fontWeight:800,flexShrink:0}}>
@@ -3977,7 +4350,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
                       {/* Type */}
                       <div>
                         <label style={{display:"block",fontSize:".82rem",fontWeight:700,color:"var(--g700)",marginBottom:".6rem"}}>Listing Type</label>
-                        <div style={{display:"flex",gap:".6rem"}}>
+                        <div className="listing-type-selector" style={{display:"flex",gap:".6rem"}}>
                           {[{id:"physical",icon:"📦",label:"Physical"},{id:"digital",icon:"💾",label:"Digital"},{id:"service",icon:"🔧",label:"Service"}].map(t=>(
                             <div key={t.id} onClick={()=>updEdit("type",t.id)} style={{flex:1,border:`2px solid ${editListing.type===t.id?"var(--blue)":"var(--g200)"}`,borderRadius:10,padding:".75rem",textAlign:"center",cursor:"pointer",background:editListing.type===t.id?"rgba(0,102,255,.04)":"#fff",transition:"all .2s"}}>
                               <div style={{fontSize:"1.2rem",marginBottom:".2rem"}}>{t.icon}</div>
@@ -3992,7 +4365,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
                         <input value={editListing.name} onChange={e=>updEdit("name",e.target.value)} style={{width:"100%",padding:".75rem 1rem",borderRadius:8,border:"1px solid var(--g200)",fontSize:".9rem",outline:"none"}} onFocus={e=>e.target.style.borderColor="var(--blue)"} onBlur={e=>e.target.style.borderColor="var(--g200)"} />
                       </div>
                       {/* Price + Category */}
-                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1rem"}}>
+                      <div className="listing-two-col" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1rem"}}>
                         <div>
                           <label style={{display:"block",fontSize:".82rem",fontWeight:700,color:"var(--g700)",marginBottom:".4rem"}}>Price (₦) *</label>
                           <input value={editListing.price} onChange={e=>updEdit("price",parseInt(e.target.value)||0)} type="number" style={{width:"100%",minWidth:0,padding:".75rem 1rem",borderRadius:8,border:"1px solid var(--g200)",fontSize:".9rem",outline:"none"}} onFocus={e=>e.target.style.borderColor="var(--blue)"} onBlur={e=>e.target.style.borderColor="var(--g200)"} />
@@ -4050,10 +4423,10 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
                       {editListing.type !== "service" && (
                         <div>
                           <label style={{display:"block",fontSize:".82rem",fontWeight:700,color:"var(--g700)",marginBottom:".5rem"}}>Gallery Images (up to 4)</label>
-                          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:".6rem"}}>
+                          <div className="edit-gallery-grid" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:".6rem"}}>
                             {[0,1,2,3].map(i=>(
                               <div key={i}>
-                                <div 
+                                <div className="listing-upload-slot"
                                   onClick={()=>editGalleryInputRefs[i].current?.click()}
                                   style={{border:editGalleryFiles[i]?"2px solid var(--green)":"2px dashed var(--g300)",borderRadius:8,aspectRatio:"1/1",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",background:editGalleryFiles[i]?"rgba(34,197,94,.04)":"var(--g100)",color:"var(--muted)",fontSize:".7rem",gap:".2rem",transition:"all .2s",position:"relative"}}
                                   onMouseEnter={e=>!editGalleryFiles[i]&&(e.currentTarget.style.borderColor="var(--blue)",e.currentTarget.style.background="rgba(0,102,255,.05)")}
@@ -4412,6 +4785,8 @@ function BoostCallbackPage({ setPage, setUser }) {
   const [state, setState] = useState({ status: 'verifying', message: 'Confirming your Paystack payment and activating your boost…' });
 
   useEffect(() => {
+    clearPendingPaystackCheckout();
+
     let mounted = true;
     const params = new URLSearchParams(window.location.search);
     const reference = params.get('reference') || params.get('trxref');
@@ -4442,8 +4817,7 @@ function BoostCallbackPage({ setPage, setUser }) {
         });
 
         setTimeout(() => {
-          window.history.replaceState({}, '', '/');
-          setPage('dashboard');
+          setPage('dashboard', { replace: true });
         }, 2500);
       } catch (err) {
         if (mounted) {
@@ -4470,8 +4844,8 @@ function BoostCallbackPage({ setPage, setUser }) {
           </div>
         )}
         {state.status === 'error' && (
-          <button onClick={() => { window.history.replaceState({}, '', '/'); setPage('boosts'); }} style={{marginTop:"1rem",background:"var(--blue)",color:"#fff",border:"none",padding:".85rem 1.5rem",borderRadius:10,fontWeight:700,cursor:"pointer"}}>
-            Back to Boosts
+          <button onClick={() => setPage('dashboard', { replace: true })} style={{marginTop:"1rem",background:"var(--blue)",color:"#fff",border:"none",padding:".85rem 1.5rem",borderRadius:10,fontWeight:700,cursor:"pointer"}}>
+            Back to Dashboard
           </button>
         )}
       </div>
@@ -4518,9 +4892,10 @@ function Footer({ setPage }) {
 
 // ── APP ──
 function App() {
-  const [page,setPage] = useState(() => window.location.pathname === '/boost-success' ? 'boostCallback' : 'home');
-  const [searchQ,setSearchQ] = useState("");
-  const [activeCategory,setActiveCategory] = useState("all");
+  const initialRoute = resolveAppRoute();
+  const [page,setPageState] = useState(initialRoute.page);
+  const [searchQ,setSearchQ] = useState(initialRoute.searchQ || "");
+  const [activeCategory,setActiveCategory] = useState(initialRoute.activeCategory || "all");
   const [wishlist,setWishlist] = useState(() => readWishlistCache());
   const [cart,setCart] = useState([]);
   const [user,setUser] = useState(null);
@@ -4529,6 +4904,56 @@ function App() {
   const [storefrontBiz,setStorefrontBiz] = useState(null);
   const [marketProducts, setMarketProducts] = useState([]);
   const [marketBusinesses, setMarketBusinesses] = useState([]);
+  const routeStateRef = useRef({
+    page: initialRoute.page,
+    searchQ: initialRoute.searchQ || "",
+    activeCategory: initialRoute.activeCategory || "all",
+    selectedProduct: null,
+    storefrontBiz: null,
+  });
+
+  const setPage = useCallback((nextPage, options = {}) => {
+    if (typeof nextPage === "function") {
+      setPageState((currentPage) => nextPage(currentPage));
+      return;
+    }
+
+    const normalizedPage = nextPage === "boosts" ? "dashboard" : (nextPage || "home");
+    const explicitBiz = Object.prototype.hasOwnProperty.call(options, "biz") ? options.biz : undefined;
+    const nextProduct = normalizedPage === "product" ? (options.product ?? routeStateRef.current.selectedProduct ?? null) : null;
+    const nextBiz = normalizedPage === "storefront" ? (explicitBiz !== undefined ? explicitBiz : null) : null;
+    const nextRouteState = {
+      page: normalizedPage,
+      searchQ: options.searchQ ?? routeStateRef.current.searchQ ?? "",
+      activeCategory: options.activeCategory ?? routeStateRef.current.activeCategory ?? "all",
+      selectedProduct: nextProduct,
+      storefrontBiz: nextBiz,
+    };
+
+    if (options.product) {
+      setSelectedProductState(options.product);
+    }
+    if (normalizedPage === "storefront") {
+      setStorefrontBiz(nextBiz);
+    }
+
+    routeStateRef.current = nextRouteState;
+    setPageState(normalizedPage);
+
+    const nextUrl = buildAppUrl(normalizedPage, {
+      searchQ: nextRouteState.searchQ,
+      activeCategory: nextRouteState.activeCategory,
+      product: nextRouteState.selectedProduct,
+      biz: nextRouteState.storefrontBiz,
+    });
+    const currentUrl = `${window.location.pathname}${window.location.search}`;
+
+    if (options.replace || currentUrl === nextUrl) {
+      window.history.replaceState(nextRouteState, "", nextUrl);
+    } else {
+      window.history.pushState(nextRouteState, "", nextUrl);
+    }
+  }, []);
 
   // Global vendor settings — synced with backend user data
   const [vendorSettings, setVendorSettings] = useState({
@@ -4607,13 +5032,99 @@ function App() {
     }
   }, [wishlist, user?.accessToken, user?.refreshToken]);
 
-  const setSelectedProduct = (p) => { setSelectedProductState(p); setPage("product"); };
-  const setSelectedBusiness = (b) => { setStorefrontBiz(b); setPage("storefront"); };
-  const openStorefront = (biz) => { setStorefrontBiz(biz); setPage("storefront"); };
+  const setSelectedProduct = (p) => {
+    setSelectedProductState(p);
+    setPage("product", { product: p });
+  };
+  const setSelectedBusiness = (b) => {
+    setSelectedBusinessState(b);
+    setStorefrontBiz(b);
+    setPage("storefront", { biz: b });
+  };
+  const openStorefront = (biz) => {
+    setSelectedBusinessState(biz);
+    setStorefrontBiz(biz);
+    setPage("storefront", { biz });
+  };
   const showCatBar = ["home","search"].includes(page);
   const footerPages = ["about","howitworks","pricing","blog","faq","contact","report","advertise","privacy","userterms","cookies","refund"];
   const isDash = ["dashboard","settings"].includes(page);
   const hasVendorStorefront = user?.role === "VENDOR" && Boolean(vendorSettings?.storeId || user?.store?.id);
+
+  useEffect(() => {
+    routeStateRef.current = {
+      page,
+      searchQ,
+      activeCategory,
+      selectedProduct,
+      storefrontBiz,
+    };
+
+    const nextUrl = buildAppUrl(page, {
+      searchQ,
+      activeCategory,
+      product: selectedProduct,
+      biz: storefrontBiz,
+    });
+    const currentUrl = `${window.location.pathname}${window.location.search}`;
+
+    if (currentUrl !== nextUrl || !window.history.state?.page) {
+      window.history.replaceState(routeStateRef.current, "", nextUrl);
+    }
+
+    document.title = `${APP_PAGE_TITLES[page] || "LBC"} — Lekki Business Connect`;
+  }, [page, searchQ, activeCategory, selectedProduct, storefrontBiz]);
+
+  useEffect(() => {
+    const hydrateRouteState = (historyState) => {
+      const resolvedState = historyState?.page ? historyState : resolveAppRoute(window.location);
+
+      setPageState(resolvedState.page || "home");
+      if (typeof resolvedState.searchQ === "string") setSearchQ(resolvedState.searchQ);
+      if (resolvedState.activeCategory) setActiveCategory(resolvedState.activeCategory);
+      if (Object.prototype.hasOwnProperty.call(resolvedState, "selectedProduct")) {
+        setSelectedProductState(resolvedState.selectedProduct || null);
+      }
+      if (Object.prototype.hasOwnProperty.call(resolvedState, "storefrontBiz")) {
+        setStorefrontBiz(resolvedState.storefrontBiz || null);
+      }
+    };
+
+    hydrateRouteState(window.history.state);
+
+    const handlePopState = (event) => hydrateRouteState(event.state);
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  useEffect(() => {
+    const route = resolveAppRoute(window.location);
+
+    if (route.page === "product" && !selectedProduct && marketProducts.length) {
+      const matchedProduct = findByRouteMatch(marketProducts, {
+        id: route.productId,
+        slug: route.productSlug,
+        nameKey: "name",
+      });
+      if (matchedProduct) {
+        setSelectedProductState(matchedProduct);
+      }
+    }
+
+    if (route.page === "storefront" && !storefrontBiz && marketBusinesses.length) {
+      const matchedBusiness = findByRouteMatch(marketBusinesses, {
+        id: route.businessId,
+        slug: route.businessSlug,
+        nameKey: "name",
+        slugKey: "slug",
+      });
+      if (matchedBusiness) {
+        setSelectedBusinessState(matchedBusiness);
+        setStorefrontBiz(matchedBusiness);
+      }
+    }
+  }, [marketProducts, marketBusinesses, selectedProduct, storefrontBiz]);
+
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
   }, [page]);
@@ -5770,7 +6281,7 @@ function PageHero({ title, subtitle, badge }) {
 
 function PageWrap({ children, setPage }) {
   return (
-    <div style={{minHeight:"100vh",background:"var(--offwhite)"}}>
+    <div className="mobile-fluid-text" style={{minHeight:"100vh",background:"var(--offwhite)"}}>
       {children}
       <div style={{background:"var(--navy)",padding:"2rem",textAlign:"center"}}>
         <button onClick={()=>setPage("home")} style={{background:"var(--blue)",color:"#fff",border:"none",padding:".75rem 2rem",borderRadius:10,fontWeight:700,fontSize:".9rem",cursor:"pointer"}}>← Back to LBC</button>
@@ -5802,10 +6313,30 @@ function SectionBlock({ title, children }) {
 // ── 1. ABOUT LBC ──
 // ════════════════════════════════════════════════════════════
 function AboutPage({ setPage }) {
+  const formatAboutStatValue = (value) => {
+    const input = String(value ?? "").trim();
+    if (!input) return input;
+
+    const hasPlus = input.endsWith("+");
+    const numericPortion = hasPlus ? input.slice(0, -1) : input;
+    const numericValue = Number(numericPortion.replace(/,/g, ""));
+
+    if (!Number.isFinite(numericValue) || numericValue < 1000) {
+      return input;
+    }
+
+    const compactThousands = numericValue / 1000;
+    const rounded = Number.isInteger(compactThousands)
+      ? String(compactThousands)
+      : compactThousands.toFixed(1).replace(/\.0$/, "");
+
+    return `${rounded}k${hasPlus ? "+" : ""}`;
+  };
+
   const stats = [
-    {n:"12,000+",l:"Businesses Listed"},
-    {n:"80,000+",l:"Products & Services"},
-    {n:"200,000+",l:"Monthly Shoppers"},
+    {n:"12k+",l:"Businesses Listed"},
+    {n:"80k+",l:"Products & Services"},
+    {n:"200k+",l:"Monthly Shoppers"},
     {n:"40+",l:"Lagos Areas Covered"},
   ];
   const values = [
@@ -5835,11 +6366,11 @@ function AboutPage({ setPage }) {
 
         {/* Stats */}
         <SectionBlock title="LBC By the Numbers">
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(200px,100%),1fr))",gap:"1.25rem"}}>
+          <div className="about-stats-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(200px,100%),1fr))",gap:"1.25rem"}}>
             {stats.map(s=>(
-              <div key={s.l} style={{background:"#fff",border:"1px solid var(--g200)",borderRadius:16,padding:"1.5rem",textAlign:"center"}}>
-                <div style={{fontFamily:"Syne",fontWeight:900,fontSize:"2rem",color:"var(--blue)",marginBottom:".25rem"}}>{s.n}</div>
-                <div style={{fontSize:".82rem",color:"var(--muted)",fontWeight:600}}>{s.l}</div>
+              <div key={s.l} className="about-stat-card" style={{background:"#fff",border:"1px solid var(--g200)",borderRadius:16,padding:"1.5rem",textAlign:"center"}}>
+                <div className="about-stat-value" style={{fontFamily:"Syne",fontWeight:900,fontSize:"2rem",color:"var(--blue)",marginBottom:".25rem"}}>{formatAboutStatValue(s.n)}</div>
+                <div className="about-stat-label" style={{fontSize:".82rem",color:"var(--muted)",fontWeight:600}}>{s.l}</div>
               </div>
             ))}
           </div>
