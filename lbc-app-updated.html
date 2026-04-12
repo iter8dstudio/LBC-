@@ -160,6 +160,8 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
 .settings-saved-dot { margin-left:auto; }
 .search-layout, .search-layout > * { min-width:0; max-width:100%; }
 .chart-x-lbl { font-size: 8.5px; }
+.dash-period-btns { display:flex; }
+.dash-period-sel { display:none; border:none; background:var(--g100); border-radius:8; padding:.4rem .6rem; font-size:.75rem; font-weight:600; color:var(--navy); cursor:pointer; outline:none; }
 .search-results-pane, .dash-main, .dash-content-shell, .storefront-layout, .storefront-toolbar { min-width:0; max-width:100%; }
 .search-products-grid, .search-business-grid, .storefront-products-grid { width:100%; min-width:0; max-width:100%; }
 
@@ -562,6 +564,8 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
     align-items: center !important;
   }
   .dash-perf-header h3 { font-size: .9rem !important; }
+  .dash-period-btns { display:none !important; }
+  .dash-period-sel { display:block !important; }
 }
 
 @media (max-width: 390px) {
@@ -3953,9 +3957,8 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
                 <div style={{display:"flex",alignItems:"flex-start",gap:"1rem",flexWrap:"wrap"}}>
                   <div style={{width:40,height:40,borderRadius:10,background:"rgba(245,158,11,.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.25rem",flexShrink:0}}>📱</div>
                   <div style={{flex:1,minWidth:220}}>
-                    <div style={{display:"flex",alignItems:"center",gap:".6rem",marginBottom:".25rem"}}>
-                      <span style={{fontWeight:800,fontSize:".95rem",color:"var(--navy)"}}>Verify your phone number</span>
-                      <span style={{background:"rgba(245,158,11,.15)",color:"#92600a",fontSize:".68rem",fontWeight:800,padding:".15rem .55rem",borderRadius:100}}>REQUIRED</span>
+                    <div style={{marginBottom:".25rem"}}>
+                      <span style={{fontWeight:800,fontSize:".95rem",color:"var(--navy)"}}>Verify your phone number&nbsp;<span style={{color:"#92600a",fontSize:".8rem",fontWeight:800}}>— required</span></span>
                     </div>
                     <p style={{fontSize:".82rem",color:"var(--muted)",margin:0}}>
                       {phoneOtpSent
@@ -4039,12 +4042,19 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
               <div style={{background:"#fff",border:"1px solid var(--g200)",borderRadius:"var(--r)",padding:"1.5rem"}}>
                 <div className="dash-perf-header" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.25rem"}}>
                   <h3 style={{fontFamily:"Syne",fontWeight:700,fontSize:"1rem"}}>Performance</h3>
-                  <div style={{display:"flex",background:"var(--g100)",borderRadius:8,overflow:"hidden"}}>
-                    {["Monthly","Weekly","Daily"].map(p=>(
-                      <button key={p} onClick={()=>setChartPeriod(p)} style={{padding:".4rem .85rem",border:"none",background:chartPeriod===p?"var(--navy)":"transparent",color:chartPeriod===p?"#fff":"var(--muted)",fontSize:".75rem",fontWeight:600,cursor:"pointer"}}>
-                        {p}
-                      </button>
-                    ))}
+                  <div style={{display:"flex",alignItems:"center",gap:".5rem"}}>
+                    <div className="dash-period-btns" style={{display:"flex",background:"var(--g100)",borderRadius:8,overflow:"hidden"}}>
+                      {["Monthly","Weekly","Daily"].map(p=>(
+                        <button key={p} onClick={()=>setChartPeriod(p)} style={{padding:".4rem clamp(.45rem,.9vw,.85rem)",border:"none",background:chartPeriod===p?"var(--navy)":"transparent",color:chartPeriod===p?"#fff":"var(--muted)",fontSize:"clamp(.62rem,.9vw,.75rem)",fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>
+                          {p}
+                        </button>
+                      ))}
+                    </div>
+                    <select className="dash-period-sel" value={chartPeriod} onChange={e=>setChartPeriod(e.target.value)}>
+                      {["Monthly","Weekly","Daily"].map(p=>(
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
                 <LineChart datasets={datasets} labels={chartLabels} />
