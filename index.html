@@ -1183,6 +1183,19 @@ const CATEGORIES = [
   { id:"digital", label:"Digital Products", icon:"📦" },
   { id:"automotive", label:"Automotive", icon:"🚗" },
   { id:"kids", label:"Kids & Baby", icon:"👶" },
+  { id:"furniture", label:"Furniture", icon:"🪑" },
+  { id:"travel-tours", label:"Travel & Tours", icon:"✈️" },
+  { id:"banks-fintech", label:"Banks & Fintech", icon:"🏦" },
+  { id:"hotels-airbnb", label:"Hotels and Airbnb", icon:"🏨" },
+  { id:"gyms", label:"Gyms", icon:"💪" },
+  { id:"restaurants", label:"Restaurants", icon:"🍴" },
+  { id:"religious-services", label:"Religious services", icon:"⛪" },
+  { id:"supermarkets", label:"Supermarkets", icon:"🛒" },
+  { id:"logistics", label:"Logistics", icon:"🚚" },
+  { id:"hospitals", label:"Hospitals", icon:"🏥" },
+  { id:"hotels", label:"Hotels", icon:"🏨" },
+  { id:"energy", label:"Energy", icon:"⚡" },
+  { id:"auto-parts", label:"Auto Parts Dealerships", icon:"🔧" },
 ];
 
 const LOCATIONS = [
@@ -1797,7 +1810,7 @@ function PromoBanner({ setPage, user, hasVendorStorefront }) {
       <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse 60% 80% at 0% 50%,rgba(0,102,255,.2) 0%,transparent 60%)"}} />
       <div style={{padding:"3rem",position:"relative",zIndex:2}}>
         <p style={{fontSize:".72rem",fontWeight:700,letterSpacing:".14em",textTransform:"uppercase",color:"var(--blue-l)",marginBottom:"1rem"}}>🚀 Visibility Engine</p>
-        <h2 style={{fontFamily:"Syne",fontSize:"1.8rem",fontWeight:800,color:"#fff",letterSpacing:"-.03em",lineHeight:1.15,marginBottom:"1rem"}}>Connect with Millions of Customers in <span style={{color:"var(--amber)"}}>Lagos</span></h2>
+        <h2 style={{fontFamily:"Syne",fontSize:"1.8rem",fontWeight:800,color:"#fff",letterSpacing:"-.03em",lineHeight:1.15,marginBottom:"1rem"}}>Connect with Millions of Businesses in <span style={{color:"var(--amber)"}}>Lagos Near You</span></h2>
         <p style={{color:"rgba(255,255,255,.5)",fontSize:".88rem",lineHeight:1.7,marginBottom:"2rem"}}>LBC puts your business in front of local buyers. Sponsored listings always appear first.</p>
         <div style={{display:"flex",gap:".75rem",marginBottom:"2rem",flexWrap:"wrap"}}>
           {plans.map((pl,i)=>(
@@ -1853,7 +1866,7 @@ function HomePage({ setPage, searchQ, setSearchQ, activeCategory, setActiveCateg
         <div style={{position:"absolute",inset:0,backgroundImage:"linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px)",backgroundSize:"40px 40px"}} />
         <div style={{position:"relative",zIndex:2,maxWidth:680,margin:"0 auto",animation:"fadeUp .6s ease both"}}>
           <div style={{display:"inline-flex",alignItems:"center",gap:".4rem",background:"rgba(0,102,255,.15)",border:"1px solid rgba(0,102,255,.35)",borderRadius:100,padding:".35rem 1rem",fontSize:".78rem",color:"rgba(255,255,255,.8)",marginBottom:"1.75rem",fontWeight:500}}>
-            📍 Serving Lekki, Ajah, VI & Ikoyi
+            Serving all of Lagos
           </div>
           <h1 className="hero-title" style={{fontFamily:"Syne",fontSize:"clamp(2.4rem,5vw,3.75rem)",fontWeight:800,color:"#fff",lineHeight:1.1,letterSpacing:"-.03em",marginBottom:"1rem"}}>
             Discover the <span style={{color:"var(--blue)"}}>Best</span> of<br/><span style={{color:"var(--amber)"}}>Lagos</span> — Near You
