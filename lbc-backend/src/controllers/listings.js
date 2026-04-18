@@ -267,6 +267,7 @@ exports.uploadImages = async (req, res) => {
       return res.status(403).json({ error: 'Not authorised' });
     }
 
+    const setAsMain = req.body && req.body.setAsMain === 'true';
     const uploads = await Promise.all(
       req.files.map((file) =>
         uploadToCloudinary(file.buffer, 'listings', {
@@ -276,13 +277,22 @@ exports.uploadImages = async (req, res) => {
     );
 
     const urls = uploads.map((u) => u.secure_url);
-    const [mainImage, ...rest] = urls;
+    const mainImageUrl = setAsMain ? urls[0] : listing.mainImage || urls[0];
+    const galleryUrls = [];
+
+    if (setAsMain) {
+      galleryUrls.push(...urls.slice(1));
+    } else if (listing.mainImage) {
+      galleryUrls.push(...urls);
+    } else {
+      galleryUrls.push(...urls.slice(1));
+    }
 
     const updated = await prisma.listing.update({
       where: { id: listing.id },
       data: {
-        mainImage: listing.mainImage || mainImage,
-        images: [...listing.images, ...urls],
+        mainImage: mainImageUrl,
+        images: [...(listing.images || []), ...galleryUrls],
       },
     });
 

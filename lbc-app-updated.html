@@ -898,7 +898,10 @@ class ApiService {
     }
 
     if (!response.ok) {
-      throw new Error(data.error || data.message || `Request failed (${response.status})`);
+      const detailMessage = data.details && Array.isArray(data.details)
+        ? data.details.map(d => `${d.path}: ${d.message}`).join('; ')
+        : null;
+      throw new Error(detailMessage ? `${data.error || data.message}: ${detailMessage}` : data.error || data.message || `Request failed (${response.status})`);
     }
 
     return data;
@@ -1001,9 +1004,12 @@ class ApiService {
     });
   }
 
-  async uploadListingImages(listingId, files) {
+  async uploadListingImages(listingId, files, options = {}) {
     const formData = new FormData();
     files.forEach((file) => formData.append('images', file));
+    if (options.setAsMain) {
+      formData.append('setAsMain', 'true');
+    }
 
     return this.request(`/listings/${listingId}/images`, {
       method: 'POST',
@@ -1340,6 +1346,8 @@ const normalizeListing = (listing, storesById = new Map()) => {
     reviews: Number(listing.reviews || 0),
     vendorPhone: resolvedStore?.bizPhone || "",
     img: image,
+    mainImage: listing.mainImage || image,
+    images: Array.isArray(listing.images) ? listing.images : [],
     type: listing.type || "physical",
     desc: listing.description || "",
     status: listing.status,
@@ -1624,7 +1632,7 @@ function Navbar({ page, setPage, searchQ, setSearchQ, activeCategory, setActiveC
 
         {!isDash && (
           <button onClick={goToBusinessOnboarding} className="nav-list-btn" style={{background:"var(--blue)",color:"#fff",border:"none",padding:".55rem 1.2rem",borderRadius:8,fontSize:".82rem",fontWeight:700,cursor:"pointer"}}>
-            {hasVendorStorefront ? "Dashboard" : "List Your Business"}
+            List Your Business
           </button>
         )}
 
@@ -1826,7 +1834,7 @@ function HomePage({ setPage, searchQ, setSearchQ, activeCategory, setActiveCateg
                 {CATEGORIES.map(c=><option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
               </select>
             </div>
-            <button type="submit" className="hero-search-btn" style={{background:"var(--blue)",color:"#fff",border:"none",padding:".5rem 1rem",borderRadius:10,fontWeight:700,fontSize:".9rem",display:"flex",alignItems:"center",justifyContent:"center",gap:".5rem",whiteSpace:"nowrap",width:"calc(100% - 4px)",margin:"0 2px"}}>🔍 Search</button>
+            <button type="submit" className="hero-search-btn" style={{background:"var(--blue)",color:"#fff",border:"none",padding:".5rem 1rem",borderRadius:10,fontWeight:700,fontSize:".9rem",display:"flex",alignItems:"center",justifyContent:"center",gap:".5rem",whiteSpace:"nowrap",width:"calc(100% - 4px)",margin:"0 2px",boxSizing:"border-box"}}>🔍 Search</button>
           </form>
           <div style={{display:"flex",gap:".6rem",justifyContent:"center",flexWrap:"wrap"}}>
             {["Hair & Wigs","Smartphones","Restaurants","Tailoring","Car Services"].map(t=>(
@@ -2113,7 +2121,17 @@ function SearchPage({ searchQ, activeCategory, setSelectedProduct, setSelectedBu
 
 // ── PRODUCT DETAIL ──
 function ProductDetailPage({ product, setPage, setSelectedBusiness, setSelectedProduct, vendorSettings, products = [], businesses = [] }) {
-  const galleryImgs = Array.isArray(product.images) && product.images.length > 0 ? product.images : [product.img, product.img, product.img, product.img];
+    const galleryImgs = (() => {
+    const sources = [product.mainImage || product.img, ...(Array.isArray(product.images) ? product.images : [])].filter(Boolean);
+    const unique = Array.from(new Set(sources));
+    if (unique.length === 0) {
+      return [product.img, product.img, product.img, product.img];
+    }
+    while (unique.length < 4) {
+      unique.push(unique[unique.length - 1]);
+    }
+    return unique;
+  })();
   const [activeImg, setActiveImg] = useState(0);
   const [showPhone, setShowPhone] = useState(false);
   const vendorBiz = businesses.find(b => b.id === product.storeId);
@@ -2715,7 +2733,11 @@ function OnboardingPage({ setPage, user, setUser, refreshMarketplace }) {
       return;
     }
 
-    if (!biz.name || !biz.category || !biz.location) {
+    const trimmedBizName = String(biz.name || '').trim();
+    const trimmedCategory = String(biz.category || '').trim();
+    const trimmedLocation = String(biz.location || '').trim();
+
+    if (!trimmedBizName || !trimmedCategory || !trimmedLocation) {
       setSubmitError("Business name, category, and location are required.");
       return;
     }
@@ -2726,13 +2748,13 @@ function OnboardingPage({ setPage, user, setUser, refreshMarketplace }) {
 
       try {
         await api.createStore({
-          bizName: biz.name,
-          category: biz.category,
-          location: biz.location,
-          ...(biz.phone ? { bizPhone: biz.phone } : {}),
-          ...(biz.email ? { bizEmail: biz.email } : {}),
-          ...(biz.whatsapp ? { whatsapp: biz.whatsapp } : {}),
-          ...(biz.desc ? { bizDesc: biz.desc } : {}),
+          bizName: trimmedBizName,
+          category: trimmedCategory,
+          location: trimmedLocation,
+          ...(biz.phone ? { bizPhone: String(biz.phone).trim() } : {}),
+          ...(biz.email ? { bizEmail: String(biz.email).trim() } : {}),
+          ...(biz.whatsapp ? { whatsapp: String(biz.whatsapp).trim() } : {}),
+          ...(biz.desc ? { bizDesc: String(biz.desc).trim() } : {}),
         });
       } catch (err) {
         if (!String(err.message || '').toLowerCase().includes('already have a store')) {
@@ -2777,13 +2799,13 @@ function OnboardingPage({ setPage, user, setUser, refreshMarketplace }) {
   const ensureOnboardingStore = async () => {
     try {
       await api.createStore({
-        bizName: biz.name,
-        category: biz.category,
-        location: biz.location,
-        ...(biz.phone ? { bizPhone: biz.phone } : {}),
-        ...(biz.email ? { bizEmail: biz.email } : {}),
-        ...(biz.whatsapp ? { whatsapp: biz.whatsapp } : {}),
-        ...(biz.desc ? { bizDesc: biz.desc } : {}),
+        bizName: String(biz.name || '').trim(),
+        category: String(biz.category || '').trim(),
+        location: String(biz.location || '').trim(),
+        ...(biz.phone ? { bizPhone: String(biz.phone).trim() } : {}),
+        ...(biz.email ? { bizEmail: String(biz.email).trim() } : {}),
+        ...(biz.whatsapp ? { whatsapp: String(biz.whatsapp).trim() } : {}),
+        ...(biz.desc ? { bizDesc: String(biz.desc).trim() } : {}),
       });
     } catch (err) {
       if (!String(err.message || '').toLowerCase().includes('already have a store')) {
@@ -3431,6 +3453,8 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
     stock: item.stock || 1,
     sold: item.sold || 0,
     img: item.mainImage || item.images?.[0] || "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=80&h=80&fit=crop",
+    mainImage: item.mainImage || item.images?.[0] || "",
+    images: Array.isArray(item.images) ? item.images : [],
     desc: item.description || "",
     location: item.location || "",
   });
@@ -3708,7 +3732,9 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [editStep, setEditStep] = useState(1);
   const [editMainImageFile, setEditMainImageFile] = useState(null);
+  const [editMainImagePreview, setEditMainImagePreview] = useState(null);
   const [editGalleryFiles, setEditGalleryFiles] = useState([null, null, null, null]);
+  const [editGalleryPreviews, setEditGalleryPreviews] = useState([null, null, null, null]);
   const editMainImageInputRef = useRef(null);
   const editGalleryInputRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
   const updEdit = (k,v) => setEditListing(l=>({...l,[k]:v}));
@@ -3731,6 +3757,8 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
     }
     
     setEditMainImageFile(file);
+    setEditMainImagePreview(URL.createObjectURL(file));
+    e.target.value = '';
   };
   
   const handleEditGalleryImageSelect = (index, e) => {
@@ -3750,9 +3778,20 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
       return;
     }
     
-    const newFiles = [...editGalleryFiles];
-    newFiles[index] = file;
-    setEditGalleryFiles(newFiles);
+    setEditGalleryFiles((current) => {
+      const next = [...current];
+      next[index] = file;
+      return next;
+    });
+    setEditGalleryPreviews((current) => {
+      const next = [...current];
+      if (next[index]) {
+        URL.revokeObjectURL(next[index]);
+      }
+      next[index] = URL.createObjectURL(file);
+      return next;
+    });
+    e.target.value = '';
   };
 
   const doUnpublish = async (id) => {
@@ -3789,7 +3828,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
     try {
       setListingActionError("");
       api.setTokens(user?.accessToken, user?.refreshToken);
-      const updated = await api.updateListing(editListing.id, {
+      let updated = await api.updateListing(editListing.id, {
         title: editListing.name,
         price: Number(editListing.price),
         type: editListing.type,
@@ -3803,7 +3842,10 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
       // Upload main image if selected
       if (editMainImageFile) {
         try {
-          await api.uploadListingImages(editListing.id, [editMainImageFile]);
+          const uploadResult = await api.uploadListingImages(editListing.id, [editMainImageFile], { setAsMain: true });
+          if (uploadResult?.listing) {
+            updated = uploadResult.listing;
+          }
         } catch (imgErr) {
           console.error('Main image upload failed:', imgErr.message);
         }
@@ -3813,7 +3855,10 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
       const galleryImagesToUpload = editGalleryFiles.filter(f => f !== null);
       if (galleryImagesToUpload.length > 0) {
         try {
-          await api.uploadListingImages(editListing.id, galleryImagesToUpload);
+          const uploadResult = await api.uploadListingImages(editListing.id, galleryImagesToUpload);
+          if (uploadResult?.listing) {
+            updated = uploadResult.listing;
+          }
         } catch (imgErr) {
           console.error('Gallery image upload failed:', imgErr.message);
         }
@@ -3824,7 +3869,9 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
       setEditListing(null);
       setEditStep(1);
       setEditMainImageFile(null);
+      setEditMainImagePreview(null);
       setEditGalleryFiles([null, null, null, null]);
+      setEditGalleryPreviews([null, null, null, null]);
     } catch (err) {
       setListingActionError(err.message || "Failed to save changes.");
     }
@@ -4411,14 +4458,14 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
 
             {/* ── EDIT MODAL ── */}
             {editListing && (
-              <div style={{position:"fixed",inset:0,background:"rgba(6,13,31,.55)",zIndex:900,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem",overflowY:"auto"}} onClick={()=>{setEditListing(null);setEditStep(1);setEditMainImageFile(null);setEditGalleryFiles([null,null,null,null]);}}>
-                <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:20,padding:"2rem",maxWidth:560,width:"100%",boxShadow:"0 24px 64px rgba(0,0,0,.25)",animation:"scaleIn .25s ease both",margin:"auto"}}>
+              <div style={{position:"fixed",inset:0,background:"rgba(6,13,31,.55)",zIndex:900,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}} onClick={()=>{setEditListing(null);setEditStep(1);setEditMainImageFile(null);setEditMainImagePreview(null);setEditGalleryFiles([null,null,null,null]);setEditGalleryPreviews([null,null,null,null]);}}>
+                <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:20,padding:"2rem",maxWidth:560,width:"100%",maxHeight:"calc(100vh - 2rem)",overflowY:"auto",boxShadow:"0 24px 64px rgba(0,0,0,.25)",animation:"scaleIn .25s ease both"}}>
                   {/* Header */}
                   <div className="listing-composer-header" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.5rem"}}>
                     <h3 style={{fontFamily:"Syne",fontWeight:800,fontSize:"1.1rem"}}>
                       {editStep===1?"✏️ Edit Details":editStep===2?"🖼️ Edit Media":"✅ Save Changes"}
                     </h3>
-                    <button onClick={()=>{setEditListing(null);setEditStep(1);setEditMainImageFile(null);setEditGalleryFiles([null,null,null,null]);}} style={{background:"var(--g100)",border:"none",borderRadius:8,padding:".4rem .75rem",cursor:"pointer",fontWeight:700,color:"var(--muted)",fontSize:".85rem"}}>✕</button>
+                    <button onClick={()=>{setEditListing(null);setEditStep(1);setEditMainImageFile(null);setEditMainImagePreview(null);setEditGalleryFiles([null,null,null,null]);setEditGalleryPreviews([null,null,null,null]);}} style={{background:"var(--g100)",border:"none",borderRadius:8,padding:".4rem .75rem",cursor:"pointer",fontWeight:700,color:"var(--muted)",fontSize:".85rem"}}>✕</button>
                   </div>
 
                   {/* Step indicator */}
@@ -4502,7 +4549,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
                           style={{display:"flex",gap:"1rem",alignItems:"center",background:"var(--g100)",borderRadius:10,padding:"1rem",cursor:"pointer",transition:"all .2s",border:"2px solid transparent"}}
                           onMouseEnter={e=>{e.currentTarget.style.background="rgba(0,102,255,.05)";e.currentTarget.style.borderColor="var(--blue)"}}
                           onMouseLeave={e=>{e.currentTarget.style.background="var(--g100)";e.currentTarget.style.borderColor="transparent"}}>
-                          <img src={editListing.img} style={{width:64,height:64,borderRadius:8,objectFit:"cover",flexShrink:0}} />
+                          <img src={editMainImagePreview || editListing.img} style={{width:64,height:64,borderRadius:8,objectFit:"cover",flexShrink:0}} />
                           <div>
                             <p style={{fontSize:".82rem",fontWeight:600,marginBottom:".25rem"}}>Current image</p>
                             <button onClick={(e)=>{e.stopPropagation();editMainImageInputRef.current?.click();}} style={{fontSize:".75rem",color:"var(--blue)",background:"none",border:"none",cursor:"pointer",fontWeight:600,padding:0}}>🔄 Replace image</button>
@@ -4532,10 +4579,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
                                   onMouseEnter={e=>!editGalleryFiles[i]&&(e.currentTarget.style.borderColor="var(--blue)",e.currentTarget.style.background="rgba(0,102,255,.05)")}
                                   onMouseLeave={e=>!editGalleryFiles[i]&&(e.currentTarget.style.borderColor="var(--g300)",e.currentTarget.style.background="var(--g100)")}>
                                   {editGalleryFiles[i] ? (
-                                    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:".15rem",flexShrink:0,textAlign:"center"}}>
-                                      <span style={{fontSize:".9rem"}}>✓</span>
-                                      <span style={{color:"var(--text)",fontSize:".6rem"}}>Ready</span>
-                                    </div>
+                                    <img src={editGalleryPreviews[i]} alt={`Gallery ${i+1}`} style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:8}} />
                                   ) : (
                                     <>
                                       <span style={{fontSize:"1.1rem"}}>+</span>

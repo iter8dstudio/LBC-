@@ -1016,9 +1016,12 @@ class ApiService {
     });
   }
 
-  async uploadListingImages(listingId, files) {
+  async uploadListingImages(listingId, files, options = {}) {
     const formData = new FormData();
     files.forEach((file) => formData.append('images', file));
+    if (options.setAsMain) {
+      formData.append('setAsMain', 'true');
+    }
 
     return this.request(`/listings/${listingId}/images`, {
       method: 'POST',
@@ -1355,6 +1358,8 @@ const normalizeListing = (listing, storesById = new Map()) => {
     reviews: Number(listing.reviews || 0),
     vendorPhone: resolvedStore?.bizPhone || "",
     img: image,
+    mainImage: listing.mainImage || image,
+    images: Array.isArray(listing.images) ? listing.images : [],
     type: listing.type || "physical",
     desc: listing.description || "",
     status: listing.status,
@@ -1681,7 +1686,7 @@ function Navbar({ page, setPage, searchQ, setSearchQ, activeCategory, setActiveC
 
         {!isDash && (
           <button onClick={goToBusinessOnboarding} className="nav-list-btn" style={{background:"var(--blue)",color:"#fff",border:"none",padding:".55rem 1.2rem",borderRadius:8,fontSize:".82rem",fontWeight:700,cursor:"pointer"}}>
-            {hasVendorStorefront ? "Dashboard" : "List Your Business"}
+            {hasVendorStorefront ? "List Your Business" : "List Your Business"}
           </button>
         )}
 
@@ -1881,7 +1886,7 @@ function HomePage({ setPage, searchQ, setSearchQ, activeCategory, setActiveCateg
             <select value={heroCat} onChange={e=>setHeroCat(e.target.value)} style={{border:"none",borderLeft:"1px solid var(--g200)",outline:"none",fontSize:".85rem",color:"var(--g700)",padding:"0 1rem",background:"transparent",fontWeight:500}}>
               {CATEGORIES.map(c=><option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
             </select>
-            <button type="submit" className="hero-search-btn" style={{background:"var(--blue)",color:"#fff",border:"none",padding:".75rem 1.75rem",borderRadius:10,fontWeight:700,fontSize:".9rem",display:"flex",alignItems:"center",gap:".5rem",whiteSpace:"nowrap"}}>🔍 Search</button>
+            <button type="submit" className="hero-search-btn" style={{background:"var(--blue)",color:"#fff",border:"none",padding:".75rem 1.75rem",borderRadius:10,fontWeight:700,fontSize:".9rem",display:"flex",alignItems:"center",gap:".5rem",whiteSpace:"nowrap",width:"calc(100% - 4px)",boxSizing:"border-box"}}>🔍 Search</button>
           </form>
           <div style={{display:"flex",gap:".6rem",justifyContent:"center",flexWrap:"wrap"}}>
             {["Hair & Wigs","Smartphones","Restaurants","Tailoring","Car Services"].map(t=>(
@@ -2168,7 +2173,17 @@ function SearchPage({ searchQ, activeCategory, setSelectedProduct, setSelectedBu
 
 // ── PRODUCT DETAIL ──
 function ProductDetailPage({ product, setPage, setSelectedBusiness, setSelectedProduct, vendorSettings, products = [], businesses = [] }) {
-  const galleryImgs = Array.isArray(product.images) && product.images.length > 0 ? product.images : [product.img, product.img, product.img, product.img];
+  const galleryImgs = (() => {
+    const sources = [product.mainImage || product.img, ...(Array.isArray(product.images) ? product.images : [])].filter(Boolean);
+    const unique = Array.from(new Set(sources));
+    if (unique.length === 0) {
+      return [product.img, product.img, product.img, product.img];
+    }
+    while (unique.length < 4) {
+      unique.push(unique[unique.length - 1]);
+    }
+    return unique;
+  })();
   const [activeImg, setActiveImg] = useState(0);
   const [showPhone, setShowPhone] = useState(false);
   const vendorBiz = businesses.find(b => b.id === product.storeId);
@@ -2781,13 +2796,13 @@ function OnboardingPage({ setPage, user, setUser, refreshMarketplace }) {
 
       try {
         await api.createStore({
-          bizName: biz.name,
+          bizName: biz.name.trim(),
           category: biz.category,
-          location: biz.location,
-          ...(biz.phone ? { bizPhone: biz.phone } : {}),
-          ...(biz.email ? { bizEmail: biz.email } : {}),
-          ...(biz.whatsapp ? { whatsapp: biz.whatsapp } : {}),
-          ...(biz.desc ? { bizDesc: biz.desc } : {}),
+          location: biz.location.trim(),
+          ...(biz.phone ? { bizPhone: biz.phone.trim() } : {}),
+          ...(biz.email ? { bizEmail: biz.email.trim() } : {}),
+          ...(biz.whatsapp ? { whatsapp: biz.whatsapp.trim() } : {}),
+          ...(biz.desc ? { bizDesc: biz.desc.trim() } : {}),
         });
       } catch (err) {
         if (!String(err.message || '').toLowerCase().includes('already have a store')) {
@@ -3486,6 +3501,8 @@ function DashboardPage({ dashboardTab, user, setPage, setUser, vendorSettings, r
     stock: item.stock || 1,
     sold: item.sold || 0,
     img: item.mainImage || item.images?.[0] || "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=80&h=80&fit=crop",
+    mainImage: item.mainImage || item.images?.[0] || "",
+    images: Array.isArray(item.images) ? item.images : [],
     desc: item.description || "",
     location: item.location || "",
   });
@@ -4466,8 +4483,8 @@ function DashboardPage({ dashboardTab, user, setPage, setUser, vendorSettings, r
 
             {/* ── EDIT MODAL ── */}
             {editListing && (
-              <div style={{position:"fixed",inset:0,background:"rgba(6,13,31,.55)",zIndex:900,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem",overflowY:"auto"}} onClick={()=>{setEditListing(null);setEditStep(1);setEditMainImageFile(null);setEditGalleryFiles([null,null,null,null]);}}>
-                <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:20,padding:"2rem",maxWidth:560,width:"100%",boxShadow:"0 24px 64px rgba(0,0,0,.25)",animation:"scaleIn .25s ease both",margin:"auto"}}>
+              <div style={{position:"fixed",inset:0,background:"rgba(6,13,31,.55)",zIndex:900,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}} onClick={()=>{setEditListing(null);setEditStep(1);setEditMainImageFile(null);setEditGalleryFiles([null,null,null,null]);}}>
+                <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:20,padding:"2rem",maxWidth:560,width:"100%",maxHeight:"calc(100vh - 2rem)",overflowY:"auto",boxShadow:"0 24px 64px rgba(0,0,0,.25)",animation:"scaleIn .25s ease both"}}>
                   {/* Header */}
                   <div className="listing-composer-header" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.5rem"}}>
                     <h3 style={{fontFamily:"Syne",fontWeight:800,fontSize:"1.1rem"}}>
