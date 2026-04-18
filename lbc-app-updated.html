@@ -1813,18 +1813,20 @@ function HomePage({ setPage, searchQ, setSearchQ, activeCategory, setActiveCateg
             Connect with Millions of Businesses in <span style={{color:"var(--amber)"}}>Lagos Near You</span>
           </h1>
           <p style={{color:"rgba(255,255,255,.5)",fontSize:"1rem",marginBottom:"2.5rem"}}>Shop local products, book services & find trusted businesses</p>
-          <form onSubmit={doSearch} className="hero-search" style={{background:"#fff",borderRadius:14,padding:".25rem",display:"flex",alignItems:"center",gap:".25rem",boxShadow:"0 20px 60px rgba(0,0,0,.4)",marginBottom:"1.5rem",flexWrap:"nowrap"}}>
-            <div style={{display:"flex",alignItems:"center",gap:".4rem",padding:"0 .5rem",borderRight:"1px solid var(--g200)"}}>
-              <span>📍</span>
-              <select value={heroLocation} onChange={e=>setHeroLocation(e.target.value)} style={{border:"none",outline:"none",fontSize:".85rem",fontWeight:600,color:"var(--text)",background:"transparent"}}>
-                {LOCATIONS.map(l=><option key={l}>{l}</option>)}
+          <form onSubmit={doSearch} className="hero-search" style={{background:"#fff",borderRadius:14,padding:".25rem",display:"flex",flexDirection:"column",gap:".25rem",boxShadow:"0 20px 60px rgba(0,0,0,.4)",marginBottom:"1.5rem"}}>
+            <div style={{display:"flex",alignItems:"center",gap:".25rem"}}>
+              <div style={{display:"flex",alignItems:"center",gap:".4rem",padding:"0 .5rem",borderRight:"1px solid var(--g200)"}}>
+                <span>📍</span>
+                <select value={heroLocation} onChange={e=>setHeroLocation(e.target.value)} style={{border:"none",outline:"none",fontSize:".85rem",fontWeight:600,color:"var(--text)",background:"transparent"}}>
+                  {LOCATIONS.map(l=><option key={l}>{l}</option>)}
+                </select>
+              </div>
+              <input value={heroQ} onChange={e=>setHeroQ(e.target.value)} style={{flex:1,border:"none",outline:"none",fontSize:".95rem",color:"var(--text)",padding:".4rem .3rem",minWidth:120}} placeholder="What are you looking for?" />
+              <select value={heroCat} onChange={e=>setHeroCat(e.target.value)} style={{border:"none",borderLeft:"1px solid var(--g200)",outline:"none",fontSize:".85rem",color:"var(--g700)",padding:"0 .5rem",background:"transparent",fontWeight:500}}>
+                {CATEGORIES.map(c=><option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
               </select>
             </div>
-            <input value={heroQ} onChange={e=>setHeroQ(e.target.value)} style={{flex:1,border:"none",outline:"none",fontSize:".95rem",color:"var(--text)",padding:".4rem .3rem",minWidth:120}} placeholder="What are you looking for?" />
-            <select value={heroCat} onChange={e=>setHeroCat(e.target.value)} style={{border:"none",borderLeft:"1px solid var(--g200)",outline:"none",fontSize:".85rem",color:"var(--g700)",padding:"0 .5rem",background:"transparent",fontWeight:500}}>
-              {CATEGORIES.map(c=><option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
-            </select>
-            <button type="submit" className="hero-search-btn" style={{background:"var(--blue)",color:"#fff",border:"none",padding:".5rem 1rem",borderRadius:10,fontWeight:700,fontSize:".9rem",display:"flex",alignItems:"center",justifyContent:"center",gap:".5rem",whiteSpace:"nowrap",flex:"1 1 auto",marginLeft:".25rem"}}>🔍 Search</button>
+            <button type="submit" className="hero-search-btn" style={{background:"var(--blue)",color:"#fff",border:"none",padding:".5rem 1rem",borderRadius:10,fontWeight:700,fontSize:".9rem",display:"flex",alignItems:"center",justifyContent:"center",gap:".5rem",whiteSpace:"nowrap",width:"calc(100% - 4px)",margin:"0 2px"}}>🔍 Search</button>
           </form>
           <div style={{display:"flex",gap:".6rem",justifyContent:"center",flexWrap:"wrap"}}>
             {["Hair & Wigs","Smartphones","Restaurants","Tailoring","Car Services"].map(t=>(
