@@ -1824,7 +1824,7 @@ function HomePage({ setPage, searchQ, setSearchQ, activeCategory, setActiveCateg
             <select value={heroCat} onChange={e=>setHeroCat(e.target.value)} style={{border:"none",borderLeft:"1px solid var(--g200)",outline:"none",fontSize:".85rem",color:"var(--g700)",padding:"0 .5rem",background:"transparent",fontWeight:500}}>
               {CATEGORIES.map(c=><option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
             </select>
-            <button type="submit" className="hero-search-btn" style={{background:"var(--blue)",color:"#fff",border:"none",padding:".5rem 1rem",borderRadius:10,fontWeight:700,fontSize:".9rem",display:"flex",alignItems:"center",gap:".5rem",whiteSpace:"nowrap"}}>🔍 Search</button>
+            <button type="submit" className="hero-search-btn" style={{background:"var(--blue)",color:"#fff",border:"none",padding:".5rem 1rem",borderRadius:10,fontWeight:700,fontSize:".9rem",display:"flex",alignItems:"center",justifyContent:"center",gap:".5rem",whiteSpace:"nowrap",flex:"1 1 auto",marginLeft:".25rem"}}>🔍 Search</button>
           </form>
           <div style={{display:"flex",gap:".6rem",justifyContent:"center",flexWrap:"wrap"}}>
             {["Hair & Wigs","Smartphones","Restaurants","Tailoring","Car Services"].map(t=>(
