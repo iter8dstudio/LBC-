@@ -1159,28 +1159,28 @@ function useIsMobile(breakpoint=768) {
 const CATEGORIES = [
   { id:"all", label:"All", icon:"🏠" },
   { id:"fashion", label:"Fashion", icon:"👗" },
-  { id:"beauty", label:"Beauty & Wellness", icon:"💄" },
+  { id:"beauty", label:"Health & Wellness", icon:"💄", subcategories: ["Hospitals & Homecare Services", "Gyms"] },
   { id:"phones", label:"Phones & Tablets", icon:"📱" },
   { id:"electronics", label:"Electronics", icon:"💻" },
-  { id:"food", label:"Food & Drinks", icon:"🍽️" },
-  { id:"services", label:"Services", icon:"🔧" },
-  { id:"property", label:"Property", icon:"🏡" },
-  { id:"digital", label:"Digital Products", icon:"📦" },
-  { id:"automotive", label:"Automotive", icon:"🚗" },
-  { id:"kids", label:"Kids & Baby", icon:"👶" },
-  { id:"furniture", label:"Furniture", icon:"🪑" },
-  { id:"travel-tours", label:"Travel & Tours", icon:"✈️" },
-  { id:"banks-fintech", label:"Banks & Fintech", icon:"🏦" },
-  { id:"hotels-airbnb", label:"Hotels and Airbnb", icon:"🏨" },
+  { id:"food", label:"Food & Lifestyle", icon:"🍽️", subcategories: ["Restaurants", "Nightclubs & Lounges"] },
+  { id:"services", label:"Events & Services", icon:"🔧", subcategories: ["Party Rentals"] },
+  { id:"property", label:"Core Real Estate", icon:"🏡", subcategories: ["Buying a Property", "Selling a Property", "Leasing a Property", "Land for Sale/Lease"] },
+  { id:"digital", label:"Marketplace", icon:"📦", subcategories: ["Classified Ads Section"] },
+  { id:"automotive", label:"Transport & Mobility", icon:"🚗", subcategories: ["Logistics & Delivery Services", "Car Leasing"] },
+  { id:"kids", label:"Education & Childcare", icon:"👶", subcategories: ["Schools (Nursery, Primary & Secondary)", "Daycare Services"] },
+  { id:"furniture", label:"Home & Living", icon:"🪑", subcategories: ["Interior Designers", "Building Materials & Home Improvement", "Used Furniture", "Electronics & Home Gadgets"] },
+  { id:"travel-tours", label:"Travel & Tourism", icon:"✈️", subcategories: ["Travel & Tours"] },
+  { id:"banks-fintech", label:"Finance & Business", icon:"🏦", subcategories: ["Banks & Fintech"] },
+  { id:"hotels-airbnb", label:"Accommodation & Hospitality", icon:"🏨", subcategories: ["Hotels", "Short-lets & Airbnb", "Hospitality Businesses"] },
   { id:"gyms", label:"Gyms", icon:"💪" },
   { id:"restaurants", label:"Restaurants", icon:"🍴" },
-  { id:"religious-services", label:"Religious services", icon:"⛪" },
-  { id:"supermarkets", label:"Supermarkets", icon:"🛒" },
+  { id:"religious-services", label:"Community & Religion", icon:"⛪", subcategories: ["Churches & Mosques"] },
+  { id:"supermarkets", label:"Retail & Commerce", icon:"🛒", subcategories: ["Supermarkets"] },
   { id:"logistics", label:"Logistics", icon:"🚚" },
   { id:"hospitals", label:"Hospitals", icon:"🏥" },
   { id:"hotels", label:"Hotels", icon:"🏨" },
-  { id:"energy", label:"Energy", icon:"⚡" },
-  { id:"auto-parts", label:"Auto Parts Dealerships", icon:"🔧" },
+  { id:"energy", label:"Energy & Infrastructure", icon:"⚡", subcategories: ["Green Energy Hubs"] },
+  { id:"auto-parts", label:"Automotive", icon:"🔧", subcategories: ["Auto Parts Dealerships"] },
 ];
 
 const LOCATIONS = [
@@ -1353,6 +1353,7 @@ const createEmptyListingDraft = () => ({
   price:"",
   type:"physical",
   category:"fashion",
+  subcategory:"",
   desc:"",
   showGallery:true,
   stock:1,
@@ -1814,7 +1815,7 @@ function HomePage({ setPage, searchQ, setSearchQ, activeCategory, setActiveCateg
             Connect with Millions of Businesses in <span style={{color:"var(--amber)"}}>Lagos Near You</span>
           </h1>
           <p style={{color:"rgba(255,255,255,.5)",fontSize:"1rem",marginBottom:"2.5rem"}}>Shop local products, book services & find trusted businesses</p>
-          <form onSubmit={doSearch} className="hero-search" style={{background:"#fff",borderRadius:14,padding:".5rem",display:"flex",alignItems:"center",gap:".5rem",boxShadow:"0 20px 60px rgba(0,0,0,.4)",marginBottom:"1.5rem",flexWrap:"wrap"}}>
+          <form onSubmit={doSearch} className="hero-search" style={{background:"#fff",borderRadius:14,padding:".5rem",display:"flex",alignItems:"center",gap:".5rem",boxShadow:"0 20px 60px rgba(0,0,0,.4)",marginBottom:"1.5rem",flexWrap:"nowrap"}}>
             <div style={{display:"flex",alignItems:"center",gap:".4rem",padding:"0 1rem",borderRight:"1px solid var(--g200)"}}>
               <span>📍</span>
               <select value={heroLocation} onChange={e=>setHeroLocation(e.target.value)} style={{border:"none",outline:"none",fontSize:".85rem",fontWeight:600,color:"var(--text)",background:"transparent"}}>
@@ -2174,7 +2175,7 @@ function ProductDetailPage({ product, setPage, setSelectedBusiness, setSelectedP
         <div style={{animation:"fadeUp .4s ease both"}}>
           {/* SKU / category tag */}
           <div style={{fontSize:".78rem", color:"var(--muted)", marginBottom:".6rem", display:"flex", alignItems:"center", gap:".5rem"}}>
-            <span style={{background:"var(--g100)", padding:".2rem .6rem", borderRadius:4, fontWeight:600}}>{CATEGORIES.find(c=>c.id===product.category)?.icon} {CATEGORIES.find(c=>c.id===product.category)?.label}</span>
+            <span style={{background:"var(--g100)", padding:".2rem .6rem", borderRadius:4, fontWeight:600}}>{CATEGORIES.find(c=>c.id===product.category)?.icon} {CATEGORIES.find(c=>c.id===product.category)?.label}{product.subcategory && <span style={{color:"blue", marginLeft:".3rem"}}>• {product.subcategory}</span>}</span>
             <span>•</span>
             <span>SKU: LBC{String(product.id).padStart(6,"0")}</span>
           </div>
@@ -3311,6 +3312,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
         price: Number(newListing.price),
         type: newListing.type,
         category: newListing.category,
+        subcategory: newListing.subcategory || undefined,
         description: newListing.desc,
         stock: Number(newListing.stock) || 1,
         status,
@@ -3792,6 +3794,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
         price: Number(editListing.price),
         type: editListing.type,
         category: editListing.category,
+        subcategory: editListing.subcategory || undefined,
         description: editListing.desc,
         location: editListing.location,
         stock: Number(editListing.stock) || 1,
@@ -4219,11 +4222,21 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
                       </div>
                       <div>
                         <label style={{display:"block",fontSize:".82rem",fontWeight:700,color:"var(--g700)",marginBottom:".4rem"}}>Category *</label>
-                        <select value={newListing.category} onChange={e=>updL("category",e.target.value)} style={{width:"100%",padding:".75rem 1rem",borderRadius:8,border:"1px solid var(--g200)",fontSize:".9rem",outline:"none",color:"var(--text)"}}>
+                        <select value={newListing.category} onChange={e=>{updL("category",e.target.value); updL("subcategory","")}} style={{width:"100%",padding:".75rem 1rem",borderRadius:8,border:"1px solid var(--g200)",fontSize:".9rem",outline:"none",color:"var(--text)"}}>
                           {CATEGORIES.filter(c=>c.id!=="all").map(c=><option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
                         </select>
                       </div>
                     </div>
+                    {/* Subcategory */}
+                    {CATEGORIES.find(c=>c.id===newListing.category)?.subcategories && (
+                      <div>
+                        <label style={{display:"block",fontSize:".82rem",fontWeight:700,color:"var(--g700)",marginBottom:".4rem"}}>Subcategory</label>
+                        <select value={newListing.subcategory} onChange={e=>updL("subcategory",e.target.value)} style={{width:"100%",padding:".75rem 1rem",borderRadius:8,border:"1px solid var(--g200)",fontSize:".9rem",outline:"none",color:"var(--text)"}}>
+                          <option value="">Select Subcategory</option>
+                          {CATEGORIES.find(c=>c.id===newListing.category).subcategories.map(s=><option key={s} value={s}>{s}</option>)}
+                        </select>
+                      </div>
+                    )}
                     {/* Stock */}
                     <div>
                       <label style={{display:"block",fontSize:".82rem",fontWeight:700,color:"var(--g700)",marginBottom:".4rem"}}>Available Stock</label>
@@ -4454,6 +4467,16 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
                           </select>
                         </div>
                       </div>
+                      {/* Subcategory */}
+                      {CATEGORIES.find(c=>c.id===editListing.category)?.subcategories && (
+                        <div>
+                          <label style={{display:"block",fontSize:".82rem",fontWeight:700,color:"var(--g700)",marginBottom:".4rem"}}>Subcategory</label>
+                          <select value={editListing.subcategory || ""} onChange={e=>updEdit("subcategory",e.target.value)} style={{width:"100%",padding:".75rem 1rem",borderRadius:8,border:"1px solid var(--g200)",fontSize:".9rem",outline:"none",color:"var(--text)"}}>
+                            <option value="">Select Subcategory</option>
+                            {CATEGORIES.find(c=>c.id===editListing.category).subcategories.map(s=><option key={s} value={s}>{s}</option>)}
+                          </select>
+                        </div>
+                      )}
                       {/* Stock */}
                       <div>
                         <label style={{display:"block",fontSize:".82rem",fontWeight:700,color:"var(--g700)",marginBottom:".4rem"}}>Available Stock</label>
