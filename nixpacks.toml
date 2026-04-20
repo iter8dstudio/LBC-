@@ -1,0 +1,11 @@
+[providers]
+providers = ["node"]
+
+[phases.install]
+cmds = ["cd lbc-backend && npm install"]
+
+[phases.build]
+cmds = ["cd lbc-backend && npm run db:generate"]
+
+[start]
+cmd = "cd lbc-backend && npm start"

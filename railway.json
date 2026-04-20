@@ -1,8 +1,7 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
-    "builder": "NIXPACKS",
-    "buildCommand": "apt-get update && apt-get install -y nodejs npm && cd lbc-backend && npm install && npm run db:generate"
+    "builder": "NIXPACKS"
   },
   "deploy": {
     "startCommand": "cd lbc-backend && npm start",
