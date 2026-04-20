@@ -1308,6 +1308,7 @@ const normalizeStore = (store) => {
     category: store.category || "all",
     location: store.location || "Lagos",
     sponsored: !!store.sponsored,
+    phoneVerified: !!(store.phoneVerified ?? store.verified),
     verified: !!store.verified,
     rating: Number(store.rating || 4.5),
     reviews: Number(store.reviews || 0),
@@ -1335,6 +1336,7 @@ const normalizeListing = (listing, storesById = new Map()) => {
         name: listing.store.bizName,
         category: listing.store.category || listing.category,
         location: listing.store.location,
+        phoneVerified: !!(listing.store.phoneVerified ?? listing.store.verified),
         verified: listing.store.verified,
         sponsored: !!listing.store.sponsored,
         whatsapp: listing.store.whatsapp || "",
@@ -1479,8 +1481,10 @@ const buildAppUrl = (page, options = {}) => {
   if (normalizedPage === "storefront") {
     const biz = options.biz || null;
     const slug = biz?.slug || slugifyRoutePart(biz?.name || "store");
-    if (biz?.id != null) params.set("id", String(biz.id));
-    return `${biz ? `/store/${slug}` : "/store"}${params.toString() ? `?${params.toString()}` : ""}`;
+    if (biz?.id != null) {
+      return `/store/${encodeURIComponent(String(biz.id))}/${slug}${params.toString() ? `?${params.toString()}` : ""}`;
+    }
+    return `/store${params.toString() ? `?${params.toString()}` : ""}`;
   }
 
   if (normalizedPage === "dashboard") {
@@ -1544,10 +1548,13 @@ const resolveAppRoute = (locationLike = window.location) => {
   }
 
   if (cleanPath === PAGE_PATHS.storefront || cleanPath.startsWith("/store/")) {
+    const storePathParts = cleanPath.split("/").filter(Boolean);
+    const pathStoreId = storePathParts.length >= 3 ? storePathParts[1] : "";
+    const pathStoreSlug = storePathParts.length >= 3 ? storePathParts.slice(2).join("/") : (storePathParts[1] || "");
     return {
       page: "storefront",
-      businessId: params.get("id") || "",
-      businessSlug: decodeURIComponent(cleanPath.split("/")[2] || ""),
+      businessId: params.get("id") || pathStoreId || "",
+      businessSlug: decodeURIComponent(pathStoreSlug || ""),
       ...sharedState,
     };
   }
@@ -5526,7 +5533,7 @@ function App() {
       {page==="home" && <HomePage setPage={setPage} searchQ={searchQ} setSearchQ={setSearchQ} activeCategory={activeCategory} setActiveCategory={setActiveCategory} wishlist={wishlist} toggleWish={toggleWish} setSelectedProduct={setSelectedProduct} setSelectedBusiness={setSelectedBusiness} user={user} hasVendorStorefront={hasVendorStorefront} products={marketProducts} businesses={marketBusinesses} />}
       {page==="search" && <SearchPage searchQ={searchQ} activeCategory={activeCategory} setSelectedProduct={setSelectedProduct} setSelectedBusiness={setSelectedBusiness} wishlist={wishlist} toggleWish={toggleWish} products={marketProducts} businesses={marketBusinesses} />}
       {page==="product" && selectedProduct && <ProductDetailPage product={selectedProduct} setPage={setPage} setSelectedBusiness={setSelectedBusiness} setSelectedProduct={setSelectedProduct} vendorSettings={vendorSettings} products={marketProducts} businesses={marketBusinesses} />}
-      {page==="storefront" && <StorefrontPage biz={storefrontBiz} setPage={setPage} vendorSettings={vendorSettings} onProductClick={setSelectedProduct} products={marketProducts} businesses={marketBusinesses} />}
+      {page==="storefront" && <StorefrontPage biz={storefrontBiz} setPage={setPage} user={user} vendorSettings={vendorSettings} onProductClick={setSelectedProduct} products={marketProducts} businesses={marketBusinesses} />}
       {page==="signin" && <AuthPage setPage={setPage} setUser={setUser} />}
       {page==="onboarding" && <OnboardingPage setPage={setPage} user={user} setUser={setUser} refreshMarketplace={refreshMarketplace} />}
       {page==="cart" && <CartPage cart={cart} setCart={setCart} setPage={setPage} />}
@@ -6230,7 +6237,7 @@ function SettingsPage({ settingsSection, user, setUser, setPage, vendorSettings,
 
 // ── STOREFRONT PAGE ──
 
-function StorefrontPage({ biz, setPage, vendorSettings, onProductClick, products = [], businesses = [] }) {
+function StorefrontPage({ biz, setPage, user, vendorSettings, onProductClick, products = [], businesses = [] }) {
   const [typeFilter, setTypeFilter] = useState("all");
   const [searchQ, setSearchQ] = useState("");
   const [showPhone, setShowPhone] = useState(false);
@@ -6248,8 +6255,10 @@ function StorefrontPage({ biz, setPage, vendorSettings, onProductClick, products
   const waNum    = isOwn ? (vendorSettings.whatsapp || "")            : (biz.whatsapp || "");
   const hasWa    = sanitizePhoneNumber(waNum).length > 5;
   const category = isOwn ? (vendorSettings.bizCategory || "fashion")  : (biz.category || "fashion");
-  const verified = isOwn ? true                                        : (biz.verified || false);
-  const sponsored= isOwn ? false                                       : (biz.sponsored || false);
+  const verified = isOwn
+    ? !!user?.phoneVerified
+    : !!(biz?.phoneVerified || biz?.vendorPhoneVerified || biz?.ownerPhoneVerified);
+  const sponsored = isOwn ? !!vendorSettings?.sponsored : !!biz?.sponsored;
   const showStockCount = isOwn ? (vendorSettings.showStockCount !== false) : (biz?.showStockCount !== false);
   const tags     = isOwn
     ? [CATEGORIES.find(c=>c.id===category)?.label || "Fashion"]
@@ -6316,7 +6325,7 @@ function StorefrontPage({ biz, setPage, vendorSettings, onProductClick, products
         </button>
 
         {/* Sponsor badge */}
-        {(sponsored || verified) && (
+        {sponsored && (
           <div className="storefront-badge" style={{position:"absolute",top:"1.25rem",right:"1.5rem",background:"var(--amber)",color:"#7c3e00",borderRadius:8,padding:".3rem .75rem",fontSize:".72rem",fontWeight:800,letterSpacing:".04em"}}>
             ⚡ SPONSORED
           </div>
