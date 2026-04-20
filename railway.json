@@ -4,6 +4,9 @@
     "builder": "NIXPACKS",
     "buildCommand": "cd lbc-backend && npm install && npm run db:generate"
   },
+  "setup": {
+    "pkgs": ["nodejs"]
+  },
   "deploy": {
     "startCommand": "cd lbc-backend && npm start",
     "healthcheckPath": "/api/health",
