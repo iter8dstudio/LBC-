@@ -4494,8 +4494,8 @@ function DashboardPage({ dashboardTab, user, setPage, setUser, vendorSettings, r
             )}
 
             {/* ── DELETE CONFIRMATION MODAL ── */}
-            {deleteTarget && (
-              <div style={{position:"fixed",inset:0,background:"rgba(6,13,31,.72)",backdropFilter:"blur(4px)",zIndex:900,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}} onClick={()=>setDeleteTarget(null)}>
+            {deleteTarget && ReactDOM.createPortal(
+              <div style={{position:"fixed",inset:0,background:"rgba(6,13,31,.78)",backdropFilter:"blur(4px)",WebkitBackdropFilter:"blur(4px)",zIndex:9998,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}} onClick={()=>setDeleteTarget(null)}>
                 <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:16,padding:"2rem",maxWidth:400,width:"100%",boxShadow:"0 24px 64px rgba(0,0,0,.25)",animation:"scaleIn .25s ease both"}}>
                   <div style={{fontSize:"2.5rem",marginBottom:"1rem",textAlign:"center"}}>🗑️</div>
                   <h3 style={{fontFamily:"Syne",fontWeight:800,fontSize:"1.1rem",textAlign:"center",marginBottom:".5rem"}}>Delete this listing?</h3>
@@ -4507,12 +4507,13 @@ function DashboardPage({ dashboardTab, user, setPage, setUser, vendorSettings, r
                     <button onClick={()=>doDelete(deleteTarget.id)} style={{flex:1,background:"var(--red)",color:"#fff",border:"none",borderRadius:10,padding:".8rem",fontWeight:700,fontSize:".88rem",cursor:"pointer"}}>Yes, Delete</button>
                   </div>
                 </div>
-              </div>
+              </div>,
+              document.body
             )}
 
             {/* ── EDIT MODAL ── */}
-            {editListing && (
-              <div style={{position:"fixed",inset:0,background:"rgba(6,13,31,.72)",backdropFilter:"blur(4px)",zIndex:900,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"clamp(.75rem, 2vw, 1rem)",overflowY:"auto",overflowX:"hidden"}} onClick={()=>{setEditListing(null);setEditStep(1);setEditMainImageFile(null);setEditGalleryFiles([null,null,null,null]);}}>
+            {editListing && ReactDOM.createPortal(
+              <div style={{position:"fixed",inset:0,background:"rgba(6,13,31,.78)",backdropFilter:"blur(4px)",WebkitBackdropFilter:"blur(4px)",zIndex:9999,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"clamp(.75rem, 2vw, 1rem)",overflowY:"auto",overflowX:"hidden",overscrollBehavior:"contain"}} onClick={()=>{setEditListing(null);setEditStep(1);setEditMainImageFile(null);setEditGalleryFiles([null,null,null,null]);}}>
                 <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:20,padding:"2rem",width:"min(560px, 100%)",maxHeight:"calc(100dvh - 2rem)",overflowY:"auto",boxShadow:"0 24px 64px rgba(0,0,0,.25)",animation:"scaleIn .25s ease both",margin:"auto 0"}}>
                   {/* Header */}
                   <div className="listing-composer-header" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.5rem"}}>
@@ -4686,7 +4687,8 @@ function DashboardPage({ dashboardTab, user, setPage, setUser, vendorSettings, r
                     </div>
                   )}
                 </div>
-              </div>
+              </div>,
+              document.body
             )}
 
             {/* Listings table */}
@@ -4743,11 +4745,9 @@ function DashboardPage({ dashboardTab, user, setPage, setUser, vendorSettings, r
                             return;
                           }
                           const rect = e.currentTarget.getBoundingClientRect();
-                          const rootRect = listingsRootRef.current?.getBoundingClientRect();
-                          if (!rootRect) return;
                           const menuWidth = 188;
-                          const left = Math.max(12, Math.min(rect.right - rootRect.left - menuWidth, rootRect.width - menuWidth - 12));
-                          const top = rect.bottom - rootRect.top + 6;
+                          const left = Math.max(12, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 12));
+                          const top = Math.min(rect.bottom + 6, window.innerHeight - 160);
                           setMenuPosition({ top, left });
                           setOpenMenuId(l.id);
                         }}
@@ -4772,8 +4772,8 @@ function DashboardPage({ dashboardTab, user, setPage, setUser, vendorSettings, r
               const activeListing = listings.find((item) => item.id === openMenuId);
               if (!activeListing) return null;
 
-              return (
-                <div onClick={e=>e.stopPropagation()} style={{position:"absolute",left:menuPosition.left,top:menuPosition.top,background:"#fff",border:"1px solid var(--g200)",borderRadius:12,boxShadow:"0 8px 32px rgba(6,13,31,.14)",zIndex:9999,minWidth:180,overflow:"hidden",animation:"fadeUp .15s ease both"}}>
+              return ReactDOM.createPortal(
+                <div onClick={e=>e.stopPropagation()} style={{position:"fixed",left:menuPosition.left,top:menuPosition.top,background:"#fff",border:"1px solid var(--g200)",borderRadius:12,boxShadow:"0 8px 32px rgba(6,13,31,.14)",zIndex:9999,minWidth:180,overflow:"hidden",animation:"fadeUp .15s ease both"}}>
                   <button onClick={()=>{setEditListing({...activeListing});setEditStep(1);setOpenMenuId(null);setMenuPosition(null);}}
                     style={{display:"flex",alignItems:"center",gap:".6rem",width:"100%",padding:".75rem 1rem",border:"none",background:"none",cursor:"pointer",fontSize:".85rem",fontWeight:600,color:"var(--text)",textAlign:"left"}}
                     onMouseEnter={e=>e.currentTarget.style.background="var(--g100)"}
@@ -4792,7 +4792,8 @@ function DashboardPage({ dashboardTab, user, setPage, setUser, vendorSettings, r
                     onMouseLeave={e=>e.currentTarget.style.background="none"}>
                     🗑️ Delete Listing
                   </button>
-                </div>
+                </div>,
+                document.body
               );
             })()}
           </div>
