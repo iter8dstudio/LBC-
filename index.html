@@ -2653,11 +2653,6 @@ function AuthPage({ setPage, setUser }) {
             ← Use a different email
           </button>
         </div>
-
-        {/* Dev hint */}
-        <div style={{marginTop:"1.25rem",background:"rgba(245,158,11,.08)",border:"1px solid rgba(245,158,11,.2)",borderRadius:8,padding:".65rem .9rem",fontSize:".75rem",color:"#92600a",fontWeight:600}}>
-          💡 If email delivery fails in local dev, fetch the OTP from <strong>/api/auth/dev/email-otp?userId={verifyUserId || '...'}</strong>
-        </div>
       </div>
     </div>
   );
