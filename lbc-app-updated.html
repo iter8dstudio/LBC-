@@ -1834,7 +1834,7 @@ function HomePage({ setPage, searchQ, setSearchQ, activeCategory, setActiveCateg
                 {CATEGORIES.map(c=><option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
               </select>
             </div>
-            <button type="submit" className="hero-search-btn" style={{background:"var(--blue)",color:"#fff",border:"none",padding:".5rem 1rem",borderRadius:10,fontWeight:700,fontSize:".9rem",display:"flex",alignItems:"center",justifyContent:"center",gap:".5rem",whiteSpace:"nowrap",width:"calc(100% - 4px)",margin:"0 2px",boxSizing:"border-box"}}>🔍 Search</button>
+            <button type="submit" className="hero-search-btn" style={{background:"var(--blue)",color:"#fff",border:"none",padding:".5rem 1rem",borderRadius:10,fontWeight:700,fontSize:".9rem",display:"flex",alignItems:"center",justifyContent:"center",gap:".5rem",whiteSpace:"nowrap",width:"calc(100% - 4px)",margin:"0 2px",boxSizing:"border-box",textAlign:"center"}}>🔍 Search</button>
           </form>
           <div style={{display:"flex",gap:".6rem",justifyContent:"center",flexWrap:"wrap"}}>
             {["Hair & Wigs","Smartphones","Restaurants","Tailoring","Car Services"].map(t=>(
@@ -4458,7 +4458,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
 
             {/* ── EDIT MODAL ── */}
             {editListing && (
-              <div style={{position:"fixed",inset:0,background:"rgba(6,13,31,.55)",zIndex:900,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}} onClick={()=>{setEditListing(null);setEditStep(1);setEditMainImageFile(null);setEditMainImagePreview(null);setEditGalleryFiles([null,null,null,null]);setEditGalleryPreviews([null,null,null,null]);}}>
+              <div style={{position:"fixed",inset:0,background:"rgba(6,13,31,.55)",zIndex:900,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem",overflow:"hidden"}} onClick={()=>{setEditListing(null);setEditStep(1);setEditMainImageFile(null);setEditMainImagePreview(null);setEditGalleryFiles([null,null,null,null]);setEditGalleryPreviews([null,null,null,null]);}}>
                 <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:20,padding:"2rem",maxWidth:560,width:"100%",maxHeight:"calc(100vh - 2rem)",overflowY:"auto",boxShadow:"0 24px 64px rgba(0,0,0,.25)",animation:"scaleIn .25s ease both"}}>
                   {/* Header */}
                   <div className="listing-composer-header" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.5rem"}}>
