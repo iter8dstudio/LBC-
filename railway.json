@@ -1,14 +1,12 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
-    "builder": "NIXPACKS",
-    "buildCommand": "cd lbc-backend && npm install && npm run db:generate",
-    "setup": {
-      "pkgs": ["nodejs"]
-    }
+    "builder": "RAILPACK",
+    "buildCommand": "npm install && npm run db:generate",
+    "rootDirectory": "lbc-backend"
   },
   "deploy": {
-    "startCommand": "cd lbc-backend && npm start",
+    "startCommand": "npm start",
     "healthcheckPath": "/api/health",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
