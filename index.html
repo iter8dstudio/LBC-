@@ -2786,8 +2786,31 @@ function OnboardingPage({ setPage, user, setUser, refreshMarketplace }) {
       return;
     }
 
-    if (!biz.name || !biz.category || !biz.location) {
+    const trimmedBizName = String(biz.name || '').trim();
+    const trimmedCategory = String(biz.category || '').trim();
+    const trimmedLocation = String(biz.location || '').trim();
+    const trimmedPhone = String(biz.phone || '').trim();
+    const trimmedEmail = String(biz.email || '').trim();
+    const trimmedWhatsapp = String(biz.whatsapp || '').trim();
+    const trimmedBizDesc = String(biz.desc || '').trim();
+    const trimmedListingTitle = String(listing.title || '').trim();
+    const cleanedPrice = String(listing.price || '').replace(/,/g, '').trim();
+    const listingPrice = cleanedPrice ? Number(cleanedPrice) : NaN;
+    const trimmedListingDesc = String(listing.listingDesc || '').trim();
+    const listingTypeValue = String(listing.listingType || biz.type || 'physical').trim().toLowerCase();
+
+    if (!trimmedBizName || !trimmedCategory || !trimmedLocation) {
       setSubmitError("Business name, category, and location are required.");
+      return;
+    }
+
+    if (trimmedEmail && !/^\S+@\S+\.\S+$/.test(trimmedEmail)) {
+      setSubmitError("Please enter a valid business email address or leave it blank.");
+      return;
+    }
+
+    if ((trimmedListingTitle || cleanedPrice || trimmedListingDesc) && (!trimmedListingTitle || !Number.isFinite(listingPrice) || listingPrice <= 0)) {
+      setSubmitError("Please enter a valid title and price for your first listing, or skip the listing step.");
       return;
     }
 
@@ -2797,13 +2820,13 @@ function OnboardingPage({ setPage, user, setUser, refreshMarketplace }) {
 
       try {
         await api.createStore({
-          bizName: biz.name.trim(),
-          category: biz.category,
-          location: biz.location.trim(),
-          ...(biz.phone ? { bizPhone: biz.phone.trim() } : {}),
-          ...(biz.email ? { bizEmail: biz.email.trim() } : {}),
-          ...(biz.whatsapp ? { whatsapp: biz.whatsapp.trim() } : {}),
-          ...(biz.desc ? { bizDesc: biz.desc.trim() } : {}),
+          bizName: trimmedBizName,
+          category: trimmedCategory,
+          location: trimmedLocation,
+          ...(trimmedPhone ? { bizPhone: trimmedPhone } : {}),
+          ...(trimmedEmail ? { bizEmail: trimmedEmail } : {}),
+          ...(trimmedWhatsapp ? { whatsapp: trimmedWhatsapp } : {}),
+          ...(trimmedBizDesc ? { bizDesc: trimmedBizDesc } : {}),
         });
       } catch (err) {
         if (!String(err.message || '').toLowerCase().includes('already have a store')) {
@@ -2811,14 +2834,14 @@ function OnboardingPage({ setPage, user, setUser, refreshMarketplace }) {
         }
       }
 
-      if (listing.title && listing.price) {
+      if (trimmedListingTitle && Number.isFinite(listingPrice) && listingPrice > 0) {
         const newListing = await api.createListing({
-          title: listing.title,
-          price: Number(listing.price),
-          type: listing.listingType,
-          category: biz.category,
-          location: biz.location,
-          ...(listing.listingDesc ? { description: listing.listingDesc } : {}),
+          title: trimmedListingTitle,
+          price: listingPrice,
+          type: ['physical', 'digital', 'service'].includes(listingTypeValue) ? listingTypeValue : 'physical',
+          category: trimmedCategory,
+          location: trimmedLocation,
+          ...(trimmedListingDesc ? { description: trimmedListingDesc } : {}),
           status: biz.plan === 'free' ? 'draft' : 'live',
         });
         
@@ -2847,14 +2870,19 @@ function OnboardingPage({ setPage, user, setUser, refreshMarketplace }) {
 
   const ensureOnboardingStore = async () => {
     try {
+      const trimmedPhone = String(biz.phone || '').trim();
+      const trimmedEmail = String(biz.email || '').trim();
+      const trimmedWhatsapp = String(biz.whatsapp || '').trim();
+      const trimmedBizDesc = String(biz.desc || '').trim();
+
       await api.createStore({
-        bizName: biz.name,
-        category: biz.category,
-        location: biz.location,
-        ...(biz.phone ? { bizPhone: biz.phone } : {}),
-        ...(biz.email ? { bizEmail: biz.email } : {}),
-        ...(biz.whatsapp ? { whatsapp: biz.whatsapp } : {}),
-        ...(biz.desc ? { bizDesc: biz.desc } : {}),
+        bizName: String(biz.name || '').trim(),
+        category: String(biz.category || '').trim(),
+        location: String(biz.location || '').trim(),
+        ...(trimmedPhone ? { bizPhone: trimmedPhone } : {}),
+        ...(trimmedEmail ? { bizEmail: trimmedEmail } : {}),
+        ...(trimmedWhatsapp ? { whatsapp: trimmedWhatsapp } : {}),
+        ...(trimmedBizDesc ? { bizDesc: trimmedBizDesc } : {}),
       });
     } catch (err) {
       if (!String(err.message || '').toLowerCase().includes('already have a store')) {

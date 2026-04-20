@@ -1,6 +1,20 @@
 const { z } = require('zod');
 
 const nonEmptyString = (field) => z.string({ required_error: `${field} is required` }).trim().min(1, `${field} is required`);
+const optionalTrimmedString = (field, max) => z.preprocess((value) => {
+  if (value === undefined || value === null) return undefined;
+  const trimmed = String(value).trim();
+  return trimmed === '' ? undefined : trimmed;
+}, z.string().max(max, `${field} is too long`).optional());
+const optionalEmailString = (field) => z.preprocess((value) => {
+  if (value === undefined || value === null) return undefined;
+  const trimmed = String(value).trim();
+  return trimmed === '' ? undefined : trimmed;
+}, z.string().email(`Invalid ${field}`).optional());
+const optionalInt = (field) => z.preprocess((value) => {
+  if (value === undefined || value === null || String(value).trim() === '') return undefined;
+  return value;
+}, z.coerce.number().int().min(0, `${field} cannot be negative`).optional());
 
 const registerSchema = z.object({
   name: nonEmptyString('name').max(100, 'name is too long'),
@@ -44,21 +58,21 @@ const createStoreSchema = z.object({
   bizName: nonEmptyString('bizName').max(120, 'bizName is too long'),
   category: nonEmptyString('category').max(64, 'category is too long'),
   location: nonEmptyString('location').max(120, 'location is too long'),
-  bizPhone: z.string().trim().max(40, 'bizPhone is too long').optional(),
-  bizEmail: z.string().trim().email('Invalid bizEmail').optional(),
-  whatsapp: z.string().trim().max(40, 'whatsapp is too long').optional(),
-  bizDesc: z.string().trim().max(5000, 'bizDesc is too long').optional(),
+  bizPhone: optionalTrimmedString('bizPhone', 40),
+  bizEmail: optionalEmailString('bizEmail'),
+  whatsapp: optionalTrimmedString('whatsapp', 40),
+  bizDesc: optionalTrimmedString('bizDesc', 5000),
 });
 
 const updateStoreSchema = z.object({
-  bizName: z.string().trim().min(1).max(120).optional(),
-  category: z.string().trim().min(1).max(64).optional(),
-  location: z.string().trim().min(1).max(120).optional(),
-  bizPhone: z.string().trim().max(40).optional(),
-  bizEmail: z.string().trim().email().optional(),
-  whatsapp: z.string().trim().max(40).optional(),
-  bizDesc: z.string().trim().max(5000).optional(),
-  accentColor: z.string().trim().max(32).optional(),
+  bizName: optionalTrimmedString('bizName', 120),
+  category: optionalTrimmedString('category', 64),
+  location: optionalTrimmedString('location', 120),
+  bizPhone: optionalTrimmedString('bizPhone', 40),
+  bizEmail: optionalEmailString('bizEmail'),
+  whatsapp: optionalTrimmedString('whatsapp', 40),
+  bizDesc: optionalTrimmedString('bizDesc', 5000),
+  accentColor: optionalTrimmedString('accentColor', 32),
 }).refine((obj) => Object.keys(obj).length > 0, {
   message: 'At least one field is required',
 });
@@ -71,22 +85,25 @@ const createListingSchema = z.object({
   price: z.coerce.number().positive('price must be greater than 0'),
   type: listingType,
   category: nonEmptyString('category').max(64, 'category is too long'),
-  subcategory: z.string().trim().max(120, 'subcategory is too long').optional(),
-  location: z.string().trim().max(120, 'location is too long').optional(),
-  description: z.string().trim().max(5000, 'description is too long').optional(),
-  stock: z.coerce.number().int().min(0, 'stock cannot be negative').optional(),
+  subcategory: optionalTrimmedString('subcategory', 120),
+  location: optionalTrimmedString('location', 120),
+  description: optionalTrimmedString('description', 5000),
+  stock: optionalInt('stock'),
   status: listingStatus.optional(),
 });
 
 const updateListingSchema = z.object({
-  title: z.string().trim().min(1).max(180).optional(),
-  price: z.coerce.number().positive().optional(),
+  title: optionalTrimmedString('title', 180),
+  price: z.preprocess((value) => {
+    if (value === undefined || value === null || String(value).trim() === '') return undefined;
+    return value;
+  }, z.coerce.number().positive().optional()),
   type: listingType.optional(),
-  category: z.string().trim().min(1).max(64).optional(),
-  subcategory: z.string().trim().max(120).optional(),
-  location: z.string().trim().max(120).optional(),
-  description: z.string().trim().max(5000).optional(),
-  stock: z.coerce.number().int().min(0).optional(),
+  category: optionalTrimmedString('category', 64),
+  subcategory: optionalTrimmedString('subcategory', 120),
+  location: optionalTrimmedString('location', 120),
+  description: optionalTrimmedString('description', 5000),
+  stock: optionalInt('stock'),
 }).refine((obj) => Object.keys(obj).length > 0, {
   message: 'At least one field is required',
 });
@@ -104,10 +121,10 @@ const contactSchema = z.object({
 
 const reportSchema = z.object({
   storeName: nonEmptyString('storeName').max(160, 'storeName is too long'),
-  storeId: z.string().trim().optional(),
+  storeId: optionalTrimmedString('storeId', 120),
   reason: nonEmptyString('reason').max(160, 'reason is too long'),
   details: nonEmptyString('details').max(5000, 'details is too long'),
-  reporterEmail: z.string().trim().email('Invalid reporterEmail').optional(),
+  reporterEmail: optionalEmailString('reporterEmail'),
 });
 
 const updateMeSchema = z.object({
