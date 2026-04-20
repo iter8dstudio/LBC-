@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' http://localhost:8000 http://localhost:5000 https://testlbc-production.up.railway.app https://api.lbc.ng; frame-ancestors 'none'; base-uri 'self';" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' http://localhost:8000 http://localhost:5000 https://lbc-production.up.railway.app https://api.lbc.ng; frame-ancestors 'none'; base-uri 'self';" />
 <title>LBC — Lekki Business Connect</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -13,17 +13,18 @@
 // ── API Configuration (Environment-aware) ───────────────────
 // This dynamically determines the API base URL based on hostname
 const API_BASE_URL_MAP = {
-  'localhost': 'http://localhost:8001/api',
-  '127.0.0.1': 'http://localhost:8001/api',
-  'lekkibusinessconnect.com': 'https://testlbc-production.up.railway.app/api',
-  'www.lekkibusinessconnect.com': 'https://testlbc-production.up.railway.app/api',
-  'lbc.ng': 'https://testlbc-production.up.railway.app/api',
-  'www.lbc.ng': 'https://testlbc-production.up.railway.app/api',
-  'testlbc-production.up.railway.app': 'https://testlbc-production.up.railway.app/api',
+  'localhost': 'http://localhost:8000/api',
+  '127.0.0.1': 'http://localhost:8000/api',
+  'lekkibusinessconnect.com': 'https://lbc-production.up.railway.app/api',
+  'www.lekkibusinessconnect.com': 'https://lbc-production.up.railway.app/api',
+  'lbc.ng': 'https://lbc-production.up.railway.app/api',
+  'www.lbc.ng': 'https://lbc-production.up.railway.app/api',
+  'testlbc-production.up.railway.app': 'https://lbc-production.up.railway.app/api',
+  'lbc-production.up.railway.app': 'https://lbc-production.up.railway.app/api',
 };
 
-const DEFAULT_REMOTE_API_BASE_URL = 'https://testlbc-production.up.railway.app/api';
-const API_BASE_STORAGE_KEY = 'lbc.api.base.v1';
+const DEFAULT_REMOTE_API_BASE_URL = 'https://lbc-production.up.railway.app/api';
+const API_BASE_STORAGE_KEY = 'lbc.api.base.v3';
 const WISHLIST_CACHE_KEY = 'lbc.wishlist.ids.v1';
 
 const normalizeApiBase = (value = '') => String(value || '').trim().replace(/\/$/, '');
@@ -33,13 +34,18 @@ const buildApiBaseCandidates = () => {
   const configured = normalizeApiBase(window.__LBC_API_BASE_URL);
   const saved = normalizeApiBase(localStorage.getItem(API_BASE_STORAGE_KEY));
   const preferred = normalizeApiBase(API_BASE_URL_MAP[hostname]);
+  const currentOriginApi = hostname === 'localhost' || hostname === '127.0.0.1'
+    ? ''
+    : normalizeApiBase(`${window.location.origin}/api`);
 
   return Array.from(new Set([
-    preferred,
     configured,
     saved,
+    preferred,
+    currentOriginApi,
     hostname === 'localhost' || hostname === '127.0.0.1' ? 'http://localhost:8000/api' : '',
     DEFAULT_REMOTE_API_BASE_URL,
+    'https://lbc-production.up.railway.app/api',
     'https://api.lbc.ng/api',
   ].filter(Boolean)));
 };
