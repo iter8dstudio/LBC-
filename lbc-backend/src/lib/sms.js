@@ -11,8 +11,8 @@ const normalizePhone = (phone) => {
 
 const sendViaTermii = async ({ to, message }) => {
   const apiKey = process.env.TERMII_API_KEY?.trim();
-  const senderId = process.env.TERMII_SENDER_ID?.trim() || 'LBC';
-  const channel = process.env.TERMII_CHANNEL?.trim() || 'generic';
+  const senderId = process.env.TERMII_SENDER_ID?.trim() || 'N-Alert';
+  const channel = process.env.TERMII_CHANNEL?.trim() || 'dnd';
   const baseUrl = process.env.TERMII_BASE_URL?.trim() || 'https://api.ng.termii.com/api';
 
   if (!apiKey) {
@@ -33,7 +33,11 @@ const sendViaTermii = async ({ to, message }) => {
   });
 
   const data = await response.json().catch(() => ({}));
-  const success = response.ok && !String(data?.code || '').startsWith('4') && !String(data?.code || '').startsWith('5');
+  const responseCode = String(data?.code || '').trim();
+  const responseStatus = String(data?.status || '').toLowerCase().trim();
+  const isErrorCode = responseCode.startsWith('4') || responseCode.startsWith('5');
+  const isExplicitFailure = ['failed', 'error'].includes(responseStatus);
+  const success = response.ok && !isErrorCode && !isExplicitFailure;
 
   return {
     delivered: success,
@@ -54,7 +58,7 @@ const sendSms = async ({ to, message }) => {
   }
 
   if (isProduction) {
-    return { delivered: false, error: 'SMS provider is not configured. Set TERMII_API_KEY and TERMII_SENDER_ID.' };
+    return { delivered: false, error: 'SMS provider is not configured. Set TERMII_API_KEY, TERMII_SENDER_ID, and TERMII_CHANNEL.' };
   }
 
   console.log(`[DEV SMS] to=${normalizedPhone} message=${message}`);

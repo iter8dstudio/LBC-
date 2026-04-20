@@ -48,6 +48,17 @@ const logDeliveryFailure = (channel, identifier, error) => {
   console.error(`${channel} delivery failed for ${identifier}: ${error}`);
 };
 
+const buildPhoneOtpMessage = (otp, expiresMinutes = 10) => {
+  const template = (process.env.TERMII_PHONE_OTP_TEMPLATE || '').trim();
+  if (template) {
+    return template
+      .replace(/\{\{\s*otp\s*\}\}/gi, otp)
+      .replace(/\{\{\s*minutes\s*\}\}/gi, String(expiresMinutes));
+  }
+
+  return `Your LBC verification code is ${otp}. It expires in ${expiresMinutes} minutes.`;
+};
+
 // ── Password Validation Helper ────────────────────────────
 const validatePassword = (password) => {
   if (!password) return { valid: false, error: 'Password is required' };
@@ -383,7 +394,7 @@ exports.sendPhoneOtp = async (req, res) => {
 
     const otp = generateOtp();
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-    const smsMessage = `Your LBC verification code is ${otp}. It expires in 10 minutes.`;
+    const smsMessage = buildPhoneOtpMessage(otp, 10);
 
     const smsResult = await sendSms({ to: normalizedPhone, message: smsMessage });
 
