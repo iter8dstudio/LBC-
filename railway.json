@@ -1,9 +1,9 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
+  "rootDirectory": "lbc-backend",
   "build": {
     "builder": "RAILPACK",
-    "buildCommand": "npm install && npm run db:generate",
-    "rootDirectory": "lbc-backend"
+    "buildCommand": "npm install && npm run db:generate"
   },
   "deploy": {
     "startCommand": "npm start",
