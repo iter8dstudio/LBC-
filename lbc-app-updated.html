@@ -3753,6 +3753,8 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
 
   // Edit / unpublish / delete state
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [menuPosition, setMenuPosition] = useState(null);
+  const listingsRootRef = useRef(null);
   const [editListing, setEditListing] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [editStep, setEditStep] = useState(1);
@@ -3832,6 +3834,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
       setListingActionError(err.message || "Failed to update listing status.");
     } finally {
       setOpenMenuId(null);
+      setMenuPosition(null);
     }
   };
   const doDelete = async (id) => {
@@ -3845,6 +3848,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
       setListingActionError(err.message || "Failed to delete listing.");
     } finally {
       setDeleteTarget(null);
+      setMenuPosition(null);
     }
   };
   const doSaveEdit = async () => {
@@ -4234,7 +4238,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
 
         {/* ── LISTINGS ── */}
         {tab==="listings" && (
-          <div className="dash-main" style={{padding:"2rem 2.25rem 2rem 1.35rem"}}>
+          <div ref={listingsRootRef} className="dash-main" style={{padding:"2rem 2.25rem 2rem 1.35rem",position:"relative"}}>
             <div className="listing-toolbar-mobile" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"2rem"}}>
               <div>
                 <h1 style={{fontFamily:"Syne",fontWeight:800,fontSize:"1.4rem",marginBottom:".25rem"}}>My Listings</h1>
@@ -4466,7 +4470,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
 
             {/* ── DELETE CONFIRMATION MODAL ── */}
             {deleteTarget && (
-              <div style={{position:"fixed",inset:0,background:"rgba(6,13,31,.55)",zIndex:900,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}} onClick={()=>setDeleteTarget(null)}>
+              <div style={{position:"fixed",inset:0,background:"rgba(6,13,31,.72)",backdropFilter:"blur(4px)",zIndex:900,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}} onClick={()=>setDeleteTarget(null)}>
                 <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:16,padding:"2rem",maxWidth:400,width:"100%",boxShadow:"0 24px 64px rgba(0,0,0,.25)",animation:"scaleIn .25s ease both"}}>
                   <div style={{fontSize:"2.5rem",marginBottom:"1rem",textAlign:"center"}}>🗑️</div>
                   <h3 style={{fontFamily:"Syne",fontWeight:800,fontSize:"1.1rem",textAlign:"center",marginBottom:".5rem"}}>Delete this listing?</h3>
@@ -4483,8 +4487,8 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
 
             {/* ── EDIT MODAL ── */}
             {editListing && (
-              <div style={{position:"fixed",inset:0,background:"rgba(6,13,31,.55)",zIndex:900,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem",overflow:"hidden"}} onClick={()=>{setEditListing(null);setEditStep(1);setEditMainImageFile(null);setEditMainImagePreview(null);setEditGalleryFiles([null,null,null,null]);setEditGalleryPreviews([null,null,null,null]);}}>
-                <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:20,padding:"2rem",maxWidth:560,width:"100%",maxHeight:"85vh",overflowY:"auto",boxShadow:"0 24px 64px rgba(0,0,0,.25)",animation:"scaleIn .25s ease both"}}>
+              <div style={{position:"fixed",inset:0,background:"rgba(6,13,31,.72)",backdropFilter:"blur(4px)",zIndex:900,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"clamp(.75rem, 2vw, 1rem)",overflowY:"auto",overflowX:"hidden"}} onClick={()=>{setEditListing(null);setEditStep(1);setEditMainImageFile(null);setEditMainImagePreview(null);setEditGalleryFiles([null,null,null,null]);setEditGalleryPreviews([null,null,null,null]);}}>
+                <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:20,padding:"2rem",width:"min(560px, 100%)",maxHeight:"calc(100dvh - 2rem)",overflowY:"auto",boxShadow:"0 24px 64px rgba(0,0,0,.25)",animation:"scaleIn .25s ease both",margin:"auto 0"}}>
                   {/* Header */}
                   <div className="listing-composer-header" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.5rem"}}>
                     <h3 style={{fontFamily:"Syne",fontWeight:800,fontSize:"1.1rem"}}>
@@ -4659,7 +4663,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
             )}
 
             {/* Listings table */}
-            <div className="dash-listings-scroll" style={{background:"#fff",border:"1px solid var(--g200)",borderRadius:"var(--r)",overflowX:"auto",overflowY:"visible",position:"relative",zIndex:2}} onClick={()=>setOpenMenuId(null)}>
+            <div className="dash-listings-scroll" style={{background:"#fff",border:"1px solid var(--g200)",borderRadius:"var(--r)",overflowX:"auto",overflowY:"visible",position:"relative",zIndex:2}} onClick={()=>{setOpenMenuId(null);setMenuPosition(null);}} onScroll={()=>{if(openMenuId){setOpenMenuId(null);setMenuPosition(null);}}}>
               <table className="dash-listings-table" style={{width:"100%",borderCollapse:"collapse"}}>
                 <thead>
                   <tr style={{background:"var(--g100)",borderBottom:"1px solid var(--g200)"}}>
@@ -4704,35 +4708,25 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
                       </td>
                       {/* Actions dropdown */}
                       <td style={{padding:".875rem 1rem",position:"relative",zIndex:openMenuId===l.id?40:"auto"}}>
-                        <button onClick={e=>{e.stopPropagation();setOpenMenuId(openMenuId===l.id?null:l.id);}}
+                        <button onClick={e=>{
+                          e.stopPropagation();
+                          if (openMenuId === l.id) {
+                            setOpenMenuId(null);
+                            setMenuPosition(null);
+                            return;
+                          }
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          const rootRect = listingsRootRef.current?.getBoundingClientRect();
+                          if (!rootRect) return;
+                          const menuWidth = 188;
+                          const left = Math.max(12, Math.min(rect.right - rootRect.left - menuWidth, rootRect.width - menuWidth - 12));
+                          const top = rect.bottom - rootRect.top + 6;
+                          setMenuPosition({ top, left });
+                          setOpenMenuId(l.id);
+                        }}
                           style={{background:openMenuId===l.id?"var(--g200)":"var(--g100)",border:"1px solid var(--g200)",borderRadius:8,padding:".35rem .75rem",cursor:"pointer",fontWeight:700,color:"var(--g700)",fontSize:".85rem",transition:"background .15s"}}>
                           ⋯
                         </button>
-                        {openMenuId===l.id && (
-                          <div onClick={e=>e.stopPropagation()} style={{position:"absolute",right:"1rem",top:"calc(100% - .25rem)",background:"#fff",border:"1px solid var(--g200)",borderRadius:12,boxShadow:"0 8px 32px rgba(6,13,31,.14)",zIndex:9999,minWidth:180,overflow:"hidden",animation:"fadeUp .15s ease both"}}>
-                            {/* Edit */}
-                            <button onClick={()=>{setEditListing({...l});setEditStep(1);setOpenMenuId(null);}}
-                              style={{display:"flex",alignItems:"center",gap:".6rem",width:"100%",padding:".75rem 1rem",border:"none",background:"none",cursor:"pointer",fontSize:".85rem",fontWeight:600,color:"var(--text)",textAlign:"left"}}
-                              onMouseEnter={e=>e.currentTarget.style.background="var(--g100)"}
-                              onMouseLeave={e=>e.currentTarget.style.background="none"}>
-                              ✏️ Edit Listing
-                            </button>
-                            {/* Unpublish / Republish */}
-                            <button onClick={()=>doUnpublish(l.id)}
-                              style={{display:"flex",alignItems:"center",gap:".6rem",width:"100%",padding:".75rem 1rem",border:"none",background:"none",cursor:"pointer",fontSize:".85rem",fontWeight:600,color:l.status==="live"?"#92600a":"#15803d",textAlign:"left",borderTop:"1px solid var(--g100)"}}
-                              onMouseEnter={e=>e.currentTarget.style.background="var(--g100)"}
-                              onMouseLeave={e=>e.currentTarget.style.background="none"}>
-                              {l.status==="live"?"⏸ Unpublish":"▶ Republish"}
-                            </button>
-                            {/* Delete */}
-                            <button onClick={()=>{setDeleteTarget(l);setOpenMenuId(null);}}
-                              style={{display:"flex",alignItems:"center",gap:".6rem",width:"100%",padding:".75rem 1rem",border:"none",background:"none",cursor:"pointer",fontSize:".85rem",fontWeight:600,color:"var(--red)",textAlign:"left",borderTop:"1px solid var(--g100)"}}
-                              onMouseEnter={e=>e.currentTarget.style.background="#fef2f2"}
-                              onMouseLeave={e=>e.currentTarget.style.background="none"}>
-                              🗑️ Delete Listing
-                            </button>
-                          </div>
-                        )}
                       </td>
                     </tr>
                   ))}
@@ -4746,6 +4740,34 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
                 </div>
               )}
             </div>
+
+            {openMenuId && menuPosition && (() => {
+              const activeListing = listings.find((item) => item.id === openMenuId);
+              if (!activeListing) return null;
+
+              return (
+                <div onClick={e=>e.stopPropagation()} style={{position:"absolute",left:menuPosition.left,top:menuPosition.top,background:"#fff",border:"1px solid var(--g200)",borderRadius:12,boxShadow:"0 8px 32px rgba(6,13,31,.14)",zIndex:9999,minWidth:180,overflow:"hidden",animation:"fadeUp .15s ease both"}}>
+                  <button onClick={()=>{setEditListing({...activeListing});setEditStep(1);setOpenMenuId(null);setMenuPosition(null);}}
+                    style={{display:"flex",alignItems:"center",gap:".6rem",width:"100%",padding:".75rem 1rem",border:"none",background:"none",cursor:"pointer",fontSize:".85rem",fontWeight:600,color:"var(--text)",textAlign:"left"}}
+                    onMouseEnter={e=>e.currentTarget.style.background="var(--g100)"}
+                    onMouseLeave={e=>e.currentTarget.style.background="none"}>
+                    ✏️ Edit Listing
+                  </button>
+                  <button onClick={()=>{doUnpublish(activeListing.id);setMenuPosition(null);}}
+                    style={{display:"flex",alignItems:"center",gap:".6rem",width:"100%",padding:".75rem 1rem",border:"none",background:"none",cursor:"pointer",fontSize:".85rem",fontWeight:600,color:activeListing.status==="live"?"#92600a":"#15803d",textAlign:"left",borderTop:"1px solid var(--g100)"}}
+                    onMouseEnter={e=>e.currentTarget.style.background="var(--g100)"}
+                    onMouseLeave={e=>e.currentTarget.style.background="none"}>
+                    {activeListing.status==="live"?"⏸ Unpublish":"▶ Republish"}
+                  </button>
+                  <button onClick={()=>{setDeleteTarget(activeListing);setOpenMenuId(null);setMenuPosition(null);}}
+                    style={{display:"flex",alignItems:"center",gap:".6rem",width:"100%",padding:".75rem 1rem",border:"none",background:"none",cursor:"pointer",fontSize:".85rem",fontWeight:600,color:"var(--red)",textAlign:"left",borderTop:"1px solid var(--g100)"}}
+                    onMouseEnter={e=>e.currentTarget.style.background="#fef2f2"}
+                    onMouseLeave={e=>e.currentTarget.style.background="none"}>
+                    🗑️ Delete Listing
+                  </button>
+                </div>
+              );
+            })()}
           </div>
         )}
 

@@ -4495,7 +4495,7 @@ function DashboardPage({ dashboardTab, user, setPage, setUser, vendorSettings, r
 
             {/* ── DELETE CONFIRMATION MODAL ── */}
             {deleteTarget && (
-              <div style={{position:"fixed",inset:0,background:"rgba(6,13,31,.55)",zIndex:900,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}} onClick={()=>setDeleteTarget(null)}>
+              <div style={{position:"fixed",inset:0,background:"rgba(6,13,31,.72)",backdropFilter:"blur(4px)",zIndex:900,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}} onClick={()=>setDeleteTarget(null)}>
                 <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:16,padding:"2rem",maxWidth:400,width:"100%",boxShadow:"0 24px 64px rgba(0,0,0,.25)",animation:"scaleIn .25s ease both"}}>
                   <div style={{fontSize:"2.5rem",marginBottom:"1rem",textAlign:"center"}}>🗑️</div>
                   <h3 style={{fontFamily:"Syne",fontWeight:800,fontSize:"1.1rem",textAlign:"center",marginBottom:".5rem"}}>Delete this listing?</h3>
@@ -4512,8 +4512,8 @@ function DashboardPage({ dashboardTab, user, setPage, setUser, vendorSettings, r
 
             {/* ── EDIT MODAL ── */}
             {editListing && (
-              <div style={{position:"fixed",inset:0,background:"rgba(6,13,31,.55)",zIndex:900,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem",overflow:"hidden"}} onClick={()=>{setEditListing(null);setEditStep(1);setEditMainImageFile(null);setEditGalleryFiles([null,null,null,null]);}}>
-                <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:20,padding:"2rem",maxWidth:560,width:"100%",maxHeight:"85vh",overflowY:"auto",boxShadow:"0 24px 64px rgba(0,0,0,.25)",animation:"scaleIn .25s ease both"}}>
+              <div style={{position:"fixed",inset:0,background:"rgba(6,13,31,.72)",backdropFilter:"blur(4px)",zIndex:900,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"clamp(.75rem, 2vw, 1rem)",overflowY:"auto",overflowX:"hidden"}} onClick={()=>{setEditListing(null);setEditStep(1);setEditMainImageFile(null);setEditGalleryFiles([null,null,null,null]);}}>
+                <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:20,padding:"2rem",width:"min(560px, 100%)",maxHeight:"calc(100dvh - 2rem)",overflowY:"auto",boxShadow:"0 24px 64px rgba(0,0,0,.25)",animation:"scaleIn .25s ease both",margin:"auto 0"}}>
                   {/* Header */}
                   <div className="listing-composer-header" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.5rem"}}>
                     <h3 style={{fontFamily:"Syne",fontWeight:800,fontSize:"1.1rem"}}>
