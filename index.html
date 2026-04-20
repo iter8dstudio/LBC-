@@ -5929,13 +5929,13 @@ function SettingsPage({ settingsSection, user, setUser, setPage, vendorSettings,
 
         {/* User card */}
         <div className="settings-user-card" style={{padding:isCompactViewport?0:"0 1.25rem 1.25rem",marginBottom:sidebarCollapsed?0:".5rem",borderBottom:isCompactViewport||sidebarCollapsed?"none":"1px solid var(--g100)",display:"flex",alignItems:"center",gap:".75rem"}}>
-          <div style={{display:"flex",alignItems:"center",gap:".75rem"}}>
+          <div style={{display:"flex",alignItems:"center",gap:".75rem",width:"100%",minWidth:0}}>
             <div style={{width:44,height:44,borderRadius:"50%",background:"var(--navy)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:"1rem",flexShrink:0}}>
               {(local.name||"D")[0].toUpperCase()}
             </div>
-            <div className="settings-user-meta" style={{minWidth:0}}>
-              <div style={{fontWeight:700,fontSize:".88rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{local.name||"Vendor"}</div>
-              <div style={{fontSize:".72rem",color:"var(--muted)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{local.email}</div>
+            <div className="settings-user-meta" style={{flex:1,minWidth:0,maxWidth:"98%",marginRight:"2%",overflow:"hidden"}}>
+              <div style={{fontWeight:700,fontSize:".88rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"100%"}}>{local.name||"Vendor"}</div>
+              <div title={local.email} style={{fontSize:".72rem",color:"var(--muted)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"100%"}}>{local.email}</div>
             </div>
           </div>
         </div>
