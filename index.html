@@ -838,10 +838,49 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
 const { useState, useEffect, useRef, useMemo, useCallback } = React;
 
 // Global fetch guard: if a navigation/request for an HTML route returns 404,
-// alert the user and redirect to home to keep the SPA from showing a server 404.
-// This avoids redirecting on normal API 404s by only acting when the response
-// looks like an HTML page or targets the current location pathname.
+// show a small toast message then redirect to home. This avoids intrusive
+// `alert()` calls while still informing the user and protecting the SPA.
 (() => {
+  // Simple toast helper
+  function showToast(message = '', duration = 2200) {
+    try {
+      let container = document.getElementById('lbc-toast-container');
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'lbc-toast-container';
+        container.style.position = 'fixed';
+        container.style.left = '50%';
+        container.style.bottom = '24px';
+        container.style.transform = 'translateX(-50%) translateY(12px)';
+        container.style.padding = '10px 14px';
+        container.style.background = 'rgba(17,24,39,0.95)';
+        container.style.color = '#fff';
+        container.style.borderRadius = '10px';
+        container.style.boxShadow = '0 8px 24px rgba(2,6,23,0.35)';
+        container.style.fontSize = '0.95rem';
+        container.style.fontWeight = '600';
+        container.style.zIndex = 99999;
+        container.style.transition = 'opacity .28s ease, transform .28s ease';
+        container.style.opacity = '0';
+        container.style.pointerEvents = 'none';
+        document.body.appendChild(container);
+      }
+      container.textContent = message;
+      // show
+      requestAnimationFrame(() => {
+        container.style.opacity = '1';
+        container.style.transform = 'translateX(-50%) translateY(0)';
+      });
+      // hide after duration
+      setTimeout(() => {
+        container.style.opacity = '0';
+        container.style.transform = 'translateX(-50%) translateY(12px)';
+      }, duration);
+    } catch (e) {
+      // ignore toast failures
+    }
+  }
+
   const _fetch = window.fetch.bind(window);
   window.fetch = async (...args) => {
     try {
@@ -853,8 +892,8 @@ const { useState, useEffect, useRef, useMemo, useCallback } = React;
           const isHtml = ct.includes('text/html');
           const isCurrentPath = url === window.location.pathname;
           if (isHtml || isCurrentPath) {
-            try { alert('Page not found — redirecting to home.'); } catch (e) {}
-            try { window.location.href = '/'; } catch (e) {}
+            showToast('Page not found — redirecting to home.');
+            setTimeout(() => { try { window.location.href = '/'; } catch (e) {} }, 1600);
           }
         }
       } catch (e) {
