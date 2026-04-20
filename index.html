@@ -159,6 +159,18 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
 .settings-sidebar.is-collapsed .settings-back-btn { justify-content:center; }
 .settings-saved-dot { margin-left:auto; }
 .search-layout, .search-layout > * { min-width:0; max-width:100%; }
+.chart-x-lbl { font-size: 8.5px; }
+.dash-period-btns { display:flex; flex-wrap:wrap; gap:.35rem; }
+.dash-period-btn {
+  border:1px solid transparent;
+  border-radius:7px;
+  padding:.34rem .62rem;
+  font-size:clamp(.62rem,2.3vw,.74rem);
+  font-weight:600;
+  line-height:1.1;
+  cursor:pointer;
+  white-space:nowrap;
+}
 .search-results-pane, .dash-main, .dash-content-shell, .storefront-layout, .storefront-toolbar { min-width:0; max-width:100%; }
 .search-products-grid, .search-business-grid, .storefront-products-grid { width:100%; min-width:0; max-width:100%; }
 
@@ -544,6 +556,48 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
   .hero-title { font-size: 1.7rem !important; }
   .otp-box { width: 40px !important; height: 48px !important; font-size: 1.2rem !important; }
   .phone-otp-box { width: 36px !important; height: 44px !important; }
+
+  /* ── Dashboard & Listings ≤480px ── */
+  .dash-main { padding: .875rem .875rem 88px !important; }
+  .dash-stats-grid { gap: .625rem !important; }
+  .dash-chart-toggles {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: .45rem !important;
+  }
+  .dash-overview-panels { gap: .875rem !important; }
+  .dash-analytics-stats { gap: .75rem !important; }
+  .dash-analytics-charts { gap: 1rem !important; }
+  .dash-perf-header {
+    flex-wrap: wrap !important;
+    gap: .6rem !important;
+    align-items: center !important;
+  }
+  .dash-perf-header h3 { font-size: clamp(.82rem, 3.6vw, .92rem) !important; }
+  .dash-period-btns { gap: .25rem !important; }
+  .dash-period-btn {
+    padding: .3rem .5rem !important;
+    font-size: clamp(.58rem, 2.8vw, .68rem) !important;
+  }
+
+  .dash-listings-scroll {
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+  }
+
+  .dash-listings-table {
+    min-width: 940px !important;
+  }
+
+  .dash-listings-table th,
+  .dash-listings-table td,
+  .dash-listings-table th *,
+  .dash-listings-table td * {
+    white-space: nowrap !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+    writing-mode: horizontal-tb !important;
+    text-orientation: mixed !important;
+  }
 }
 
 @media (max-width: 390px) {
@@ -679,13 +733,37 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
   }
 
   .dash-listings-table {
-    min-width: 920px;
+    min-width: 980px;
+    table-layout: auto !important;
   }
 
   .dash-listings-table th,
   .dash-listings-table td {
-    white-space: nowrap;
-    word-break: normal;
+    white-space: nowrap !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+    writing-mode: horizontal-tb !important;
+    text-orientation: mixed !important;
+  }
+
+  .dash-listings-table th *,
+  .dash-listings-table td * {
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    overflow-wrap: normal !important;
+  }
+
+  .dash-listings-table th:nth-child(1),
+  .dash-listings-table td:nth-child(1) { min-width: 180px !important; }
+  .dash-listings-table th:nth-child(2),
+  .dash-listings-table td:nth-child(2) { min-width: 120px !important; }
+  .dash-listings-table th:nth-child(4),
+  .dash-listings-table td:nth-child(4) { min-width: 115px !important; }
+  .dash-listings-table th:nth-child(8),
+  .dash-listings-table td:nth-child(8) { min-width: 110px !important; }
+
+  .dash-listings-table td > div {
+    flex-wrap: nowrap !important;
   }
 
   .dash-main { padding: 1rem !important; padding-bottom: 88px !important; }
@@ -938,9 +1016,12 @@ class ApiService {
     });
   }
 
-  async uploadListingImages(listingId, files) {
+  async uploadListingImages(listingId, files, options = {}) {
     const formData = new FormData();
     files.forEach((file) => formData.append('images', file));
+    if (options.setAsMain) {
+      formData.append('setAsMain', 'true');
+    }
 
     return this.request(`/listings/${listingId}/images`, {
       method: 'POST',
@@ -1096,15 +1177,26 @@ function useIsMobile(breakpoint=768) {
 const CATEGORIES = [
   { id:"all", label:"All", icon:"🏠" },
   { id:"fashion", label:"Fashion", icon:"👗" },
-  { id:"beauty", label:"Beauty & Wellness", icon:"💄" },
+  { id:"beauty", label:"Health & Wellness", icon:"💄", subcategories: ["Hospitals & Homecare Services", "Gyms"] },
   { id:"phones", label:"Phones & Tablets", icon:"📱" },
   { id:"electronics", label:"Electronics", icon:"💻" },
-  { id:"food", label:"Food & Drinks", icon:"🍽️" },
-  { id:"services", label:"Services", icon:"🔧" },
-  { id:"property", label:"Property", icon:"🏡" },
-  { id:"digital", label:"Digital Products", icon:"📦" },
-  { id:"automotive", label:"Automotive", icon:"🚗" },
-  { id:"kids", label:"Kids & Baby", icon:"👶" },
+  { id:"food", label:"Food & Lifestyle", icon:"🍽️", subcategories: ["Restaurants", "Nightclubs & Lounges"] },
+  { id:"services", label:"Events & Services", icon:"🔧", subcategories: ["Party Rentals"] },
+  { id:"property", label:"Core Real Estate", icon:"🏡", subcategories: ["Buying a Property", "Selling a Property", "Leasing a Property", "Land for Sale/Lease"] },
+  { id:"digital", label:"Marketplace", icon:"📦", subcategories: ["Classified Ads Section"] },
+  { id:"automotive", label:"Transport & Mobility", icon:"🚗", subcategories: ["Logistics & Delivery Services", "Car Leasing"] },
+  { id:"kids", label:"Education & Childcare", icon:"👶", subcategories: ["Schools (Nursery, Primary & Secondary)", "Daycare Services"] },
+  { id:"furniture", label:"Home & Living", icon:"🪑", subcategories: ["Interior Designers", "Building Materials & Home Improvement", "Used Furniture", "Electronics & Home Gadgets"] },
+  { id:"travel-tours", label:"Travel & Tourism", icon:"✈️", subcategories: ["Travel & Tours"] },
+  { id:"banks-fintech", label:"Finance & Business", icon:"🏦", subcategories: ["Banks & Fintech"] },
+  { id:"hotels-airbnb", label:"Accommodation & Hospitality", icon:"🏨", subcategories: ["Hotels", "Short-lets & Airbnb", "Hospitality Businesses"] },
+  { id:"kids", label:"Kids & Babies", icon:"👶" },
+  { id:"restaurants", label:"Restaurants", icon:"🍴" },
+  { id:"religious-services", label:"Community & Religion", icon:"⛪", subcategories: ["Churches & Mosques"] },
+  { id:"supermarkets", label:"Retail & Commerce", icon:"🛒", subcategories: ["Supermarkets"] },
+  { id:"hospitals", label:"Hospitals", icon:"🏥" },
+  { id:"energy", label:"Energy & Infrastructure", icon:"⚡", subcategories: ["Green Energy Hubs"] },
+  { id:"auto-parts", label:"Automotive", icon:"🔧", subcategories: ["Auto Parts Dealerships"] },
 ];
 
 const LOCATIONS = [
@@ -1266,6 +1358,8 @@ const normalizeListing = (listing, storesById = new Map()) => {
     reviews: Number(listing.reviews || 0),
     vendorPhone: resolvedStore?.bizPhone || "",
     img: image,
+    mainImage: listing.mainImage || image,
+    images: Array.isArray(listing.images) ? listing.images : [],
     type: listing.type || "physical",
     desc: listing.description || "",
     status: listing.status,
@@ -1295,7 +1389,16 @@ const PAGE_PATHS = {
   onboarding: "/list-your-business",
   cart: "/cart",
   dashboard: "/dashboard",
+  dashboardOverview: "/dashboard/overview",
+  dashboardListings: "/dashboard/listings",
+  dashboardAnalytics: "/dashboard/analytics",
+  dashboardBoosts: "/dashboard/boosts",
   settings: "/settings",
+  settingsPersonal: "/settings/profile",
+  settingsStore: "/settings/store",
+  settingsSecurity: "/settings/security",
+  settingsNotifications: "/settings/notifications",
+  settingsAppearance: "/settings/appearance",
   boostCallback: "/boost-success",
   about: "/about",
   howitworks: "/how-it-works",
@@ -1374,6 +1477,16 @@ const buildAppUrl = (page, options = {}) => {
     return `${biz ? `/store/${slug}` : "/store"}${params.toString() ? `?${params.toString()}` : ""}`;
   }
 
+  if (normalizedPage === "dashboard") {
+    const tab = options.tab || "overview";
+    return `/dashboard/${tab}${params.toString() ? `?${params.toString()}` : ""}`;
+  }
+
+  if (normalizedPage === "settings") {
+    const section = options.section || "profile";
+    return `/settings/${section}${params.toString() ? `?${params.toString()}` : ""}`;
+  }
+
   const pathname = PAGE_PATHS[normalizedPage] || "/";
   return `${pathname}${params.toString() ? `?${params.toString()}` : ""}`;
 };
@@ -1389,6 +1502,30 @@ const resolveAppRoute = (locationLike = window.location) => {
 
   if (cleanPath === PAGE_PATHS.boostCallback) {
     return { page: "boostCallback", ...sharedState };
+  }
+
+  // Handle dashboard tabs: /dashboard/overview, /dashboard/listings, etc.
+  if (cleanPath.startsWith("/dashboard/")) {
+    const tab = cleanPath.split("/")[2] || "overview";
+    const validTabs = ["overview", "listings", "analytics", "boosts"];
+    const dashboardTab = validTabs.includes(tab) ? tab : "overview";
+    return { page: "dashboard", tab: dashboardTab, ...sharedState };
+  }
+
+  if (cleanPath === "/dashboard") {
+    return { page: "dashboard", tab: "overview", ...sharedState };
+  }
+
+  // Handle settings sections: /settings/profile, /settings/store, etc.
+  if (cleanPath.startsWith("/settings/")) {
+    const section = cleanPath.split("/")[2] || "profile";
+    const validSections = ["profile", "store", "security", "notifications", "appearance"];
+    const settingsSection = validSections.includes(section) ? section : "profile";
+    return { page: "settings", section: settingsSection, ...sharedState };
+  }
+
+  if (cleanPath === "/settings") {
+    return { page: "settings", section: "profile", ...sharedState };
   }
 
   if (cleanPath === PAGE_PATHS.product || cleanPath.startsWith("/listing/")) {
@@ -1549,7 +1686,7 @@ function Navbar({ page, setPage, searchQ, setSearchQ, activeCategory, setActiveC
 
         {!isDash && (
           <button onClick={goToBusinessOnboarding} className="nav-list-btn" style={{background:"var(--blue)",color:"#fff",border:"none",padding:".55rem 1.2rem",borderRadius:8,fontSize:".82rem",fontWeight:700,cursor:"pointer"}}>
-            {hasVendorStorefront ? "Dashboard" : "List Your Business"}
+            {hasVendorStorefront ? "List Your Business" : "List Your Business"}
           </button>
         )}
 
@@ -1732,10 +1869,10 @@ function HomePage({ setPage, searchQ, setSearchQ, activeCategory, setActiveCateg
         <div style={{position:"absolute",inset:0,backgroundImage:"linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px)",backgroundSize:"40px 40px"}} />
         <div style={{position:"relative",zIndex:2,maxWidth:680,margin:"0 auto",animation:"fadeUp .6s ease both"}}>
           <div style={{display:"inline-flex",alignItems:"center",gap:".4rem",background:"rgba(0,102,255,.15)",border:"1px solid rgba(0,102,255,.35)",borderRadius:100,padding:".35rem 1rem",fontSize:".78rem",color:"rgba(255,255,255,.8)",marginBottom:"1.75rem",fontWeight:500}}>
-            📍 Serving Lekki, Ajah, VI & Ikoyi
+            Serving all of Lagos
           </div>
           <h1 className="hero-title" style={{fontFamily:"Syne",fontSize:"clamp(2.4rem,5vw,3.75rem)",fontWeight:800,color:"#fff",lineHeight:1.1,letterSpacing:"-.03em",marginBottom:"1rem"}}>
-            Discover the <span style={{color:"var(--blue)"}}>Best</span> of<br/><span style={{color:"var(--amber)"}}>Lagos</span> — Near You
+            Connect with Millions of Businesses in <span style={{color:"var(--amber)"}}>Lagos Near You</span>
           </h1>
           <p style={{color:"rgba(255,255,255,.5)",fontSize:"1rem",marginBottom:"2.5rem"}}>Shop local products, book services & find trusted businesses</p>
           <form onSubmit={doSearch} className="hero-search" style={{background:"#fff",borderRadius:14,padding:".5rem",display:"flex",alignItems:"center",gap:".5rem",boxShadow:"0 20px 60px rgba(0,0,0,.4)",marginBottom:"1.5rem",flexWrap:"wrap"}}>
@@ -1749,7 +1886,7 @@ function HomePage({ setPage, searchQ, setSearchQ, activeCategory, setActiveCateg
             <select value={heroCat} onChange={e=>setHeroCat(e.target.value)} style={{border:"none",borderLeft:"1px solid var(--g200)",outline:"none",fontSize:".85rem",color:"var(--g700)",padding:"0 1rem",background:"transparent",fontWeight:500}}>
               {CATEGORIES.map(c=><option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
             </select>
-            <button type="submit" className="hero-search-btn" style={{background:"var(--blue)",color:"#fff",border:"none",padding:".75rem 1.75rem",borderRadius:10,fontWeight:700,fontSize:".9rem",display:"flex",alignItems:"center",gap:".5rem",whiteSpace:"nowrap"}}>🔍 Search</button>
+            <button type="submit" className="hero-search-btn" style={{background:"var(--blue)",color:"#fff",border:"none",padding:".75rem 1.75rem",borderRadius:10,fontWeight:700,fontSize:".9rem",display:"flex",alignItems:"center",justifyContent:"center",gap:".5rem",whiteSpace:"nowrap",width:"calc(100% - 4px)",boxSizing:"border-box",textAlign:"center"}}>🔍 Search</button>
           </form>
           <div style={{display:"flex",gap:".6rem",justifyContent:"center",flexWrap:"wrap"}}>
             {["Hair & Wigs","Smartphones","Restaurants","Tailoring","Car Services"].map(t=>(
@@ -2036,7 +2173,17 @@ function SearchPage({ searchQ, activeCategory, setSelectedProduct, setSelectedBu
 
 // ── PRODUCT DETAIL ──
 function ProductDetailPage({ product, setPage, setSelectedBusiness, setSelectedProduct, vendorSettings, products = [], businesses = [] }) {
-  const galleryImgs = Array.isArray(product.images) && product.images.length > 0 ? product.images : [product.img, product.img, product.img, product.img];
+  const galleryImgs = (() => {
+    const sources = [product.mainImage || product.img, ...(Array.isArray(product.images) ? product.images : [])].filter(Boolean);
+    const unique = Array.from(new Set(sources));
+    if (unique.length === 0) {
+      return [product.img, product.img, product.img, product.img];
+    }
+    while (unique.length < 4) {
+      unique.push(unique[unique.length - 1]);
+    }
+    return unique;
+  })();
   const [activeImg, setActiveImg] = useState(0);
   const [showPhone, setShowPhone] = useState(false);
   const vendorBiz = businesses.find(b => b.id === product.storeId);
@@ -2098,7 +2245,7 @@ function ProductDetailPage({ product, setPage, setSelectedBusiness, setSelectedP
         <div style={{animation:"fadeUp .4s ease both"}}>
           {/* SKU / category tag */}
           <div style={{fontSize:".78rem", color:"var(--muted)", marginBottom:".6rem", display:"flex", alignItems:"center", gap:".5rem"}}>
-            <span style={{background:"var(--g100)", padding:".2rem .6rem", borderRadius:4, fontWeight:600}}>{CATEGORIES.find(c=>c.id===product.category)?.icon} {CATEGORIES.find(c=>c.id===product.category)?.label}</span>
+            <span style={{background:"var(--g100)", padding:".2rem .6rem", borderRadius:4, fontWeight:600}}>{CATEGORIES.find(c=>c.id===product.category)?.icon} {CATEGORIES.find(c=>c.id===product.category)?.label}{product.subcategory && <span style={{color:"blue", marginLeft:".3rem"}}>• {product.subcategory}</span>}</span>
             <span>•</span>
             <span>SKU: LBC{String(product.id).padStart(6,"0")}</span>
           </div>
@@ -2649,13 +2796,13 @@ function OnboardingPage({ setPage, user, setUser, refreshMarketplace }) {
 
       try {
         await api.createStore({
-          bizName: biz.name,
+          bizName: biz.name.trim(),
           category: biz.category,
-          location: biz.location,
-          ...(biz.phone ? { bizPhone: biz.phone } : {}),
-          ...(biz.email ? { bizEmail: biz.email } : {}),
-          ...(biz.whatsapp ? { whatsapp: biz.whatsapp } : {}),
-          ...(biz.desc ? { bizDesc: biz.desc } : {}),
+          location: biz.location.trim(),
+          ...(biz.phone ? { bizPhone: biz.phone.trim() } : {}),
+          ...(biz.email ? { bizEmail: biz.email.trim() } : {}),
+          ...(biz.whatsapp ? { whatsapp: biz.whatsapp.trim() } : {}),
+          ...(biz.desc ? { bizDesc: biz.desc.trim() } : {}),
         });
       } catch (err) {
         if (!String(err.message || '').toLowerCase().includes('already have a store')) {
@@ -3138,7 +3285,7 @@ function LineChart({ datasets, labels }) {
       {/* X labels */}
       {resolvedLabels.map((l,i)=>{
         const x = PAD + ((resolvedLabels.length <= 1 ? 0 : i/(resolvedLabels.length-1)))*(W-PAD*2);
-        return <text key={i} x={x} y={H-6} textAnchor="middle" fontSize="9" fill="#94a3b8">{l}</text>;
+        return <text key={i} x={x} y={H-6} textAnchor="middle" className="chart-x-lbl" fill="#94a3b8">{l}</text>;
       })}
       {/* Lines */}
       {datasets.map((ds,i)=>(
@@ -3148,8 +3295,9 @@ function LineChart({ datasets, labels }) {
   );
 }
 
-function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketplace }) {
-  const [tab, setTab] = useState("overview");
+function DashboardPage({ dashboardTab, user, setPage, setUser, vendorSettings, refreshMarketplace }) {
+  // Use the dashboardTab prop passed from App instead of local state
+  const tab = dashboardTab || "overview";
   const [listingStep, setListingStep] = useState(1);
   const [showAddListing, setShowAddListing] = useState(false);
   const [newListing, setNewListing] = useState(createEmptyListingDraft);
@@ -3353,6 +3501,8 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
     stock: item.stock || 1,
     sold: item.sold || 0,
     img: item.mainImage || item.images?.[0] || "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=80&h=80&fit=crop",
+    mainImage: item.mainImage || item.images?.[0] || "",
+    images: Array.isArray(item.images) ? item.images : [],
     desc: item.description || "",
     location: item.location || "",
   });
@@ -3626,6 +3776,8 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
 
   // Edit / unpublish / delete state
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [menuPosition, setMenuPosition] = useState(null);
+  const listingsRootRef = useRef(null);
   const [editListing, setEditListing] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [editStep, setEditStep] = useState(1);
@@ -3862,7 +4014,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
       {/* ── SIDEBAR ── */}
       <aside className="dash-sidebar" style={{width:200,background:"var(--navy)",display:"flex",flexDirection:"column",padding:"1.5rem 0",flexShrink:0,position:"sticky",top:64,height:"calc(100vh - 64px)"}}>
         {SIDEBAR.map(s=>(
-          <button key={s.id} onClick={()=>setTab(s.id)}
+          <button key={s.id} onClick={()=>setPage("dashboard",{tab:s.id})}
             style={{display:"flex",alignItems:"center",gap:".75rem",padding:".85rem 1.5rem",border:"none",background:tab===s.id?"rgba(255,255,255,.1)":"transparent",color:tab===s.id?"#fff":"rgba(255,255,255,.45)",fontWeight:tab===s.id?700:500,fontSize:".87rem",cursor:"pointer",textAlign:"left",borderLeft:tab===s.id?"3px solid var(--blue)":"3px solid transparent",transition:"all .2s",fontFamily:"Manrope"}}>
             <span style={{fontSize:"1rem",opacity:tab===s.id?1:.6}}>{s.icon}</span>{s.label}
           </button>
@@ -3915,8 +4067,8 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
                 <p style={{color:"var(--muted)",fontSize:".88rem"}}>Here's your store performance at a glance.</p>
               </div>
               <div style={{display:"flex",gap:".6rem",flexWrap:"wrap"}}>
-                <button onClick={()=>{setTab("listings");setShowAddListing(true);}} style={{background:"var(--navy)",color:"#fff",border:"none",padding:".7rem 1.4rem",borderRadius:10,fontWeight:700,fontSize:".85rem",cursor:"pointer",display:"flex",alignItems:"center",gap:".5rem"}}>+ List a Product</button>
-                <button onClick={()=>setTab("boosts")} style={{background:"rgba(245,158,11,.12)",color:"#92600a",border:"1.5px solid var(--amber)",padding:".7rem 1.4rem",borderRadius:10,fontWeight:700,fontSize:".85rem",cursor:"pointer",display:"flex",alignItems:"center",gap:".5rem"}}>⚡ Boost a Product</button>
+                <button onClick={()=>{setPage("dashboard",{tab:"listings"});setShowAddListing(true);}} style={{background:"var(--navy)",color:"#fff",border:"none",padding:".7rem 1.4rem",borderRadius:10,fontWeight:700,fontSize:".85rem",cursor:"pointer",display:"flex",alignItems:"center",gap:".5rem"}}>+ List a Product</button>
+                <button onClick={()=>setPage("dashboard",{tab:"boosts"})} style={{background:"rgba(245,158,11,.12)",color:"#92600a",border:"1.5px solid var(--amber)",padding:".7rem 1.4rem",borderRadius:10,fontWeight:700,fontSize:".85rem",cursor:"pointer",display:"flex",alignItems:"center",gap:".5rem"}}>⚡ Boost a Product</button>
               </div>
             </div>
 
@@ -3926,9 +4078,8 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
                 <div style={{display:"flex",alignItems:"flex-start",gap:"1rem",flexWrap:"wrap"}}>
                   <div style={{width:40,height:40,borderRadius:10,background:"rgba(245,158,11,.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.25rem",flexShrink:0}}>📱</div>
                   <div style={{flex:1,minWidth:220}}>
-                    <div style={{display:"flex",alignItems:"center",gap:".6rem",marginBottom:".25rem"}}>
-                      <span style={{fontWeight:800,fontSize:".95rem",color:"var(--navy)"}}>Verify your phone number</span>
-                      <span style={{background:"rgba(245,158,11,.15)",color:"#92600a",fontSize:".68rem",fontWeight:800,padding:".15rem .55rem",borderRadius:100}}>REQUIRED</span>
+                    <div style={{marginBottom:".25rem"}}>
+                      <span style={{fontWeight:800,fontSize:".95rem",color:"var(--navy)"}}>Verify your phone number <span style={{color:"#92600a",fontSize:"inherit",fontWeight:700}}>(required)</span></span>
                     </div>
                     <p style={{fontSize:".82rem",color:"var(--muted)",margin:0}}>
                       {phoneOtpSent
@@ -4010,14 +4161,16 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
             <div className="dash-overview-panels" style={{display:"grid",gridTemplateColumns:"1fr 300px",gap:"1.5rem"}}>
               {/* Performance chart */}
               <div style={{background:"#fff",border:"1px solid var(--g200)",borderRadius:"var(--r)",padding:"1.5rem"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.25rem"}}>
+                <div className="dash-perf-header" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.25rem"}}>
                   <h3 style={{fontFamily:"Syne",fontWeight:700,fontSize:"1rem"}}>Performance</h3>
-                  <div style={{display:"flex",background:"var(--g100)",borderRadius:8,overflow:"hidden"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:".5rem"}}>
+                    <div className="dash-period-btns">
                     {["Monthly","Weekly","Daily"].map(p=>(
-                      <button key={p} onClick={()=>setChartPeriod(p)} style={{padding:".4rem .85rem",border:"none",background:chartPeriod===p?"var(--navy)":"transparent",color:chartPeriod===p?"#fff":"var(--muted)",fontSize:".75rem",fontWeight:600,cursor:"pointer"}}>
+                      <button className="dash-period-btn" key={p} onClick={()=>setChartPeriod(p)} style={{background:chartPeriod===p?"var(--navy)":"var(--g100)",color:chartPeriod===p?"#fff":"var(--muted)",borderColor:chartPeriod===p?"var(--navy)":"var(--g200)"}}>
                         {p}
                       </button>
                     ))}
+                    </div>
                   </div>
                 </div>
                 <LineChart datasets={datasets} labels={chartLabels} />
@@ -4041,7 +4194,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
                 <div style={{background:"#fff",border:"1px solid var(--g200)",borderRadius:"var(--r)",padding:"1.25rem"}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1rem"}}>
                     <h3 style={{fontFamily:"Syne",fontWeight:700,fontSize:".95rem"}}>⚡ Active Boosts</h3>
-                    <button onClick={()=>setTab("boosts")} style={{background:"none",border:"none",color:"var(--blue)",fontSize:".75rem",fontWeight:600,cursor:"pointer"}}>View all</button>
+                    <button onClick={()=>setPage("dashboard",{tab:"boosts"})} style={{background:"none",border:"none",color:"var(--blue)",fontSize:".75rem",fontWeight:600,cursor:"pointer"}}>View all</button>
                   </div>
                   {activeBoosts.length === 0 && (
                     <div style={{padding:".5rem 0",fontSize:".8rem",color:"var(--muted)"}}>
@@ -4073,7 +4226,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
                   <div style={{fontSize:".68rem",fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:"rgba(255,255,255,.4)",marginBottom:".5rem"}}>Current Plan</div>
                   <div style={{fontFamily:"Syne",fontSize:"1.1rem",fontWeight:800,color:"var(--amber)",marginBottom:".25rem"}}>{currentBoost ? `⚡ ${(boostPlans[currentBoost.plan]?.label || boostPlanOptions.find((plan) => plan.id === currentBoost.plan)?.label || currentBoost.plan)}` : 'No Active Plan'}</div>
                   <div style={{fontSize:".78rem",color:"rgba(255,255,255,.4)",marginBottom:"1rem"}}>{currentBoost ? `${getDaysLeft(currentBoost.endDate)} day${getDaysLeft(currentBoost.endDate) === 1 ? '' : 's'} remaining` : 'Activate a boost to increase visibility'}</div>
-                  <button onClick={()=>setTab("boosts")} style={{width:"100%",background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.15)",color:"#fff",borderRadius:8,padding:".65rem",fontWeight:700,fontSize:".82rem",cursor:"pointer"}}>Upgrade Plan</button>
+                  <button onClick={()=>setPage("dashboard",{tab:"boosts"})} style={{width:"100%",background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.15)",color:"#fff",borderRadius:8,padding:".65rem",fontWeight:700,fontSize:".82rem",cursor:"pointer"}}>Upgrade Plan</button>
                 </div>
               </div>
             </div>
@@ -4082,7 +4235,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
 
         {/* ── LISTINGS ── */}
         {tab==="listings" && (
-          <div style={{padding:"2rem 2.5rem"}}>
+          <div ref={listingsRootRef} className="dash-main" style={{padding:"2rem 2.25rem 2rem 1.35rem",position:"relative"}}>
             <div className="listing-toolbar-mobile" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"2rem"}}>
               <div>
                 <h1 style={{fontFamily:"Syne",fontWeight:800,fontSize:"1.4rem",marginBottom:".25rem"}}>My Listings</h1>
@@ -4146,6 +4299,15 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
                           {CATEGORIES.filter(c=>c.id!=="all").map(c=><option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
                         </select>
                       </div>
+                      {CATEGORIES.find(c=>c.id===newListing.category)?.subcategories && (
+                        <div>
+                          <label style={{display:"block",fontSize:".82rem",fontWeight:700,color:"var(--g700)",marginBottom:".4rem"}}>Subcategory</label>
+                          <select value={newListing.subcategory} onChange={e=>updL("subcategory",e.target.value)} style={{width:"100%",padding:".75rem 1rem",borderRadius:8,border:"1px solid var(--g200)",fontSize:".9rem",outline:"none",color:"var(--text)"}}>
+                            <option value="">Select subcategory</option>
+                            {CATEGORIES.find(c=>c.id===newListing.category).subcategories.map(s=><option key={s} value={s}>{s}</option>)}
+                          </select>
+                        </div>
+                      )}
                     </div>
                     {/* Stock */}
                     <div>
@@ -4321,8 +4483,8 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
 
             {/* ── EDIT MODAL ── */}
             {editListing && (
-              <div style={{position:"fixed",inset:0,background:"rgba(6,13,31,.55)",zIndex:900,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem",overflowY:"auto"}} onClick={()=>{setEditListing(null);setEditStep(1);setEditMainImageFile(null);setEditGalleryFiles([null,null,null,null]);}}>
-                <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:20,padding:"2rem",maxWidth:560,width:"100%",boxShadow:"0 24px 64px rgba(0,0,0,.25)",animation:"scaleIn .25s ease both",margin:"auto"}}>
+              <div style={{position:"fixed",inset:0,background:"rgba(6,13,31,.55)",zIndex:900,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem",overflow:"hidden"}} onClick={()=>{setEditListing(null);setEditStep(1);setEditMainImageFile(null);setEditGalleryFiles([null,null,null,null]);}}>
+                <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:20,padding:"2rem",maxWidth:560,width:"100%",maxHeight:"85vh",overflowY:"auto",boxShadow:"0 24px 64px rgba(0,0,0,.25)",animation:"scaleIn .25s ease both"}}>
                   {/* Header */}
                   <div className="listing-composer-header" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.5rem"}}>
                     <h3 style={{fontFamily:"Syne",fontWeight:800,fontSize:"1.1rem"}}>
@@ -4377,6 +4539,15 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
                           </select>
                         </div>
                       </div>
+                      {CATEGORIES.find(c=>c.id===editListing.category)?.subcategories && (
+                        <div>
+                          <label style={{display:"block",fontSize:".82rem",fontWeight:700,color:"var(--g700)",marginBottom:".4rem"}}>Subcategory</label>
+                          <select value={editListing.subcategory} onChange={e=>updEdit("subcategory",e.target.value)} style={{width:"100%",padding:".75rem 1rem",borderRadius:8,border:"1px solid var(--g200)",fontSize:".9rem",outline:"none",color:"var(--text)"}}>
+                            <option value="">Select subcategory</option>
+                            {CATEGORIES.find(c=>c.id===editListing.category).subcategories.map(s=><option key={s} value={s}>{s}</option>)}
+                          </select>
+                        </div>
+                      )}
                       {/* Stock */}
                       <div>
                         <label style={{display:"block",fontSize:".82rem",fontWeight:700,color:"var(--g700)",marginBottom:".4rem"}}>Available Stock</label>
@@ -4490,7 +4661,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
             )}
 
             {/* Listings table */}
-            <div className="dash-listings-scroll" style={{background:"#fff",border:"1px solid var(--g200)",borderRadius:"var(--r)",overflow:"visible"}} onClick={()=>setOpenMenuId(null)}>
+            <div className="dash-listings-scroll" style={{background:"#fff",border:"1px solid var(--g200)",borderRadius:"var(--r)",overflowX:"auto",overflowY:"visible",position:"relative",zIndex:2}} onClick={()=>{setOpenMenuId(null);setMenuPosition(null);}} onScroll={()=>{if(openMenuId){setOpenMenuId(null);setMenuPosition(null);}}}>
               <table className="dash-listings-table" style={{width:"100%",borderCollapse:"collapse"}}>
                 <thead>
                   <tr style={{background:"var(--g100)",borderBottom:"1px solid var(--g200)"}}>
@@ -4530,40 +4701,30 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
                       <td style={{padding:".875rem 1rem"}}>
                         {l.sponsored
                           ? <span style={{fontSize:".72rem",fontWeight:700,color:"#92600a",background:"rgba(245,158,11,.1)",padding:".25rem .6rem",borderRadius:100}}>⚡ Boosted</span>
-                          : <button onClick={()=>{setBoostProduct(l.id);setTab("boosts");}} style={{fontSize:".75rem",fontWeight:700,color:"var(--blue)",background:"rgba(0,102,255,.08)",border:"none",padding:".3rem .75rem",borderRadius:100,cursor:"pointer"}}>+ Boost</button>
+                          : <button onClick={()=>{setBoostProduct(l.id);setPage("dashboard",{tab:"boosts"});}} style={{fontSize:".75rem",fontWeight:700,color:"var(--blue)",background:"rgba(0,102,255,.08)",border:"none",padding:".3rem .75rem",borderRadius:100,cursor:"pointer"}}>+ Boost</button>
                         }
                       </td>
                       {/* Actions dropdown */}
-                      <td style={{padding:".875rem 1rem",position:"relative"}}>
-                        <button onClick={e=>{e.stopPropagation();setOpenMenuId(openMenuId===l.id?null:l.id);}}
+                      <td style={{padding:".875rem 1rem",position:"relative",zIndex:openMenuId===l.id?40:"auto"}}>
+                        <button onClick={e=>{
+                          e.stopPropagation();
+                          if (openMenuId === l.id) {
+                            setOpenMenuId(null);
+                            setMenuPosition(null);
+                            return;
+                          }
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          const rootRect = listingsRootRef.current?.getBoundingClientRect();
+                          if (!rootRect) return;
+                          const menuWidth = 188;
+                          const left = Math.max(12, Math.min(rect.right - rootRect.left - menuWidth, rootRect.width - menuWidth - 12));
+                          const top = rect.bottom - rootRect.top + 6;
+                          setMenuPosition({ top, left });
+                          setOpenMenuId(l.id);
+                        }}
                           style={{background:openMenuId===l.id?"var(--g200)":"var(--g100)",border:"1px solid var(--g200)",borderRadius:8,padding:".35rem .75rem",cursor:"pointer",fontWeight:700,color:"var(--g700)",fontSize:".85rem",transition:"background .15s"}}>
                           ⋯
                         </button>
-                        {openMenuId===l.id && (
-                          <div onClick={e=>e.stopPropagation()} style={{position:"absolute",right:"1rem",top:"calc(100% - .25rem)",background:"#fff",border:"1px solid var(--g200)",borderRadius:12,boxShadow:"0 8px 32px rgba(6,13,31,.14)",zIndex:300,minWidth:180,overflow:"hidden",animation:"fadeUp .15s ease both"}}>
-                            {/* Edit */}
-                            <button onClick={()=>{setEditListing({...l});setEditStep(1);setOpenMenuId(null);}}
-                              style={{display:"flex",alignItems:"center",gap:".6rem",width:"100%",padding:".75rem 1rem",border:"none",background:"none",cursor:"pointer",fontSize:".85rem",fontWeight:600,color:"var(--text)",textAlign:"left"}}
-                              onMouseEnter={e=>e.currentTarget.style.background="var(--g100)"}
-                              onMouseLeave={e=>e.currentTarget.style.background="none"}>
-                              ✏️ Edit Listing
-                            </button>
-                            {/* Unpublish / Republish */}
-                            <button onClick={()=>doUnpublish(l.id)}
-                              style={{display:"flex",alignItems:"center",gap:".6rem",width:"100%",padding:".75rem 1rem",border:"none",background:"none",cursor:"pointer",fontSize:".85rem",fontWeight:600,color:l.status==="live"?"#92600a":"#15803d",textAlign:"left",borderTop:"1px solid var(--g100)"}}
-                              onMouseEnter={e=>e.currentTarget.style.background="var(--g100)"}
-                              onMouseLeave={e=>e.currentTarget.style.background="none"}>
-                              {l.status==="live"?"⏸ Unpublish":"▶ Republish"}
-                            </button>
-                            {/* Delete */}
-                            <button onClick={()=>{setDeleteTarget(l);setOpenMenuId(null);}}
-                              style={{display:"flex",alignItems:"center",gap:".6rem",width:"100%",padding:".75rem 1rem",border:"none",background:"none",cursor:"pointer",fontSize:".85rem",fontWeight:600,color:"var(--red)",textAlign:"left",borderTop:"1px solid var(--g100)"}}
-                              onMouseEnter={e=>e.currentTarget.style.background="#fef2f2"}
-                              onMouseLeave={e=>e.currentTarget.style.background="none"}>
-                              🗑️ Delete Listing
-                            </button>
-                          </div>
-                        )}
                       </td>
                     </tr>
                   ))}
@@ -4577,6 +4738,34 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
                 </div>
               )}
             </div>
+
+            {openMenuId && menuPosition && (() => {
+              const activeListing = listings.find((item) => item.id === openMenuId);
+              if (!activeListing) return null;
+
+              return (
+                <div onClick={e=>e.stopPropagation()} style={{position:"absolute",left:menuPosition.left,top:menuPosition.top,background:"#fff",border:"1px solid var(--g200)",borderRadius:12,boxShadow:"0 8px 32px rgba(6,13,31,.14)",zIndex:9999,minWidth:180,overflow:"hidden",animation:"fadeUp .15s ease both"}}>
+                  <button onClick={()=>{setEditListing({...activeListing});setEditStep(1);setOpenMenuId(null);setMenuPosition(null);}}
+                    style={{display:"flex",alignItems:"center",gap:".6rem",width:"100%",padding:".75rem 1rem",border:"none",background:"none",cursor:"pointer",fontSize:".85rem",fontWeight:600,color:"var(--text)",textAlign:"left"}}
+                    onMouseEnter={e=>e.currentTarget.style.background="var(--g100)"}
+                    onMouseLeave={e=>e.currentTarget.style.background="none"}>
+                    ✏️ Edit Listing
+                  </button>
+                  <button onClick={()=>{doUnpublish(activeListing.id);setMenuPosition(null);}}
+                    style={{display:"flex",alignItems:"center",gap:".6rem",width:"100%",padding:".75rem 1rem",border:"none",background:"none",cursor:"pointer",fontSize:".85rem",fontWeight:600,color:activeListing.status==="live"?"#92600a":"#15803d",textAlign:"left",borderTop:"1px solid var(--g100)"}}
+                    onMouseEnter={e=>e.currentTarget.style.background="var(--g100)"}
+                    onMouseLeave={e=>e.currentTarget.style.background="none"}>
+                    {activeListing.status==="live"?"⏸ Unpublish":"▶ Republish"}
+                  </button>
+                  <button onClick={()=>{setDeleteTarget(activeListing);setOpenMenuId(null);setMenuPosition(null);}}
+                    style={{display:"flex",alignItems:"center",gap:".6rem",width:"100%",padding:".75rem 1rem",border:"none",background:"none",cursor:"pointer",fontSize:".85rem",fontWeight:600,color:"var(--red)",textAlign:"left",borderTop:"1px solid var(--g100)"}}
+                    onMouseEnter={e=>e.currentTarget.style.background="#fef2f2"}
+                    onMouseLeave={e=>e.currentTarget.style.background="none"}>
+                    🗑️ Delete Listing
+                  </button>
+                </div>
+              );
+            })()}
           </div>
         )}
 
@@ -4673,7 +4862,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
                 <div style={{fontSize:"4rem",marginBottom:"1rem"}}>⚡</div>
                 <h2 style={{fontFamily:"Syne",fontWeight:800,fontSize:"1.5rem",marginBottom:".75rem",color:"var(--navy)"}}>Boost Activated!</h2>
                 <p style={{color:"var(--muted)",fontSize:".9rem",marginBottom:"2rem"}}>Your listing will appear as sponsored within the next few minutes.</p>
-                <button onClick={()=>{setBoostDone(false);setTab("overview");}} style={{background:"var(--blue)",color:"#fff",border:"none",padding:".875rem 2rem",borderRadius:10,fontWeight:700,fontSize:".9rem",cursor:"pointer"}}>Back to Dashboard</button>
+                <button onClick={()=>{setBoostDone(false);setPage("dashboard",{tab:"overview"});}} style={{background:"var(--blue)",color:"#fff",border:"none",padding:".875rem 2rem",borderRadius:10,fontWeight:700,fontSize:".9rem",cursor:"pointer"}}>Back to Dashboard</button>
               </div>
             ) : (
               <div className="pdp-grid" style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) 320px",gap:"1.2rem",alignItems:"start"}}>
@@ -4894,6 +5083,8 @@ function Footer({ setPage }) {
 function App() {
   const initialRoute = resolveAppRoute();
   const [page,setPageState] = useState(initialRoute.page);
+  const [dashboardTab, setDashboardTabState] = useState(initialRoute.tab || "overview");
+  const [settingsSection, setSettingsSectionState] = useState(initialRoute.section || "profile");
   const [searchQ,setSearchQ] = useState(initialRoute.searchQ || "");
   const [activeCategory,setActiveCategory] = useState(initialRoute.activeCategory || "all");
   const [wishlist,setWishlist] = useState(() => readWishlistCache());
@@ -4906,6 +5097,8 @@ function App() {
   const [marketBusinesses, setMarketBusinesses] = useState([]);
   const routeStateRef = useRef({
     page: initialRoute.page,
+    tab: initialRoute.tab || "overview",
+    section: initialRoute.section || "profile",
     searchQ: initialRoute.searchQ || "",
     activeCategory: initialRoute.activeCategory || "all",
     selectedProduct: null,
@@ -4922,8 +5115,12 @@ function App() {
     const explicitBiz = Object.prototype.hasOwnProperty.call(options, "biz") ? options.biz : undefined;
     const nextProduct = normalizedPage === "product" ? (options.product ?? routeStateRef.current.selectedProduct ?? null) : null;
     const nextBiz = normalizedPage === "storefront" ? (explicitBiz !== undefined ? explicitBiz : null) : null;
+    const nextTab = normalizedPage === "dashboard" ? (options.tab || routeStateRef.current.tab || "overview") : undefined;
+    const nextSection = normalizedPage === "settings" ? (options.section || routeStateRef.current.section || "profile") : undefined;
     const nextRouteState = {
       page: normalizedPage,
+      tab: nextTab,
+      section: nextSection,
       searchQ: options.searchQ ?? routeStateRef.current.searchQ ?? "",
       activeCategory: options.activeCategory ?? routeStateRef.current.activeCategory ?? "all",
       selectedProduct: nextProduct,
@@ -4936,11 +5133,19 @@ function App() {
     if (normalizedPage === "storefront") {
       setStorefrontBiz(nextBiz);
     }
+    if (nextTab !== undefined) {
+      setDashboardTabState(nextTab);
+    }
+    if (nextSection !== undefined) {
+      setSettingsSectionState(nextSection);
+    }
 
     routeStateRef.current = nextRouteState;
     setPageState(normalizedPage);
 
     const nextUrl = buildAppUrl(normalizedPage, {
+      tab: nextTab,
+      section: nextSection,
       searchQ: nextRouteState.searchQ,
       activeCategory: nextRouteState.activeCategory,
       product: nextRouteState.selectedProduct,
@@ -5264,8 +5469,8 @@ function App() {
       {page==="signin" && <AuthPage setPage={setPage} setUser={setUser} />}
       {page==="onboarding" && <OnboardingPage setPage={setPage} user={user} setUser={setUser} refreshMarketplace={refreshMarketplace} />}
       {page==="cart" && <CartPage cart={cart} setCart={setCart} setPage={setPage} />}
-      {page==="dashboard" && <DashboardPage user={user} setUser={setUser} setPage={setPage} vendorSettings={vendorSettings} refreshMarketplace={refreshMarketplace} />}
-      {page==="settings" && <SettingsPage user={user} setUser={setUser} setPage={setPage} vendorSettings={vendorSettings} setVendorSettings={setVendorSettings} refreshMarketplace={refreshMarketplace} />}
+      {page==="dashboard" && <DashboardPage dashboardTab={dashboardTab} setPage={setPage} user={user} setUser={setUser} vendorSettings={vendorSettings} refreshMarketplace={refreshMarketplace} />}
+      {page==="settings" && <SettingsPage settingsSection={settingsSection} setPage={setPage} user={user} setUser={setUser} vendorSettings={vendorSettings} setVendorSettings={setVendorSettings} refreshMarketplace={refreshMarketplace} />}
       {page==="boostCallback" && <BoostCallbackPage setPage={setPage} setUser={setUser} />}
       {page==="about" && <AboutPage setPage={setPage} />}
       {page==="howitworks" && <HowItWorksPage setPage={setPage} />}
@@ -5368,10 +5573,11 @@ function SSection({ title, subtitle, icon, children, onSave, saved }) {
 }
 
 // ── SETTINGS PAGE ──
-function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSettings, refreshMarketplace }) {
+function SettingsPage({ settingsSection, user, setUser, setPage, vendorSettings, setVendorSettings, refreshMarketplace }) {
+  // Use the settingsSection prop passed from App instead of local state
+  const activeSection = settingsSection || "personal";
   const [local, setLocal] = useState({...vendorSettings, name: vendorSettings.name||user?.name||"", email: vendorSettings.email||user?.email||""});
   const [saved, setSaved] = useState({});
-  const [activeSection, setActiveSection] = useState("personal");
   const [isCompactViewport, setIsCompactViewport] = useState(() => window.innerWidth <= 768);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => window.innerWidth <= 768);
   const [pwForm, setPwForm] = useState({old:"",newp:"",confirm:""});
@@ -5657,7 +5863,7 @@ function SettingsPage({ user, setUser, setPage, vendorSettings, setVendorSetting
     setSidebarCollapsed((current) => !current);
   };
   const selectSection = (sectionId) => {
-    setActiveSection(sectionId);
+    setPage("settings", { section: sectionId });
     if (isCompactViewport) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }

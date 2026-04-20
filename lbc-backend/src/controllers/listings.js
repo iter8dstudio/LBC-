@@ -154,7 +154,7 @@ exports.createListing = async (req, res) => {
     const store = await prisma.store.findUnique({ where: { userId: req.user.id } });
     if (!store) return res.status(404).json({ error: 'Set up your store profile before adding listings' });
 
-    const { title, price, type, category, description, status = 'draft', stock } = req.body;
+    const { title, price, type, category, subcategory, description, status = 'draft', stock } = req.body;
 
     if (!title || !price || !type || !category) {
       return res.status(400).json({ error: 'Title, price, type and category are required' });
@@ -167,6 +167,7 @@ exports.createListing = async (req, res) => {
         price: parseFloat(price),
         type,
         category,
+        subcategory: subcategory || null,
         location: req.body.location || store.location,
         description: description || null,
         stock: stock !== undefined ? parseInt(stock, 10) : 1,
@@ -193,7 +194,7 @@ exports.updateListing = async (req, res) => {
       return res.status(403).json({ error: 'You can only edit your own listings' });
     }
 
-    const allowed = ['title', 'price', 'type', 'category', 'location', 'description', 'stock'];
+    const allowed = ['title', 'price', 'type', 'category', 'subcategory', 'location', 'description', 'stock'];
     const data = {};
     allowed.forEach((k) => { if (req.body[k] !== undefined) data[k] = req.body[k]; });
     if (data.price) data.price = parseFloat(data.price);
@@ -266,6 +267,7 @@ exports.uploadImages = async (req, res) => {
       return res.status(403).json({ error: 'Not authorised' });
     }
 
+    const setAsMain = req.body && req.body.setAsMain === 'true';
     const uploads = await Promise.all(
       req.files.map((file) =>
         uploadToCloudinary(file.buffer, 'listings', {
@@ -275,13 +277,22 @@ exports.uploadImages = async (req, res) => {
     );
 
     const urls = uploads.map((u) => u.secure_url);
-    const [mainImage, ...rest] = urls;
+    const mainImageUrl = setAsMain ? urls[0] : listing.mainImage || urls[0];
+    const galleryUrls = [];
+
+    if (setAsMain) {
+      galleryUrls.push(...urls.slice(1));
+    } else if (listing.mainImage) {
+      galleryUrls.push(...urls);
+    } else {
+      galleryUrls.push(...urls.slice(1));
+    }
 
     const updated = await prisma.listing.update({
       where: { id: listing.id },
       data: {
-        mainImage: listing.mainImage || mainImage,
-        images: [...listing.images, ...urls],
+        mainImage: mainImageUrl,
+        images: [...(listing.images || []), ...galleryUrls],
       },
     });
 

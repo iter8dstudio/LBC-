@@ -122,6 +122,7 @@ model Listing {
   price       Float
   type        ListingType
   category    String
+  subcategory String?
   location    String?
   description String?       @db.Text
   mainImage   String?       // Cloudinary URL
