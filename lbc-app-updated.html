@@ -822,6 +822,36 @@ input, select, textarea { font-family:'Manrope',sans-serif; }
 <script type="text/babel">
 const { useState, useEffect, useRef, useMemo, useCallback } = React;
 
+// Global fetch guard: if a navigation/request for an HTML route returns 404,
+// alert the user and redirect to home to keep the SPA from showing a server 404.
+// This avoids redirecting on normal API 404s by only acting when the response
+// looks like an HTML page or targets the current location pathname.
+(() => {
+  const _fetch = window.fetch.bind(window);
+  window.fetch = async (...args) => {
+    try {
+      const res = await _fetch(...args);
+      try {
+        if (res && res.status === 404) {
+          const ct = (res.headers && res.headers.get && (res.headers.get('content-type') || '')) || '';
+          const url = (res.url && (new URL(res.url, window.location.href).pathname)) || '';
+          const isHtml = ct.includes('text/html');
+          const isCurrentPath = url === window.location.pathname;
+          if (isHtml || isCurrentPath) {
+            try { alert('Page not found — redirecting to home.'); } catch (e) {}
+            try { window.location.href = '/'; } catch (e) {}
+          }
+        }
+      } catch (e) {
+        // swallow header/read errors
+      }
+      return res;
+    } catch (err) {
+      throw err;
+    }
+  };
+})();
+
 class ApiService {
   constructor() {
     this.baseCandidates = API_BASE_CANDIDATES.length ? API_BASE_CANDIDATES : [API.API_BASE_URL];
@@ -6286,7 +6316,12 @@ function StorefrontPage({ biz, setPage, user, vendorSettings, onProductClick, pr
           </div>
           <div style={{flex:1}}>
             <div style={{display:"flex",alignItems:"center",gap:".65rem",flexWrap:"wrap"}}>
-              <h1 style={{fontFamily:"Syne",fontWeight:900,fontSize:"1.8rem",color:"#fff",margin:0,textShadow:"0 2px 8px rgba(0,0,0,.3)"}}>{name}</h1>
+              <a
+                href={buildAppUrl("storefront", { biz: isOwn ? { id: vendorSettings.storeId, slug: slugifyRoutePart(vendorSettings.bizName || "My Store") } : { id: biz?.id, slug: slugifyRoutePart(biz?.name || "Store") } })}
+                style={{ textDecoration: "none" }}
+              >
+                <h1 style={{fontFamily:"Syne",fontWeight:900,fontSize:"1.8rem",color:"#fff",margin:0,textShadow:"0 2px 8px rgba(0,0,0,.3)",display:"inline"}}>{name}</h1>
+              </a>
               {verified&&<span style={{background:"rgba(0,102,255,.9)",color:"#fff",fontSize:".7rem",fontWeight:700,padding:".2rem .6rem",borderRadius:6}}>✓ Verified</span>}
             </div>
             <div style={{display:"flex",gap:".6rem",marginTop:".4rem",flexWrap:"wrap"}}>
