@@ -2,10 +2,10 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "cd lbc-backend && npm install && npm run db:generate"
-  },
-  "setup": {
-    "pkgs": ["nodejs"]
+    "buildCommand": "cd lbc-backend && npm install && npm run db:generate",
+    "setup": {
+      "pkgs": ["nodejs"]
+    }
   },
   "deploy": {
     "startCommand": "cd lbc-backend && npm start",
