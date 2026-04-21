@@ -3540,6 +3540,13 @@ function DashboardPage({ dashboardTab, user, setPage, setUser, vendorSettings, r
       return;
     }
 
+    const phoneForOtp = normalizePhoneNumber(user?.phone || vendorSettings?.bizPhone || "");
+    if (!phoneForOtp) {
+      setPhoneOtpError("Please include a phone number first.");
+      try { alert("Please include phone number first"); } catch (e) {}
+      return;
+    }
+
     setPhoneOtpLoading(true);
     try {
       api.setTokens(user.accessToken, user.refreshToken);
@@ -3586,11 +3593,14 @@ function DashboardPage({ dashboardTab, user, setPage, setUser, vendorSettings, r
       await api.verifyPhone(entered);
       setUser(u => ({...u, phoneVerified: true}));
       setPhoneOtpError("");
+      try { alert("success"); } catch (e) {}
       setPage("dashboard", { tab: "overview" });
     } catch (err) {
       setPhoneOtpError(err.message || "Phone verification failed.");
       setPhoneOtp(["","","","","",""]);
       phoneOtpRefs[0].current?.focus();
+      try { alert("failure, try again"); } catch (e) {}
+      setPage("dashboard", { tab: "overview" });
     } finally {
       setPhoneOtpLoading(false);
     }

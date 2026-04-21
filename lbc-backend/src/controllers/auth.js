@@ -382,7 +382,12 @@ exports.logout = async (req, res) => {
 
 exports.sendPhoneOtp = async (req, res) => {
   try {
-    const normalizedPhone = normalizePhone(req.user.phone);
+    const userStore = await prisma.store.findUnique({
+      where: { userId: req.user.id },
+      select: { bizPhone: true },
+    });
+
+    const normalizedPhone = normalizePhone(req.user.phone || userStore?.bizPhone);
     if (!normalizedPhone) {
       return res.status(400).json({ error: 'Add a valid phone number in your account settings before requesting an OTP.' });
     }
