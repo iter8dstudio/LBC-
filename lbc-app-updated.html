@@ -3557,6 +3557,17 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
     }
   };
 
+  // When returning to overview while still unverified, show the initial
+  // "Send Code" state instead of keeping the OTP/error panel open.
+  useEffect(() => {
+    if (tab === "overview" && !user?.phoneVerified) {
+      setPhoneOtpSent(false);
+      setPhoneOtpError("");
+      setPhoneOtp(["", "", "", "", "", ""]);
+      setPhoneCooldown(0);
+    }
+  }, [tab, user?.phoneVerified]);
+
   const [listings, setListings] = useState([]);
 
   const mapListingToUi = (item) => ({
