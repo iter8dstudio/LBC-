@@ -3488,7 +3488,7 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
       return;
     }
 
-    const phoneForOtp = normalizePhoneNumber(user?.phone || vendorSettings?.bizPhone || "");
+    const phoneForOtp = sanitizePhoneNumber(user?.phone || vendorSettings?.bizPhone || "");
     if (!phoneForOtp) {
       setPhoneOtpError("Please include a phone number first.");
       try { alert("Please include phone number first"); } catch (e) {}

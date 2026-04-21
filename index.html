@@ -3540,7 +3540,7 @@ function DashboardPage({ dashboardTab, user, setPage, setUser, vendorSettings, r
       return;
     }
 
-    const phoneForOtp = normalizePhoneNumber(user?.phone || vendorSettings?.bizPhone || "");
+    const phoneForOtp = sanitizePhoneNumber(user?.phone || vendorSettings?.bizPhone || "");
     if (!phoneForOtp) {
       setPhoneOtpError("Please include a phone number first.");
       try { alert("Please include phone number first"); } catch (e) {}
