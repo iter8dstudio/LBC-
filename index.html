@@ -3547,19 +3547,22 @@ function DashboardPage({ dashboardTab, user, setPage, setUser, vendorSettings, r
       return;
     }
 
+    // Always move to OTP screen immediately after the user clicks send.
+    setPage("dashboard", { tab: "phone" });
+    setPhoneOtpSent(true);
+    setPhoneOtpError("");
+    setPhoneOtp(["","","","","",""]);
+    setTimeout(() => phoneOtpRefs[0].current?.focus(), 100);
+
     setPhoneOtpLoading(true);
     try {
       api.setTokens(user.accessToken, user.refreshToken);
       await api.sendPhoneOtp();
-      setPhoneOtpSent(true);
-      setPhoneOtpError("");
-      setPhoneOtp(["","","","","",""]);
       setPhoneCooldown(30);
       const t = setInterval(() => setPhoneCooldown(c => { if(c<=1){clearInterval(t);return 0;} return c-1; }), 1000);
-      setPage("dashboard", { tab: "phone" });
-      setTimeout(() => phoneOtpRefs[0].current?.focus(), 100);
     } catch (err) {
       setPhoneOtpError(err.message || "Failed to send OTP.");
+      try { alert("failure, try again"); } catch (e) {}
     } finally {
       setPhoneOtpLoading(false);
     }

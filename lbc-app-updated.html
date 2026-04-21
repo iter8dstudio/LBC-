@@ -3495,19 +3495,22 @@ function DashboardPage({ user, setPage, setUser, vendorSettings, refreshMarketpl
       return;
     }
 
+    // Always move to OTP screen immediately after the user clicks send.
+    setTab("phone");
+    setPhoneOtpSent(true);
+    setPhoneOtpError("");
+    setPhoneOtp(["","","","","",""]);
+    setTimeout(() => phoneOtpRefs[0].current?.focus(), 100);
+
     setPhoneOtpLoading(true);
     try {
       api.setTokens(user.accessToken, user.refreshToken);
       await api.sendPhoneOtp();
-      setPhoneOtpSent(true);
-      setPhoneOtpError("");
-      setPhoneOtp(["","","","","",""]);
       setPhoneCooldown(30);
       const t = setInterval(() => setPhoneCooldown(c => { if(c<=1){clearInterval(t);return 0;} return c-1; }), 1000);
-      setTab("phone");
-      setTimeout(() => phoneOtpRefs[0].current?.focus(), 100);
     } catch (err) {
       setPhoneOtpError(err.message || "Failed to send OTP.");
+      try { alert("failure, try again"); } catch (e) {}
     } finally {
       setPhoneOtpLoading(false);
     }
