@@ -1239,19 +1239,38 @@ function useIsMobile(breakpoint=768) {
 
 const CATEGORIES = [
   { id:"all", label:"All", icon:"🏠" },
-  { id:"phones-electronics-electricals", label:"Phones, Electronics & Electricals", icon:"📱", subcategories: ["Phones", "Electronics", "Electricals"] },
-  { id:"vehicle-dealerships-leasing-parts", label:"Vehicle Dealerships, Leasing & Parts", icon:"🚗", subcategories: ["Vehicle Dealerships", "Leasing", "Parts"] },
-  { id:"banks-fintechs", label:"Banks & Fintechs", icon:"🏦", subcategories: ["Banks", "Fintechs"] },
-  { id:"property-hub", label:"Property Hub", icon:"🏡" },
-  { id:"hotels-airbnb", label:"Hotels & Airbnb", icon:"🏨", subcategories: ["Hotels", "Airbnb"] },
-  { id:"nightclubs-restaurants-gyms-lounges", label:"NightClubs, Restaurants, Gyms & Lounges", icon:"🍽️", subcategories: ["NightClubs", "Restaurants", "Gyms", "Lounges"] },
-  { id:"childrens-schools-daycares-kids-babies", label:"Children's Schools, Daycares & Kids+Babies", icon:"👶", subcategories: ["Children's Schools", "Daycares", "Kids+Babies"] },
-  { id:"generators-solar-energy", label:"Generators & Solar Energy", icon:"⚡", subcategories: ["Generators", "Solar Energy"] },
-  { id:"travels-logistics-interstate", label:"Travels, Logistics & Interstate", icon:"✈️", subcategories: ["Travels", "Logistics", "Interstate"] },
+  { id:"fashion", label:"Fashion", icon:"👗" },
+  { id:"beauty", label:"Health & Wellness", icon:"💄", subcategories: ["Hospitals & Homecare Services", "Gyms"] },
+  { id:"phones", label:"Phones & Tablets", icon:"📱" },
+  { id:"electronics", label:"Electronics", icon:"💻" },
+  { id:"food", label:"Food & Lifestyle", icon:"🍽️", subcategories: ["Restaurants", "Nightclubs & Lounges"] },
+  { id:"services", label:"Events & Services", icon:"🔧", subcategories: ["Party Rentals"] },
+  { id:"property", label:"Core Real Estate", icon:"🏡", subcategories: ["Buying a Property", "Selling a Property", "Leasing a Property", "Land for Sale/Lease"] },
+  { id:"digital", label:"Marketplace", icon:"📦", subcategories: ["Classified Ads Section"] },
+  { id:"automotive", label:"Transport & Mobility", icon:"🚗", subcategories: ["Logistics & Delivery Services", "Car Leasing"] },
+  { id:"kids", label:"Education & Childcare", icon:"👶", subcategories: ["Schools (Nursery, Primary & Secondary)", "Daycare Services"] },
+  { id:"furniture", label:"Home & Living", icon:"🪑", subcategories: ["Interior Designers", "Building Materials & Home Improvement", "Used Furniture", "Electronics & Home Gadgets"] },
+  { id:"travel-tours", label:"Travel & Tourism", icon:"✈️", subcategories: ["Travel & Tours"] },
+  { id:"banks-fintech", label:"Finance & Business", icon:"🏦", subcategories: ["Banks & Fintech"] },
+  { id:"hotels-airbnb", label:"Accommodation & Hospitality", icon:"🏨", subcategories: ["Hotels", "Short-lets & Airbnb", "Hospitality Businesses"] },
+  { id:"kids", label:"Kids & Babies", icon:"👶" },
+  { id:"restaurants", label:"Restaurants", icon:"🍴" },
+  { id:"religious-services", label:"Community & Religion", icon:"⛪", subcategories: ["Churches & Mosques"] },
+  { id:"supermarkets", label:"Retail & Commerce", icon:"🛒", subcategories: ["Supermarkets"] },
   { id:"hospitals", label:"Hospitals", icon:"🏥" },
-  { id:"party-services", label:"Party Services", icon:"🎉", subcategories: ["Party Services"] },
-  { id:"supermarkets", label:"Supermarkets", icon:"🛒", subcategories: ["Supermarkets"] },
-  { id:"classified-ads-section", label:"Classified Ads Section", icon:"📦", subcategories: ["Classified Ads Section"] },
+  { id:"energy", label:"Energy & Infrastructure", icon:"⚡", subcategories: ["Green Energy Hubs"] },
+  { id:"auto-parts", label:"Automotive", icon:"🔧", subcategories: ["Auto Parts Dealerships"] },
+  { id:"add-phones-electronics-electricals", label:"Phones. Electronics. Electricals", icon:"📱", subcategories: ["Phones", "Electronics", "Electricals"] },
+  { id:"add-vehicle-dealerships-leasing-parts", label:"Vehicle Dealerships. Leasing. Parts", icon:"🚗", subcategories: ["Vehicle Dealerships", "Leasing", "Parts"] },
+  { id:"add-banks-fintechs", label:"Banks. Fintechs.", icon:"🏦", subcategories: ["Banks", "Fintechs"] },
+  { id:"add-property-hub", label:"Property Hub", icon:"🏡" },
+  { id:"add-hotels-airbnb", label:"Hotels. Airbnb", icon:"🏨", subcategories: ["Hotels", "Airbnb"] },
+  { id:"add-nightclubs-restaurants-gyms-lounges", label:"NightClubs. Restaurants. Gyms. Lounges", icon:"🍽️", subcategories: ["NightClubs", "Restaurants", "Gyms", "Lounges"] },
+  { id:"add-childrens-schools-daycares-kids-babies", label:"Children's Schools. Daycares. Kids+Babies", icon:"👶", subcategories: ["Children's Schools", "Daycares", "Kids+Babies"] },
+  { id:"add-generators-solar-energy", label:"Generators. Solar Energy", icon:"⚡", subcategories: ["Generators", "Solar Energy"] },
+  { id:"add-travels-logistics-interstate", label:"Travels. Logistics. Interstate", icon:"✈️", subcategories: ["Travels", "Logistics", "Interstate"] },
+  { id:"add-party-services", label:"Party Services.", icon:"🎉", subcategories: ["Party Services"] },
+  { id:"add-classified-ads-section", label:"Classified Ads Section", icon:"📦", subcategories: ["Classified Ads Section"] },
 ];
 
 const LOCATIONS = [
@@ -1427,7 +1446,7 @@ const createEmptyListingDraft = () => ({
   title:"",
   price:"",
   type:"physical",
-  category:"phones-electronics-electricals",
+  category:"fashion",
   subcategory:"",
   desc:"",
   showGallery:true,
@@ -2741,7 +2760,7 @@ function AuthPage({ setPage, setUser }) {
 // ── ONBOARDING ──
 function OnboardingPage({ setPage, user, setUser, refreshMarketplace }) {
   const [step,setStep] = useState(1);
-  const [biz,setBiz] = useState({name:"",type:"physical",category:"phones-electronics-electricals",location:"Lekki Phase 1",phone:"",email:"",whatsapp:"",desc:"",plan:"monthly"});
+  const [biz,setBiz] = useState({name:"",type:"physical",category:"fashion",location:"Lekki Phase 1",phone:"",email:"",whatsapp:"",desc:"",plan:"monthly"});
   const [listing,setListing] = useState({title:"",price:"",listingType:"physical",listingDesc:""});
   const [listingImageFile, setListingImageFile] = useState(null);
   const [listingImagePreview, setListingImagePreview] = useState(null);
