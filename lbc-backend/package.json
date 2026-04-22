@@ -7,6 +7,7 @@
     "start": "npm run db:migrate && npm run termii:doctor:auto && node src/index.js",
     "dev": "npm run termii:doctor:auto && nodemon src/index.js",
     "termii:doctor": "node scripts/termii-doctor.js",
+    "termii:autofix": "node scripts/termii-autofix.js",
     "termii:doctor:auto": "node scripts/termii-doctor-auto.js",
     "db:migrate": "npx prisma migrate deploy",
     "db:generate": "npx prisma generate",
