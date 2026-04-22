@@ -12,7 +12,7 @@ const {
 const apiKey = process.env.TERMII_API_KEY?.trim();
 const desiredSenderId = process.env.TERMII_SENDER_ID?.trim() || 'N-Alert';
 const senderCompany = process.env.TERMII_COMPANY_NAME?.trim() || 'Iter8d Studio';
-const senderUseCase = process.env.TERMII_OTP_USE_CASE?.trim() || 'OTP';
+const senderUseCaseTarget = process.env.TERMII_SENDER_USECASE_TARGET?.trim() || 'TRANSACTIONAL';
 const testPhone = process.env.TERMII_TEST_PHONE?.trim() || '';
 const applicationId = process.env.TERMII_APPLICATION_ID?.trim() || '62685';
 
@@ -26,10 +26,14 @@ const printJson = (label, value) => {
   console.log(JSON.stringify(value, null, 2));
 };
 
-const hasActiveOtpSender = (senderStates = []) =>
-  senderStates.some((item) => toStatus(item.status) === 'active' && /otp/.test(toUsecase(item.usecase)));
+const hasActiveTargetSender = (senderStates = []) => {
+  const target = toUsecase(senderUseCaseTarget);
+  return senderStates.some(
+    (item) => toStatus(item.status) === 'active' && toUsecase(item.usecase).includes(target)
+  );
+};
 
-const requestOtpSenderApproval = async ({ apiBase }) => {
+const requestSenderApproval = async ({ apiBase }) => {
   try {
     const response = await fetch(`${apiBase}/sender-id/request`, {
       method: 'POST',
@@ -37,7 +41,7 @@ const requestOtpSenderApproval = async ({ apiBase }) => {
       body: JSON.stringify({
         api_key: apiKey,
         sender_id: desiredSenderId,
-        use_case: senderUseCase,
+        use_case: senderUseCaseTarget,
         company: senderCompany,
       }),
     });
@@ -70,16 +74,18 @@ const buildSupportTicket = ({ apiBase, senderBefore, senderAfter, approvalAttemp
     .join(' | ');
 
   return {
-    subject: 'Enable OTP send for applicationId 62685',
+    subject: 'Enable transactional SMS delivery for backend-generated OTPs (applicationId 62685)',
     message: [
       `ApplicationId: ${applicationId}`,
       `API base: ${apiBase}`,
       `Desired sender: ${desiredSenderId}`,
+      `Requested usecase target: ${senderUseCaseTarget}`,
       `Sender states: ${senderStateLines || 'none returned'}`,
       `Sender request attempt: ${JSON.stringify(approvalAttempt)}`,
       `Send test result: ${JSON.stringify(sendResult)}`,
       'Issue: /api/sms/send still returns 400 with empty message for this application key.',
-      'Please enable OTP-capable sending for this sender/application and confirm allowed route/channel.',
+      'We generate OTP codes in backend; Termii is used only as messaging delivery.',
+      'Please enable this sender/application for /api/sms/send delivery and confirm allowed route/channel.',
     ].join('\n'),
   };
 };
@@ -96,20 +102,20 @@ const buildSupportTicket = ({ apiBase, senderBefore, senderAfter, approvalAttemp
   const senderBefore = await fetchSenderDiagnostics({ apiBase, apiKey });
   printJson('SenderDiagnosticsBefore', senderBefore || { error: 'Could not fetch sender diagnostics' });
 
-  const otpActiveBefore = hasActiveOtpSender(senderBefore?.senderStates || []);
+  const targetActiveBefore = hasActiveTargetSender(senderBefore?.senderStates || []);
   let approvalAttempt = { attempted: false };
 
-  if (!otpActiveBefore) {
-    approvalAttempt = await requestOtpSenderApproval({ apiBase });
+  if (!targetActiveBefore) {
+    approvalAttempt = await requestSenderApproval({ apiBase });
     printJson('SenderApprovalAttempt', approvalAttempt);
   } else {
-    console.log('\nAn active OTP sender already exists. Skipping approval request.');
+    console.log(`\nAn active ${senderUseCaseTarget} sender already exists. Skipping approval request.`);
   }
 
   const senderAfter = await fetchSenderDiagnostics({ apiBase, apiKey });
   printJson('SenderDiagnosticsAfter', senderAfter || { error: 'Could not fetch sender diagnostics' });
 
-  const otpActiveAfter = hasActiveOtpSender(senderAfter?.senderStates || []);
+  const targetActiveAfter = hasActiveTargetSender(senderAfter?.senderStates || []);
 
   let sendResult = { skipped: true, reason: 'TERMII_TEST_PHONE is not set' };
   if (testPhone) {
@@ -134,8 +140,9 @@ const buildSupportTicket = ({ apiBase, senderBefore, senderAfter, approvalAttemp
     applicationId,
     apiBase,
     desiredSenderId,
-    otpActiveBefore,
-    otpActiveAfter,
+    senderUseCaseTarget,
+    targetActiveBefore,
+    targetActiveAfter,
     approvalAttempt,
     senderBefore,
     senderAfter,

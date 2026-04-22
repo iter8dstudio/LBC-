@@ -100,9 +100,31 @@ const fetchSenderDiagnostics = async ({ apiBase, apiKey }) => {
 
 const selectTermiiSender = ({ configuredSenderId, senderStates = [] }) => {
   const activeStates = senderStates.filter((item) => parseStatus(item.status) === 'active');
+  const preferredUsecase = parseUsecase(process.env.TERMII_SENDER_USECASE_TARGET || 'TRANSACTIONAL');
 
   if (!activeStates.length) {
     return { senderId: null, reason: 'No active sender ID found in Termii account' };
+  }
+
+  const preferredActiveByUsecase = configuredSenderId
+    ? activeStates.find(
+        (item) => item.sender_id === configuredSenderId && parseUsecase(item.usecase).includes(preferredUsecase)
+      )
+    : null;
+
+  if (preferredActiveByUsecase) {
+    return {
+      senderId: preferredActiveByUsecase.sender_id,
+      reason: `Using configured active sender ID (${preferredUsecase})`,
+    };
+  }
+
+  const preferredAny = activeStates.find((item) => parseUsecase(item.usecase).includes(preferredUsecase));
+  if (preferredAny) {
+    return {
+      senderId: preferredAny.sender_id,
+      reason: `Auto-selected active sender ID for ${preferredUsecase}`,
+    };
   }
 
   const preferredActive = configuredSenderId
