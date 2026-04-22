@@ -9,6 +9,9 @@ const normalizePhone = (phone) => {
   return digits;
 };
 
+const parseStatus = (value) => String(value || '').trim().toLowerCase();
+const parseUsecase = (value) => String(value || '').trim().toLowerCase();
+
 const getTermiiApiBase = () => {
   const rawBase = process.env.TERMII_BASE_URL?.trim() || 'https://v3.api.termii.com';
   const withoutTrailingSlash = rawBase.replace(/\/+$/, '');
@@ -95,9 +98,44 @@ const fetchSenderDiagnostics = async ({ apiBase, apiKey }) => {
   }
 };
 
+const selectTermiiSender = ({ configuredSenderId, senderStates = [] }) => {
+  const activeStates = senderStates.filter((item) => parseStatus(item.status) === 'active');
+
+  if (!activeStates.length) {
+    return { senderId: null, reason: 'No active sender ID found in Termii account' };
+  }
+
+  const preferredActive = configuredSenderId
+    ? activeStates.find((item) => item.sender_id === configuredSenderId)
+    : null;
+
+  if (preferredActive) {
+    return { senderId: preferredActive.sender_id, reason: 'Using configured active sender ID' };
+  }
+
+  const otpActive = activeStates.find((item) => /otp/.test(parseUsecase(item.usecase)));
+  if (otpActive) {
+    return { senderId: otpActive.sender_id, reason: 'Auto-selected active OTP sender ID' };
+  }
+
+  const transactionalActive = activeStates.find((item) => /transactional/.test(parseUsecase(item.usecase)));
+  if (transactionalActive) {
+    return {
+      senderId: transactionalActive.sender_id,
+      reason: 'Auto-selected active transactional sender ID',
+    };
+  }
+
+  return {
+    senderId: activeStates[0].sender_id,
+    reason: 'Auto-selected first active sender ID',
+  };
+};
+
 const sendViaTermii = async ({ to, message }) => {
   const apiKey = process.env.TERMII_API_KEY?.trim();
-  const senderId = process.env.TERMII_SENDER_ID?.trim() || 'N-Alert';
+  const configuredSenderId = process.env.TERMII_SENDER_ID?.trim() || 'N-Alert';
+  const autoSelectSender = process.env.TERMII_AUTO_SELECT_SENDER !== 'false';
   const preferredChannel = process.env.TERMII_CHANNEL?.trim() || 'dnd';
   const apiBase = getTermiiApiBase();
   const channelCandidates = [preferredChannel, 'generic', 'dnd']
@@ -106,6 +144,30 @@ const sendViaTermii = async ({ to, message }) => {
 
   if (!apiKey) {
     return { delivered: false, error: 'TERMII_API_KEY is not configured' };
+  }
+
+  const startupDiagnostics = await fetchSenderDiagnostics({ apiBase, apiKey });
+  const senderSelection = autoSelectSender
+    ? selectTermiiSender({
+        configuredSenderId,
+        senderStates: startupDiagnostics?.senderStates || [],
+      })
+    : { senderId: configuredSenderId, reason: 'Auto selection disabled by TERMII_AUTO_SELECT_SENDER=false' };
+  const senderId = senderSelection.senderId || configuredSenderId;
+
+  if (autoSelectSender && !senderSelection.senderId) {
+    const senderHint = startupDiagnostics?.senderStates?.length
+      ? startupDiagnostics.senderStates
+          .map((item) => `${item.sender_id}:${item.status}:${item.usecase}`)
+          .join(' | ')
+      : 'No sender details returned by Termii';
+
+    return {
+      delivered: false,
+      provider: 'termii',
+      error: `${senderSelection.reason}. Activate an OTP or transactional sender in Termii. Sender states: ${senderHint}`,
+      senderDiagnostics: startupDiagnostics,
+    };
   }
 
   let lastFailure = null;
@@ -172,7 +234,9 @@ const sendViaTermii = async ({ to, message }) => {
 
     console.error('[TERMII_SEND_FAILED]', {
       apiBase,
+      configuredSenderId,
       senderId,
+      senderSelectionReason: senderSelection.reason,
       to,
       channel,
       httpStatus: termiiError.httpStatus,
@@ -209,5 +273,8 @@ const sendSms = async ({ to, message }) => {
 
 module.exports = {
   normalizePhone,
+  getTermiiApiBase,
+  fetchSenderDiagnostics,
+  selectTermiiSender,
   sendSms,
 };
