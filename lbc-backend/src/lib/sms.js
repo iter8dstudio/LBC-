@@ -119,20 +119,21 @@ const selectTermiiSender = ({ configuredSenderId, senderStates = [] }) => {
     };
   }
 
-  const preferredAny = activeStates.find((item) => parseUsecase(item.usecase).includes(preferredUsecase));
-  if (preferredAny) {
-    return {
-      senderId: preferredAny.sender_id,
-      reason: `Auto-selected active sender ID for ${preferredUsecase}`,
-    };
-  }
-
+  // If the configured sender is active, keep using it even when usecase metadata does not match.
   const preferredActive = configuredSenderId
     ? activeStates.find((item) => item.sender_id === configuredSenderId)
     : null;
 
   if (preferredActive) {
     return { senderId: preferredActive.sender_id, reason: 'Using configured active sender ID' };
+  }
+
+  const preferredAny = activeStates.find((item) => parseUsecase(item.usecase).includes(preferredUsecase));
+  if (preferredAny) {
+    return {
+      senderId: preferredAny.sender_id,
+      reason: `Auto-selected active sender ID for ${preferredUsecase}`,
+    };
   }
 
   const otpActive = activeStates.find((item) => /otp/.test(parseUsecase(item.usecase)));
@@ -159,10 +160,13 @@ const sendViaTermii = async ({ to, message }) => {
   const configuredSenderId = process.env.TERMII_SENDER_ID?.trim() || 'N-Alert';
   const autoSelectSender = process.env.TERMII_AUTO_SELECT_SENDER !== 'false';
   const preferredChannel = process.env.TERMII_CHANNEL?.trim() || 'dnd';
+  const allowChannelFallback = String(process.env.TERMII_CHANNEL_FALLBACK || '').toLowerCase() === 'true';
   const apiBase = getTermiiApiBase();
-  const channelCandidates = [preferredChannel, 'generic', 'dnd']
-    .filter(Boolean)
-    .filter((value, index, arr) => arr.indexOf(value) === index);
+  const channelCandidates = allowChannelFallback
+    ? [preferredChannel, 'generic', 'dnd']
+        .filter(Boolean)
+        .filter((value, index, arr) => arr.indexOf(value) === index)
+    : [preferredChannel];
 
   if (!apiKey) {
     return { delivered: false, error: 'TERMII_API_KEY is not configured' };
