@@ -17,6 +17,17 @@ const devOtpLoggingEnabled = !isProduction && process.env.ENABLE_DEV_OTP_LOG ===
 // Used only for password reset tokens — NOT for 6-digit OTPs.
 const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
 
+const timingSafeEqualStrings = (left, right) => {
+  const leftBuffer = Buffer.from(String(left || ''), 'utf8');
+  const rightBuffer = Buffer.from(String(right || ''), 'utf8');
+
+  if (leftBuffer.length !== rightBuffer.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(leftBuffer, rightBuffer);
+};
+
 // ── JWT Secret Validation ─────────────────────────────────
 const validateJwtSecret = (secret, name) => {
   if (!secret) {
@@ -83,11 +94,11 @@ const validatePassword = (password) => {
 const generateTokens = (userId) => {
   // Access token: short-lived (15 minutes)
   const accessToken = jwt.sign({ userId }, accessTokenSecret, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '10d',
+    expiresIn: process.env.JWT_EXPIRES_IN || '15m',
   });
   // Refresh token: long-lived (30 days), used to get new access tokens
   const refreshToken = jwt.sign({ userId }, refreshTokenSecret, {
-    expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
+    expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   });
   return { accessToken, refreshToken };
 };
@@ -182,7 +193,7 @@ exports.verifyEmail = async (req, res) => {
     if (user.emailOtpExpiry < new Date()) {
       return res.status(400).json({ error: 'Verification code has expired. Request a new one.' });
     }
-    if (user.emailOtp !== otp) {
+    if (!timingSafeEqualStrings(user.emailOtp, otp)) {
       return res.status(400).json({ error: 'Incorrect verification code' });
     }
 
@@ -248,56 +259,6 @@ exports.resendEmailOtp = async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: 'Failed to resend code' });
-  }
-};
-
-exports.getDevEmailOtp = async (req, res) => {
-  try {
-    if (process.env.ENABLE_DEV_OTP_ENDPOINT !== 'true') {
-      return res.status(404).json({ error: 'Route not found' });
-    }
-
-    // CRITICAL: This endpoint should NEVER exist in production
-    // Even if NODE_ENV is misconfigured, block access with multiple checks
-    if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'prod' || !process.env.NODE_ENV) {
-      console.warn('[SECURITY] Dev OTP endpoint accessed in production-like environment!');
-      return res.status(404).json({ error: 'Route not found' });
-    }
-
-    // Additional security: Log all access to this endpoint
-    console.warn(`[DEV-OTP-ACCESS] User agent: ${req.get('user-agent')}, IP: ${req.ip}`);
-
-    const userId = req.query.userId || req.body?.userId;
-    const email = req.query.email?.toLowerCase().trim() || req.body?.email?.toLowerCase().trim();
-
-    if (!userId && !email) {
-      return res.status(400).json({ error: 'userId or email is required' });
-    }
-
-    const user = await prisma.user.findFirst({
-      where: userId ? { id: userId } : { email },
-      select: {
-        id: true,
-        email: true,
-        emailVerified: true,
-        emailOtp: true,
-        emailOtpExpiry: true,
-      },
-    });
-
-    if (!user) return res.status(404).json({ error: 'User not found' });
-
-    res.json({
-      _warning: 'Development-only endpoint. Never expose in production.',
-      userId: user.id,
-      email: user.email,
-      emailVerified: user.emailVerified,
-      otp: user.emailOtp,
-      expiresAt: user.emailOtpExpiry,
-      isExpired: user.emailOtpExpiry ? user.emailOtpExpiry < new Date() : true,
-    });
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch dev OTP' });
   }
 };
 
@@ -430,7 +391,7 @@ exports.verifyPhone = async (req, res) => {
     if (!user.phoneOtp || user.phoneOtpExpiry < new Date()) {
       return res.status(400).json({ error: 'OTP has expired. Request a new one.' });
     }
-    if (user.phoneOtp !== otp) {
+    if (!timingSafeEqualStrings(user.phoneOtp, otp)) {
       return res.status(400).json({ error: 'Incorrect OTP' });
     }
 
@@ -503,7 +464,7 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ error: 'Invalid or expired reset link' });
     }
     // Compare SHA-256 hash of submitted token against stored hash
-    if (hashToken(token) !== user.emailOtp) {
+    if (!timingSafeEqualStrings(hashToken(token), user.emailOtp)) {
       return res.status(400).json({ error: 'Invalid or expired reset link' });
     }
 

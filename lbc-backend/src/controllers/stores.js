@@ -23,7 +23,9 @@ const uniqueSlug = async (base) => {
 exports.getStores = async (req, res) => {
   try {
     const { q, category, location, sponsored, page = 1, limit = 20 } = req.query;
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const normalizedPage = Math.max(parseInt(page, 10) || 1, 1);
+    const normalizedLimit = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 50);
+    const skip = (normalizedPage - 1) * normalizedLimit;
 
     const where = {
       active: true,
@@ -42,7 +44,7 @@ exports.getStores = async (req, res) => {
       prisma.store.findMany({
         where,
         skip,
-        take: parseInt(limit),
+        take: normalizedLimit,
         orderBy: [{ sponsored: 'desc' }, { verified: 'desc' }, { createdAt: 'desc' }],
         include: {
           _count: { select: { listings: true } },
@@ -51,7 +53,7 @@ exports.getStores = async (req, res) => {
       prisma.store.count({ where }),
     ]);
 
-    res.json({ stores, total, page: parseInt(page), pages: Math.ceil(total / parseInt(limit)) });
+    res.json({ stores, total, page: normalizedPage, pages: Math.ceil(total / normalizedLimit) });
   } catch (err) {
     console.error('getStores error:', err);
     res.status(500).json({ error: 'Failed to fetch stores' });

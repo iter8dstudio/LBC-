@@ -1,6 +1,11 @@
 // src/controllers/misc.js
 const prisma = require('../lib/prisma');
 
+const scrubText = (value) => String(value || '')
+  .replace(/[\u0000-\u001f\u007f]/g, ' ')
+  .replace(/[<>]/g, '')
+  .trim();
+
 const CATEGORIES = [
   { id: 'fashion',      label: 'Fashion & Clothing',    icon: '👗' },
   { id: 'beauty',       label: 'Beauty & Wellness',      icon: '💄' },
@@ -56,7 +61,12 @@ exports.submitContact = async (req, res) => {
     }
 
     await prisma.contactMessage.create({
-      data: { name, email, subject: subject || 'General Enquiry', message },
+      data: {
+        name: scrubText(name),
+        email: scrubText(email),
+        subject: scrubText(subject || 'General Enquiry'),
+        message: scrubText(message),
+      },
     });
 
     res.json({ message: 'Message received. We will get back to you within 24 hours.' });
@@ -76,11 +86,11 @@ exports.submitReport = async (req, res) => {
 
     await prisma.report.create({
       data: {
-        storeName,
-        storeId: storeId || null,
-        reason,
-        details,
-        reporterEmail: reporterEmail || null,
+        storeName: scrubText(storeName),
+        storeId: storeId ? scrubText(storeId) : null,
+        reason: scrubText(reason),
+        details: scrubText(details),
+        reporterEmail: reporterEmail ? scrubText(reporterEmail) : null,
       },
     });
 

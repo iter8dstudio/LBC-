@@ -19,7 +19,6 @@ const API_BASE_URL_MAP = {
   'www.lekkibusinessconnect.com': 'https://lbc-production.up.railway.app/api',
   'lbc.ng': 'https://lbc-production.up.railway.app/api',
   'www.lbc.ng': 'https://lbc-production.up.railway.app/api',
-  'testlbc-production.up.railway.app': 'https://lbc-production.up.railway.app/api',
   'lbc-production.up.railway.app': 'https://lbc-production.up.railway.app/api',
 };
 
@@ -45,8 +44,6 @@ const buildApiBaseCandidates = () => {
     currentOriginApi,
     hostname === 'localhost' || hostname === '127.0.0.1' ? 'http://localhost:8000/api' : '',
     DEFAULT_REMOTE_API_BASE_URL,
-    'https://lbc-production.up.railway.app/api',
-    'https://api.lbc.ng/api',
   ].filter(Boolean)));
 };
 

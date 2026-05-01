@@ -2,6 +2,8 @@
 const prisma = require('../lib/prisma');
 const { uploadToCloudinary } = require('../middleware/upload');
 
+const UUID_V4_OR_V1_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 // ── GET ALL LISTINGS (public search) ─────────────────────
 
 exports.getListings = async (req, res) => {
@@ -12,7 +14,9 @@ exports.getListings = async (req, res) => {
       sort = 'relevance', page = 1, limit = 20,
     } = req.query;
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const normalizedPage = Math.max(parseInt(page, 10) || 1, 1);
+    const normalizedLimit = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 50);
+    const skip = (normalizedPage - 1) * normalizedLimit;
 
     const where = {
       status: 'live',
@@ -45,7 +49,7 @@ exports.getListings = async (req, res) => {
       prisma.listing.findMany({
         where,
         skip,
-        take: parseInt(limit),
+        take: normalizedLimit,
         orderBy,
         include: {
           store: {
@@ -70,7 +74,7 @@ exports.getListings = async (req, res) => {
       prisma.listing.count({ where }),
     ]);
 
-    res.json({ listings, total, page: parseInt(page), pages: Math.ceil(total / parseInt(limit)) });
+    res.json({ listings, total, page: normalizedPage, pages: Math.ceil(total / normalizedLimit) });
   } catch (err) {
     console.error('getListings error:', err);
     res.status(500).json({ error: 'Failed to fetch listings' });
@@ -81,6 +85,10 @@ exports.getListings = async (req, res) => {
 
 exports.getListing = async (req, res) => {
   try {
+    if (!UUID_V4_OR_V1_PATTERN.test(req.params.id || '')) {
+      return res.status(400).json({ error: 'Invalid listing id' });
+    }
+
     const listing = await prisma.listing.findUnique({
       where: { id: req.params.id },
       include: {
@@ -119,6 +127,10 @@ exports.getListing = async (req, res) => {
 
 exports.getListingsByStore = async (req, res) => {
   try {
+    if (!UUID_V4_OR_V1_PATTERN.test(req.params.storeId || '')) {
+      return res.status(400).json({ error: 'Invalid store id' });
+    }
+
     const listings = await prisma.listing.findMany({
       where: { storeId: req.params.storeId, status: 'live' },
       orderBy: [{ sponsored: 'desc' }, { createdAt: 'desc' }],
@@ -186,6 +198,10 @@ exports.createListing = async (req, res) => {
 
 exports.updateListing = async (req, res) => {
   try {
+    if (!UUID_V4_OR_V1_PATTERN.test(req.params.id || '')) {
+      return res.status(400).json({ error: 'Invalid listing id' });
+    }
+
     const listing = await prisma.listing.findUnique({ where: { id: req.params.id } });
     if (!listing) return res.status(404).json({ error: 'Listing not found' });
 
@@ -211,6 +227,10 @@ exports.updateListing = async (req, res) => {
 
 exports.updateListingStatus = async (req, res) => {
   try {
+    if (!UUID_V4_OR_V1_PATTERN.test(req.params.id || '')) {
+      return res.status(400).json({ error: 'Invalid listing id' });
+    }
+
     const { status } = req.body;
     const validStatuses = ['draft', 'live', 'unpublished'];
     if (!validStatuses.includes(status)) {
@@ -236,6 +256,10 @@ exports.updateListingStatus = async (req, res) => {
 
 exports.deleteListing = async (req, res) => {
   try {
+    if (!UUID_V4_OR_V1_PATTERN.test(req.params.id || '')) {
+      return res.status(400).json({ error: 'Invalid listing id' });
+    }
+
     const listing = await prisma.listing.findUnique({ where: { id: req.params.id } });
     if (!listing) return res.status(404).json({ error: 'Listing not found' });
 
@@ -255,6 +279,10 @@ exports.deleteListing = async (req, res) => {
 
 exports.uploadImages = async (req, res) => {
   try {
+    if (!UUID_V4_OR_V1_PATTERN.test(req.params.id || '')) {
+      return res.status(400).json({ error: 'Invalid listing id' });
+    }
+
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ error: 'No images uploaded' });
     }

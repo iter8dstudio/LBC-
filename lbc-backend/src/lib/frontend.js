@@ -14,16 +14,26 @@ const getFrontendBaseUrl = () => normalizeUrl(
   || DEFAULT_FRONTEND_URL
 );
 
-const getAllowedOrigins = () => Array.from(new Set([
-  getFrontendBaseUrl(),
-  normalizeUrl(process.env.FRONTEND_URL),
-  normalizeUrl(process.env.FRONTEND_URL_PROD),
-  normalizeUrl(process.env.FRONTEND_URL_STAGING),
-  'https://www.lekkibusinessconnect.com',
-  'http://localhost:3000',
-  'http://localhost:5500',
-  'http://127.0.0.1:5500',
-].filter(Boolean)));
+const getAllowedOrigins = () => {
+  const productionOrigins = [
+    getFrontendBaseUrl(),
+    normalizeUrl(process.env.FRONTEND_URL),
+    normalizeUrl(process.env.FRONTEND_URL_PROD),
+    normalizeUrl(process.env.FRONTEND_URL_STAGING),
+    'https://www.lekkibusinessconnect.com',
+  ];
+
+  if (process.env.NODE_ENV === 'production') {
+    return Array.from(new Set(productionOrigins.filter(Boolean)));
+  }
+
+  return Array.from(new Set([
+    ...productionOrigins,
+    'http://localhost:3000',
+    'http://localhost:5500',
+    'http://127.0.0.1:5500',
+  ].filter(Boolean)));
+};
 
 module.exports = {
   DEFAULT_FRONTEND_URL,

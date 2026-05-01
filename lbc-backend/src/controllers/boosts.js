@@ -157,13 +157,21 @@ exports.verifyBoost = async (req, res) => {
 exports.paystackWebhook = async (req, res) => {
   try {
     const paystackSecretKey = assertPaystackConfigured();
+    const signature = String(req.headers['x-paystack-signature'] || '');
+    if (!signature) {
+      return res.status(401).json({ error: 'Missing signature' });
+    }
+
     // Verify webhook signature
     const hash = crypto
       .createHmac('sha512', paystackSecretKey)
-      .update(JSON.stringify(req.body))
+      .update(req.rawBody || Buffer.from(JSON.stringify(req.body), 'utf8'))
       .digest('hex');
 
-    if (hash !== req.headers['x-paystack-signature']) {
+    const hashBuffer = Buffer.from(hash, 'utf8');
+    const signatureBuffer = Buffer.from(signature, 'utf8');
+
+    if (hashBuffer.length !== signatureBuffer.length || !crypto.timingSafeEqual(hashBuffer, signatureBuffer)) {
       return res.status(401).json({ error: 'Invalid signature' });
     }
 

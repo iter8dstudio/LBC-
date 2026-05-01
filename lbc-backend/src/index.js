@@ -5,6 +5,7 @@ const crypto     = require('crypto');
 const express    = require('express');
 const helmet     = require('helmet');
 const cors       = require('cors');
+const compression = require('compression');
 const rateLimit  = require('express-rate-limit');
 const { sanitizeRequest } = require('./middleware/sanitize');
 const { getAllowedOrigins, getFrontendBaseUrl } = require('./lib/frontend');
@@ -12,19 +13,20 @@ const { getPaystackSecretKey } = require('./lib/paystack');
 
 const app = express();
 
-const buildFallbackSecret = (name) => crypto
-  .createHash('sha256')
-  .update(`${process.env.RAILWAY_PROJECT_ID || 'lbc'}:${name}:fallback-secret`)
-  .digest('hex');
+const buildFallbackSecret = () => crypto.randomBytes(64).toString('hex');
 
 const ensureRuntimeSecret = (name, minLength = 64) => {
   const current = (process.env[name] || '').trim();
   if (current && current.length >= minLength) return current;
 
   const reason = !current ? 'is not set' : `is shorter than ${minLength} characters`;
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(`[SECURITY] ${name} ${reason}. Refusing to start in production.`);
+  }
+
   process.env[name] = buildFallbackSecret(name);
   console.warn(
-    `[CONFIG WARNING] ${name} ${reason}. Using a temporary fallback so the API can start. Set a strong value in Railway variables.`
+    `[CONFIG WARNING] ${name} ${reason}. Using a temporary random fallback for local development only.`
   );
   return process.env[name];
 };
@@ -37,10 +39,28 @@ ensureRuntimeSecret('REFRESH_TOKEN_SECRET', 64);
 app.set('trust proxy', 1);
 
 // ── SECURITY ──────────────────────────────────────────────
-app.use(helmet());
+app.use(helmet({
+  strictTransportSecurity: process.env.NODE_ENV === 'production'
+    ? {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true,
+      }
+    : false,
+  referrerPolicy: { policy: 'no-referrer' },
+}));
+
+app.use(compression());
 
 app.use(cors({
-  origin: getAllowedOrigins(),
+  origin(origin, callback) {
+    const allowedOrigins = getAllowedOrigins();
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error('CORS origin denied'));
+  },
   credentials: true,
 }));
 
@@ -65,7 +85,8 @@ app.use(generalLimiter);
 // Must come BEFORE express.json()
 app.use('/api/boosts/webhook', express.raw({ type: 'application/json' }), (req, res, next) => {
   if (Buffer.isBuffer(req.body)) {
-    req.body = JSON.parse(req.body.toString());
+    req.rawBody = req.body;
+    req.body = JSON.parse(req.body.toString('utf8'));
   }
   next();
 });
@@ -124,6 +145,14 @@ app.use((err, req, res, next) => {
       ? 'Something went wrong. Please try again.'
       : err.message,
   });
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled promise rejection:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught exception:', error);
 });
 
 // ── START ─────────────────────────────────────────────────
